@@ -1,0 +1,3 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<FileDialog Width="60%" Height="50%" Caption="Save File" CurrentDirectory="{CurrentDir}" OkClicked="saveFileDialog_OkClicked"/>
+

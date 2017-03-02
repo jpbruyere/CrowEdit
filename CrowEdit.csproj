@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{AAA67D93-458E-4DD7-9CDA-4EC7F73D47FF}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CrowEdit</RootNamespace>
+    <AssemblyName>CrowEdit</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <StartupObject>CrowEdit.CrowEdit</StartupObject>
+    <OutputPath>$(SolutionDir)build/$(Configuration)</OutputPath>
+    <IntermediateOutputPath>$(SolutionDir)build/obj/$(Configuration)</IntermediateOutputPath>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="Execute" command="${TargetName}" workingdir="${SolutionDir}/build/${ProjectConfigName}" />
+      </CustomCommands>
+    </CustomCommands>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <WarningLevel>0</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="OpenTK.dll.config" />
+    <None Include="packages.config" />
+    <None Include="ui\icons\center-align.svg" />
+    <None Include="ui\icons\cogwheel.svg" />
+    <None Include="ui\icons\edit.svg" />
+    <None Include="ui\icons\file-code.svg" />
+    <None Include="ui\icons\folder.svg" />
+    <None Include="ui\icons\font-file.svg" />
+    <None Include="ui\icons\light-bulb.svg" />
+    <None Include="ui\icons\paragraph.svg" />
+    <None Include="ui\icons\previous.svg" />
+    <None Include="ui\icons\search.svg" />
+    <None Include="ui\icons\text-file.svg" />
+    <None Include="ui\icons\text-label.svg" />
+    <None Include="ui\icons\tools.svg" />
+    <None Include="ui\icons\zoom-in.svg" />
+    <None Include="ui\icons\zoom-out.svg" />
+    <None Include="ui\icons\basic_floppydisk.svg" />
+    <None Include="Crow.dll.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="OpenTK">
+      <HintPath>packages\OpenTK.2.0.0\lib\net20\OpenTK.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Crow">
+      <HintPath>packages\Crow.OpenTK.0.5.1\lib\net45\Crow.dll</HintPath>
+    </Reference>
+    <Reference Include="cairo-sharp">
+      <Package>gtk-sharp-3.0</Package>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CrowEdit.cs" />
+    <Compile Include="CrowWindow.cs" />
+    <Compile Include="InterfaceControler.cs" />
+    <Compile Include="OpenGL\Extensions.cs" />
+    <Compile Include="OpenGL\Shader.cs" />
+    <Compile Include="OpenGL\Texture.cs" />
+    <Compile Include="OpenGL\vaoMesh.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ui\" />
+    <Folder Include="ui\icons\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ui\main.crow" />
+    <EmbeddedResource Include="ui\openFile.crow" />
+    <EmbeddedResource Include="ui\icons\blank-file.svg" />
+    <EmbeddedResource Include="ui\MenuItem.template">
+      <LogicalName>Crow.MenuItem.template</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ui\icons\sign-out.svg" />
+    <EmbeddedResource Include="ui\icons\copy-file.svg" />
+    <EmbeddedResource Include="ui\icons\paste-on-document.svg" />
+    <EmbeddedResource Include="ui\icons\scissors.svg" />
+    <EmbeddedResource Include="ui\icons\reply.svg" />
+    <EmbeddedResource Include="ui\icons\share-arrow.svg" />
+    <EmbeddedResource Include="ui\icons\question.svg" />
+    <EmbeddedResource Include="ui\icons\inbox.svg" />
+    <EmbeddedResource Include="ui\icons\outbox.svg" />
+    <EmbeddedResource Include="ui\saveFile.crow" />
+  </ItemGroup>
+</Project>

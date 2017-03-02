@@ -1,0 +1,43 @@
+﻿<?xml version="1.0"?>
+<Window Height="90%" Width="90%" Caption="{CurFileFullPath}">
+	<VerticalStack Spacing="0">
+		<Menu>
+			<MenuItem Caption="File" Width="Fit" PopWidth="80">
+				<MenuItem Command="{CMDNew}" />
+				<MenuItem Command="{CMDOpen}" />
+				<MenuItem Command="{CMDSave}" />
+				<MenuItem Command="{CMDSaveAs}" />
+				<MenuItem Command="{CMDQuit}" />
+			</MenuItem>
+			<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="60">
+				<MenuItem Command="{CMDUndo}" />
+				<MenuItem Command="{CMDRedo}" />
+				<MenuItem Command="{CMDCut}" />
+				<MenuItem Command="{CMDCopy}" />
+				<MenuItem Command="{CMDPaste}" />
+			</MenuItem>
+			<MenuItem Caption="Help" Width="Fit" PopWidth="60">
+				<MenuItem Caption="About"/>
+				<MenuItem Command="{CMDHelp}"/>
+			</MenuItem>
+		</Menu>
+		<HorizontalStack Height="Stretched">
+			<Scroller Background="Ivory" Name="scroller1" VerticalScrolling="true" ScrollY="{../scrollbar1.Value}">
+				<TextBox Name="editor" Font="couriernew, 12" VerticalAlignment="Top" Margin="10"
+					Multiline="true" Height="Fit" TextAlignment="TopLeft"
+					Text="{²Text}"  KeyDown="textView_KeyDown"/>
+			</Scroller>
+			<ScrollBar Name="scrollbar1" Value="{../scroller1.ScrollY}" 
+				Maximum="{../scroller1.MaximumScroll}" Orientation="Vertical" 
+				Width="14" />
+		</HorizontalStack>
+		<HorizontalStack Height="Fit">
+			<GraphicObject Height="5" Width="Stretched"/>
+			<GraphicObject Background="Red" Width="10" Height="10" Visible="{IsDirty}"/>
+			<Label Text="column:"/>
+			<Label Text="{../../editor.CurrentColumn}"/>
+			<Label Text="Line:"/>
+			<Label Text="{../../editor.CurrentLine}"/>
+		</HorizontalStack>
+	</VerticalStack>
+</Window>

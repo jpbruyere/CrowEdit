@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<FileDialog Width="60%" Height="50%" Caption="Open File" AlwaysOnTop="true"
+	CurrentDirectory="{CurrentDir}"
+	SelectedFile="{CurFilePath}"
+	OkClicked="openFileDialog_OkClicked"/>
+
