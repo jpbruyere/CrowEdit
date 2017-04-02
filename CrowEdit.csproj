@@ -61,25 +61,30 @@
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
-    <Reference Include="Crow">
-      <HintPath>packages\Crow.OpenTK.0.5.1\lib\net45\Crow.dll</HintPath>
-    </Reference>
     <Reference Include="cairo-sharp">
       <Package>gtk-sharp-3.0</Package>
     </Reference>
+    <Reference Include="Crow">
+      <HintPath>packages\Crow.OpenTK.0.5.1\lib\net45\Crow.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CrowEdit.cs" />
-    <Compile Include="CrowWindow.cs" />
-    <Compile Include="InterfaceControler.cs" />
     <Compile Include="OpenGL\Extensions.cs" />
     <Compile Include="OpenGL\Shader.cs" />
     <Compile Include="OpenGL\Texture.cs" />
     <Compile Include="OpenGL\vaoMesh.cs" />
+    <Compile Include="src\CrowEdit.cs" />
+    <Compile Include="src\CrowEditExtentions.cs" />
+    <Compile Include="src\CrowWindow.cs" />
+    <Compile Include="src\InterfaceControler.cs" />
+    <Compile Include="src\ScrollingObject.cs" />
+    <Compile Include="src\TextBuffer.cs" />
+    <Compile Include="src\ScrollingTextBox.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />
     <Folder Include="ui\icons\" />
+    <Folder Include="src\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="ui\main.crow" />

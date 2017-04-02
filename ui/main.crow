@@ -21,16 +21,17 @@
 				<MenuItem Command="{CMDHelp}"/>
 			</MenuItem>
 		</Menu>
-		<HorizontalStack Height="Stretched">
-			<Scroller Background="Ivory" Name="scroller1" VerticalScrolling="true" ScrollY="{../scrollbar1.Value}">
-				<TextBox Name="editor" Font="couriernew, 12" VerticalAlignment="Top" Margin="10"
-					Multiline="true" Height="Fit" TextAlignment="TopLeft"
-					Text="{²Text}"  KeyDown="textView_KeyDown"/>
-			</Scroller>
-			<ScrollBar Name="scrollbar1" Value="{../scroller1.ScrollY}" 
-				Maximum="{../scroller1.MaximumScroll}" Orientation="Vertical" 
+		<HorizontalStack Height="Stretched" Background="Ivory">
+			<ScrollingTextBox Focusable="true" Name="editor" Font="couriernew, 16" VerticalAlignment="Top" Margin="10"
+					Foreground="Jet"
+					Text="{Text}"  KeyDown="textView_KeyDown"/>
+			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}" 
+				Maximum="{../editor.MaxScrollY}" Orientation="Vertical" 
 				Width="14" />
 		</HorizontalStack>
+		<ScrollBar Name="scrollbarX" Value="{²../editor.ScrollX}" 
+				Maximum="{../editor.MaxScrollX}" Orientation="Horizontal" 
+				Height="14" />
 		<HorizontalStack Height="Fit">
 			<GraphicObject Height="5" Width="Stretched"/>
 			<GraphicObject Background="Red" Width="10" Height="10" Visible="{IsDirty}"/>
