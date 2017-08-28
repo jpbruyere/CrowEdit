@@ -33,16 +33,17 @@ using System.Text;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Crow
 {
 	/// <summary>
 	/// Scrolling text box optimized for monospace fonts, for coding
 	/// </summary>
-	public class ScrollingTextBox : ScrollingObject
+	public class SourceEditor : ScrollingObject
 	{
 		#region CTOR
-		public ScrollingTextBox ():base()
+		public SourceEditor ():base()
 		{
 
 
@@ -59,11 +60,11 @@ namespace Crow
 		#region private and protected fields
 		string lineBreak = Interface.LineBreak;
 		int visibleLines = 1;
-		List<string> lines;
+		int visibleColumns = 1;
+		CodeTextBuffer buffer;
 		string _text = "label";
 		Color selBackground;
 		Color selForeground;
-		Point mouseLocalPos = 0;//mouse coord in widget space
 		int _currentCol;        //0 based cursor position in string
 		int _currentLine;
 		Point _selBegin = -1;	//selection start (row,column)
@@ -78,8 +79,8 @@ namespace Crow
 		public string Text
 		{
 			get {
-				return lines == null ?
-					_text : lines.Aggregate((i, j) => i + Interface.LineBreak + j);
+				return buffer == null ?
+					_text : buffer.FullText;
 			}
 			set
 			{
@@ -91,8 +92,9 @@ namespace Crow
 				if (string.IsNullOrEmpty(_text))
 					_text = "";
 
-				lines = getLines;
-				MaxScrollY = Math.Max (0, lines.Count - visibleLines);
+				buffer = new CodeTextBuffer (_text);
+				MaxScrollY = Math.Max (0, buffer.Count - visibleLines);
+				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
 
 				OnTextChanged (this, null);
 				RegisterForGraphicUpdate ();
@@ -130,10 +132,16 @@ namespace Crow
 					return;
 				if (value < 0)
 					_currentCol = 0;
-				else if (value > lines [_currentLine].Length)
-					_currentCol = lines [_currentLine].Length;
+				else if (value > buffer [_currentLine].Length)
+					_currentCol = buffer [_currentLine].Length;
 				else
 					_currentCol = value;
+
+				if (_currentCol < ScrollX)
+					ScrollX = _currentCol;
+				else if (_currentCol >= ScrollX + visibleColumns)
+					ScrollX = _currentCol - visibleColumns + 1;
+
 				NotifyValueChanged ("CurrentColumn", _currentCol);
 			}
 		}
@@ -143,8 +151,8 @@ namespace Crow
 			set {
 				if (value == _currentLine)
 					return;
-				if (value >= lines.Count)
-					_currentLine = lines.Count-1;
+				if (value >= buffer.Count)
+					_currentLine = buffer.Count-1;
 				else if (value < 0)
 					_currentLine = 0;
 				else
@@ -153,6 +161,11 @@ namespace Crow
 				int cc = _currentCol;
 				_currentCol = 0;
 				CurrentColumn = cc;
+				//System.Diagnostics.Debug.WriteLine ("Scroll:{0} visibleLines:{1} CurLine:{2}", ScrollY, visibleLines, CurrentLine);
+				if (_currentLine < ScrollY)
+					ScrollY = _currentLine;
+				else if (_currentLine >= ScrollY + visibleLines)
+					ScrollY = _currentLine - visibleLines + 1;
 				NotifyValueChanged ("CurrentLine", _currentLine);
 			}
 		}
@@ -197,7 +210,7 @@ namespace Crow
 		[XmlIgnore]protected Char CurrentChar
 		{
 			get {
-				return lines [CurrentLine] [CurrentColumn];
+				return buffer [CurrentLine] [CurrentColumn];
 			}
 		}
 		/// <summary>
@@ -226,13 +239,13 @@ namespace Crow
 				if (SelRelease < 0 || SelBegin < 0)
 					return "";
 				if (selectionStart.Y == selectionEnd.Y)
-					return lines [selectionStart.Y].Substring (selectionStart.X, selectionEnd.X - selectionStart.X);
+					return buffer [selectionStart.Y].RawText.Substring (selectionStart.X, selectionEnd.X - selectionStart.X);
 				string tmp = "";
-				tmp = lines [selectionStart.Y].Substring (selectionStart.X);
+				tmp = buffer [selectionStart.Y].RawText.Substring (selectionStart.X);
 				for (int l = selectionStart.Y + 1; l < selectionEnd.Y; l++) {
-					tmp += Interface.LineBreak + lines [l];
+					tmp += Interface.LineBreak + buffer [l];
 				}
-				tmp += Interface.LineBreak + lines [selectionEnd.Y].Substring (0, selectionEnd.X);
+				tmp += Interface.LineBreak + buffer [selectionEnd.Y].RawText.Substring (0, selectionEnd.X);
 				return tmp;
 			}
 		}
@@ -265,8 +278,8 @@ namespace Crow
 		/// <returns><c>true</c> if move succeed</returns>
 		public bool MoveRight(){
 			int tmp = _currentCol + 1;
-			if (tmp > lines [_currentLine].Length){
-				if (CurrentLine == lines.Count - 1)
+			if (tmp > buffer [_currentLine].Length){
+				if (CurrentLine == buffer.Count - 1)
 					return false;
 				CurrentLine++;
 				CurrentColumn = 0;
@@ -275,24 +288,24 @@ namespace Crow
 			return true;
 		}
 		public void GotoWordStart(){
-			if (lines[CurrentLine].Length == 0)
+			if (buffer[CurrentLine].Length == 0)
 				return;
 			CurrentColumn--;
 			//skip white spaces
 			while (!char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn > 0)
 				CurrentColumn--;
-			while (char.IsLetterOrDigit (lines [CurrentLine] [CurrentColumn]) && CurrentColumn > 0)
+			while (char.IsLetterOrDigit (buffer [CurrentLine] [CurrentColumn]) && CurrentColumn > 0)
 				CurrentColumn--;
 			if (!char.IsLetterOrDigit (this.CurrentChar))
 				CurrentColumn++;
 		}
 		public void GotoWordEnd(){
 			//skip white spaces
-			if (CurrentColumn >= lines [CurrentLine].Length - 1)
+			if (CurrentColumn >= buffer [CurrentLine].Length - 1)
 				return;
-			while (!char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < lines [CurrentLine].Length-1)
+			while (!char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < buffer [CurrentLine].Length-1)
 				CurrentColumn++;
-			while (char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < lines [CurrentLine].Length-1)
+			while (char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < buffer [CurrentLine].Length-1)
 				CurrentColumn++;
 			if (char.IsLetterOrDigit (this.CurrentChar))
 				CurrentColumn++;
@@ -301,31 +314,31 @@ namespace Crow
 		{
 			if (selectionIsEmpty) {
 				if (CurrentColumn == 0) {
-					if (CurrentLine == 0 && lines.Count == 1)
+					if (CurrentLine == 0 && buffer.Count == 1)
 						return;
 					CurrentLine--;
-					CurrentColumn = lines [CurrentLine].Length;
-					lines [CurrentLine] += lines [CurrentLine + 1];
-					lines.RemoveAt (CurrentLine + 1);
+					CurrentColumn = buffer [CurrentLine].Length;
+					buffer [CurrentLine].RawText += buffer [CurrentLine + 1].RawText;
+					buffer.RemoveLine (CurrentLine + 1);
 					OnTextChanged (this, null);
 					return;
 				}
 				CurrentColumn--;
-				lines [CurrentLine] = lines [CurrentLine].Remove (CurrentColumn, 1);
+				buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Remove (CurrentColumn, 1);
 			} else {
 				int linesToRemove = selectionEnd.Y - selectionStart.Y + 1;
 				int l = selectionStart.Y;
 
 				if (linesToRemove > 0) {
-					lines [l] = lines [l].Remove (selectionStart.X, lines [l].Length - selectionStart.X) +
-						lines [selectionEnd.Y].Substring (selectionEnd.X, lines [selectionEnd.Y].Length - selectionEnd.X);
+					buffer [l].RawText = buffer [l].RawText.Remove (selectionStart.X, buffer [l].Length - selectionStart.X) +
+						buffer [selectionEnd.Y].RawText.Substring (selectionEnd.X, buffer [selectionEnd.Y].Length - selectionEnd.X);
 					l++;
 					for (int c = 0; c < linesToRemove-1; c++)
-						lines.RemoveAt (l);
+						buffer.RemoveLine (l);
 					CurrentLine = selectionStart.Y;
 					CurrentColumn = selectionStart.X;
 				} else
-					lines [l] = lines [l].Remove (selectionStart.X, selectionEnd.X - selectionStart.X);
+					buffer [l].RawText = buffer [l].RawText.Remove (selectionStart.X, selectionEnd.X - selectionStart.X);
 				CurrentColumn = selectionStart.X;
 				SelBegin = -1;
 				SelRelease = -1;
@@ -354,7 +367,7 @@ namespace Crow
 		protected override int measureRawSize(LayoutingType lt)
 		{
 			if (lt == LayoutingType.Height)
-				return (int)Math.Ceiling(fe.Height * lines.Count) + Margin * 2;
+				return (int)Math.Ceiling(fe.Height * buffer.Count) + Margin * 2;
 
 			string txt = _text.Replace("\t", new String (' ', Interface.TabSize));
 
@@ -372,6 +385,8 @@ namespace Crow
 
 			if (layoutType == LayoutingType.Height)
 				updateVisibleLines ();
+			else if (layoutType == LayoutingType.Width)
+				updateVisibleColumns ();
 		}
 		protected override void onDraw (Context gr)
 		{
@@ -388,12 +403,13 @@ namespace Crow
 
 			bool selectionInProgress = false;
 
+			Foreground.SetAsSource (gr);
+
 			#region draw text cursor
 			if (SelBegin != SelRelease)
 				selectionInProgress = true;
 			else if (HasFocus){
-				gr.SetSourceColor(Color.Red);
-				gr.LineWidth = 2.0;
+				gr.LineWidth = 1.0;
 				double cursorX = cb.X + (CurrentColumn - ScrollX) * fe.MaxXAdvance;
 				gr.MoveTo (0.5 + cursorX, cb.Y + (CurrentLine - ScrollY) * fe.Height);
 				gr.LineTo (0.5 + cursorX, cb.Y + (CurrentLine + 1 - ScrollY) * fe.Height);
@@ -401,13 +417,15 @@ namespace Crow
 			}
 			#endregion
 
-			Foreground.SetAsSource (gr);
-
 			for (int i = 0; i < visibleLines; i++) {
 				int curL = i + ScrollY;
-				if (curL >= lines.Count)
+				if (curL >= buffer.Count)
 					break;
-				string lstr = lines[curL];
+				string lstr = buffer[curL].RawText;
+				if (ScrollX < lstr.Length)
+					lstr = lstr.Substring (ScrollX);
+				else
+					lstr = "";
 
 				gr.MoveTo (cb.X, cb.Y + fe.Ascent + fe.Height * i);
 				gr.ShowText (lstr);
@@ -416,12 +434,12 @@ namespace Crow
 				if (selectionInProgress && curL >= selectionStart.Y && curL <= selectionEnd.Y) {
 
 					double rLineX = cb.X,
-						rLineY = cb.Y + i * fe.Height,
-						rLineW = lstr.Length * fe.MaxXAdvance;
+					rLineY = cb.Y + i * fe.Height,
+					rLineW = lstr.Length * fe.MaxXAdvance;
 
 					System.Diagnostics.Debug.WriteLine ("sel start: " + selectionStart + " sel end: " + selectionEnd);
 					if (curL == selectionStart.Y) {
-						rLineX += selectionStart.X * fe.MaxXAdvance;
+						rLineX += (selectionStart.X - ScrollX) * fe.MaxXAdvance;
 						rLineW -= selectionStart.X * fe.MaxXAdvance;
 					}
 					if (curL == selectionEnd.Y)
@@ -446,39 +464,41 @@ namespace Crow
 
 		#region Mouse handling
 		void updatemouseLocalPos(Point mpos){
-			mouseLocalPos = mpos - ScreenCoordinates(Slot).TopLeft - ClientRectangle.TopLeft;
+			Point mouseLocalPos = mpos - ScreenCoordinates(Slot).TopLeft - ClientRectangle.TopLeft;
 			if (mouseLocalPos.X < 0)
-				mouseLocalPos.X = 0;
-			if (mouseLocalPos.Y < 0)
-				mouseLocalPos.Y = 0;
+				CurrentColumn--;
+			else
+				CurrentColumn = ScrollX +  (int)Math.Round (mouseLocalPos.X / fe.MaxXAdvance);
 
-			CurrentLine = ScrollY + (int)Math.Floor (mouseLocalPos.Y / fe.Height);
-			CurrentColumn = ScrollX +  (int)Math.Round (mouseLocalPos.X / fe.MaxXAdvance);
+			if (mouseLocalPos.Y < 0)
+				CurrentLine--;
+			else
+				CurrentLine = ScrollY + (int)Math.Floor (mouseLocalPos.Y / fe.Height);
 		}
 		public override void onMouseEnter (object sender, MouseMoveEventArgs e)
 		{
 			base.onMouseEnter (sender, e);
-			CurrentInterface.MouseCursor = XCursor.Text;
+			currentInterface.MouseCursor = XCursor.Text;
 		}
 		public override void onMouseLeave (object sender, MouseMoveEventArgs e)
 		{
 			base.onMouseLeave (sender, e);
-			CurrentInterface.MouseCursor = XCursor.Default;
+			currentInterface.MouseCursor = XCursor.Default;
 		}
 		protected override void onFocused (object sender, EventArgs e)
 		{
 			base.onFocused (sender, e);
 
-//			SelBegin = new Point(0,0);
-//			SelRelease = new Point (lines.LastOrDefault ().Length, lines.Count-1);
+			//			SelBegin = new Point(0,0);
+			//			SelRelease = new Point (lines.LastOrDefault ().Length, lines.Count-1);
 			RegisterForRedraw ();
 		}
 		protected override void onUnfocused (object sender, EventArgs e)
 		{
 			base.onUnfocused (sender, e);
 
-//			SelBegin = -1;
-//			SelRelease = -1;
+			//			SelBegin = -1;
+			//			SelRelease = -1;
 			RegisterForRedraw ();
 		}
 		public override void onMouseMove (object sender, MouseMoveEventArgs e)
@@ -531,7 +551,7 @@ namespace Crow
 		#region Keyboard handling
 		public override void onKeyDown (object sender, KeyboardKeyEventArgs e)
 		{
-			base.onKeyDown (sender, e);
+			//base.onKeyDown (sender, e);
 
 			Key key = e.Key;
 
@@ -549,7 +569,7 @@ namespace Crow
 					if (!MoveRight ())
 						return;
 				}else if (e.Shift)
-					CurrentInterface.Clipboard = this.SelectedText;
+					currentInterface.Clipboard = this.SelectedText;
 				this.DeleteChar ();
 				break;
 			case Key.Enter:
@@ -595,9 +615,9 @@ namespace Crow
 				break;
 			case Key.Insert:
 				if (e.Shift)
-					this.Insert (CurrentInterface.Clipboard);
+					this.Insert (currentInterface.Clipboard);
 				else if (e.Control && !selectionIsEmpty)
-					CurrentInterface.Clipboard = this.SelectedText;
+					currentInterface.Clipboard = this.SelectedText;
 				break;
 			case Key.Left:
 				if (e.Shift) {
@@ -660,8 +680,25 @@ namespace Crow
 			case Key.NumLock:
 				break;
 			case Key.PageDown:
+				if (e.Shift) {
+					if (selectionIsEmpty)
+						SelBegin = CurrentPosition;
+					CurrentLine += visibleLines;
+					SelRelease = CurrentPosition;
+					break;
+				}
+				SelRelease = -1;				
+				CurrentLine += visibleLines;
 				break;
 			case Key.PageUp:
+				if (e.Shift) {
+					if (selectionIsEmpty)
+						SelBegin = CurrentPosition;
+					CurrentLine -= visibleLines;
+					SelRelease = CurrentPosition;
+					break;
+				}				
+				CurrentLine -= visibleLines;
 				break;
 			case Key.RWin:
 				break;
@@ -691,7 +728,7 @@ namespace Crow
 		double GetXFromTextPointer(Context gr, Point pos)
 		{
 			try {
-				string l = lines [pos.Y].Substring (0, pos.X).
+				string l = buffer [pos.Y].RawText.Substring (0, pos.X).
 					Replace ("\t", new String (' ', Interface.TabSize));
 				return gr.TextExtents (l).XAdvance;
 			} catch{
@@ -726,11 +763,19 @@ namespace Crow
 
 		void updateVisibleLines(){
 			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
-			MaxScrollY = Math.Max (0, lines.Count - visibleLines);
+			MaxScrollY = Math.Max (0, buffer.Count - visibleLines);
 
 			System.Diagnostics.Debug.WriteLine ("update visible lines: " + visibleLines);
 			System.Diagnostics.Debug.WriteLine ("update MaxScrollY: " + MaxScrollY);
 		}
+		void updateVisibleColumns(){
+			visibleColumns = (int)Math.Floor ((double)ClientRectangle.Width / fe.MaxXAdvance);
+			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
+
+			System.Diagnostics.Debug.WriteLine ("update visible columns: " + visibleColumns);
+			System.Diagnostics.Debug.WriteLine ("update MaxScrollX: " + MaxScrollX);
+		}
+
 
 
 		/// <summary>
@@ -742,11 +787,11 @@ namespace Crow
 			if (!selectionIsEmpty)
 				this.DeleteChar ();
 			string[] strLines = Regex.Split (str, "\r\n|\r|\n|" + @"\\n").ToArray();
-			lines [CurrentLine] = lines [CurrentLine].Insert (CurrentColumn, strLines[0]);
+			buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Insert (CurrentColumn, strLines[0]);
 			CurrentColumn += strLines[0].Length;
 			for (int i = 1; i < strLines.Length; i++) {
 				InsertLineBreak ();
-				lines [CurrentLine] = lines [CurrentLine].Insert (CurrentColumn, strLines[i]);
+				buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Insert (CurrentColumn, strLines[i]);
 				CurrentColumn += strLines[i].Length;
 			}
 			OnTextChanged (this, null);
@@ -758,8 +803,8 @@ namespace Crow
 		/// </summary>
 		protected void InsertLineBreak()
 		{
-			lines.Insert(CurrentLine + 1, lines[CurrentLine].Substring(CurrentColumn));
-			lines [CurrentLine] = lines [CurrentLine].Substring (0, CurrentColumn);
+			buffer.InsertLine(CurrentLine + 1, new SourceLine (buffer[CurrentLine].RawText.Substring(CurrentColumn)));
+			buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Substring (0, CurrentColumn);
 			CurrentLine++;
 			CurrentColumn = 0;
 			OnTextChanged (this, null);

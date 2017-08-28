@@ -1,5 +1,5 @@
 ﻿//
-//  TextBuffer.cs
+//  Token.cs
 //
 //  Author:
 //       Jean-Philippe Bruyère <jp.bruyere@hotmail.com>
@@ -22,10 +22,38 @@ using System;
 
 namespace Crow
 {
-	public class TextBuffer
+	public enum TokenType {
+		Unknown,
+		WhiteSpace,
+		OpenParenth,
+		CloseParenth,
+		OpenBlock,
+		CloseBlock,
+		StatementEnding,
+		UnaryOp,
+		BinaryOp,
+		Affectation,
+		StringLiteral,
+		CharacterLiteral,
+		DigitalLiteral,
+		Literal,
+		Identifier,
+		Indexer,
+		Type,
+		LineComment,
+		BlockComment,
+	}
+	public class Token
 	{
-		public TextBuffer ()
+		public TokenType Type;
+		public string Content;
+
+		public Token ()
 		{
+		}
+		public Token (TokenType tokType, string content = null){
+			Type = tokType;
+			Content = content;
 		}
 	}
 }

@@ -21,9 +21,9 @@
 				<MenuItem Command="{CMDHelp}"/>
 			</MenuItem>
 		</Menu>
-		<HorizontalStack Height="Stretched" Background="Ivory">
-			<ScrollingTextBox Focusable="true" Name="editor" Font="couriernew, 16" VerticalAlignment="Top" Margin="10"
-					Foreground="Jet"
+		<HorizontalStack Height="Stretched" >
+			<SourceEditor Focusable="true" Name="editor" Font="couriernew, 16" VerticalAlignment="Top" Margin="10"
+					Foreground="Jet" Background="Ivory" Width="Stretched" Height="Stretched"
 					Text="{Text}"  KeyDown="textView_KeyDown"/>
 			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}" 
 				Maximum="{../editor.MaxScrollY}" Orientation="Vertical" 
@@ -39,6 +39,8 @@
 			<Label Text="{../../editor.CurrentColumn}"/>
 			<Label Text="Line:"/>
 			<Label Text="{../../editor.CurrentLine}"/>
+			<Label Text="ScrollX:"/>
+			<Label Text="{../../editor.ScrollX}"/>
 		</HorizontalStack>
 	</VerticalStack>
 </Window>

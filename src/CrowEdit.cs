@@ -54,11 +54,11 @@ namespace CrowEdit
 		public bool IsDirty { get { return _text != _origText; }}
 
 		public string CurrentDir {
-			get { return _curDir; }
+			get { return Configuration.Get<string>("CurrentDir"); }
 			set {
-				if (_curDir == value)
+				if (CurrentDir == value)
 					return;
-				_curDir = value;
+				Configuration.Set ("CurrentDir", value);
 				NotifyValueChanged ("CurrentDir", _curDir);
 			}
 		}
@@ -189,6 +189,9 @@ namespace CrowEdit
 		protected override void OnLoad (EventArgs e)
 		{
 			base.OnLoad (e);
+
+			if (CurrentDir == null)
+				CurrentDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
 
 			this.ValueChanged += CrowEdit_ValueChanged;
 			initCommands ();
