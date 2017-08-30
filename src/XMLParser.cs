@@ -8,11 +8,6 @@ namespace Crow.Coding
 {
 	public class XMLParser : Parser
 	{
-
-		public XMLParser (CodeTextBuffer _buffer) : base(_buffer)
-		{
-		}
-
 		public new enum TokenType {
 			Unknown = Parser.TokenType.Unknown,
 			WhiteSpace = Parser.TokenType.WhiteSpace,
@@ -30,6 +25,7 @@ namespace Crow.Coding
 			AttributeValueClosing = Parser.TokenType.StringLitteralClosing,
 			AttributeValue = Parser.TokenType.StringLitteral,
 		}
+
 		public enum States
 		{
 			init,       //first statement of prolog, xmldecl should only apear in this state
@@ -38,12 +34,16 @@ namespace Crow.Coding
 			ExternalSubsetInit,
 			ExternalSubset,
 			DTDEnd,//doctype finished
-			XML,
-			StartTag,
-			Content,
-			EndTag,
-			XMLEnd
+			XML,//normal xml
+			StartTag,//inside start tag
+			Content,//after start tag with no closing slash
+			EndTag
 		}
+
+		#region CTOR
+		public XMLParser (CodeBuffer _buffer) : base(_buffer) {}
+		#endregion
+
 		enum Keywords
 		{
 			DOCTYPE,
@@ -97,10 +97,10 @@ namespace Crow.Coding
 //		}
 		#endregion
 
-		public override void SetLineInError (int lineNumber)
+		public override void SetLineInError (ParsingException ex)
 		{
-			base.SetLineInError (lineNumber);
-			Tokens[lineNumber].EndingState = (int)States.init;
+			base.SetLineInError (ex);
+			Tokens[ex.Line].EndingState = (int)States.init;
 		}
 
 		public override void Parse (int line)
@@ -112,16 +112,14 @@ namespace Crow.Coding
 			eof = false;
 			bool eol = false;
 
+			//retrieve current parser state from previous line
 			if (line > 0)
 				curState = (States)Tokens [line - 1].EndingState;
 			else
 				curState = States.init;
 
-			TokensLine = Tokens [line];
-
-			States previousEndingState = (States)TokensLine.EndingState;
-
-			TokensLine.Clear ();
+			States previousEndingState = (States)Tokens[line].EndingState;
+			Tokens[line].Clear ();
 
 
 
@@ -244,10 +242,8 @@ namespace Crow.Coding
 				}
 			}
 
-			TokensLine.EndingState = (int)curState;
-			TokensLine.Dirty = false;
-
-			Debug.WriteLine ("\tState:{0}->{1}", previousEndingState, curState);
+			Tokens[line].EndingState = (int)curState;
+			Tokens [line].Dirty = false;
 
 			if (previousEndingState != curState && line < Tokens.Count - 1)
 				Tokens [line + 1].Dirty = true;

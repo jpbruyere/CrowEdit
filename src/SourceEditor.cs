@@ -38,15 +38,6 @@ using CrowEdit;
 
 namespace Crow.Coding
 {
-	public struct TextFormating {
-		public Color Foreground;
-		public Color Background;
-
-		public TextFormating(Color fg, Color bg){
-			Foreground = fg;
-			Background = bg;
-		}
-	}
 	/// <summary>
 	/// Scrolling text box optimized for monospace fonts, for coding
 	/// </summary>
@@ -55,17 +46,17 @@ namespace Crow.Coding
 		#region CTOR
 		public SourceEditor ():base()
 		{
-			formating.Add ((int)XMLParser.TokenType.AttributeName, new TextFormating (Color.DarkBlue, Color.Transparent));
-			formating.Add ((int)XMLParser.TokenType.ElementName, new TextFormating (Color.DarkRed, Color.Transparent));
-			formating.Add ((int)XMLParser.TokenType.ElementStart, new TextFormating (Color.Red, Color.Transparent));
-			formating.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormating (Color.Red, Color.Transparent));
-			formating.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormating (Color.Red, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeName, new TextFormatting (Color.DarkBlue, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Color.DarkRed, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Color.Red, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Color.Red, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Color.Red, Color.Transparent));
 
-			formating.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormating (Color.DarkPink, Color.Transparent));
-			formating.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormating (Color.DarkPink, Color.Transparent));
-			formating.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormating (Color.DarkPink, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.DarkPink, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.DarkPink, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.DarkPink, Color.Transparent));
 
-			buffer = new CodeTextBuffer ();
+			buffer = new CodeBuffer ();
 			buffer.LineUpadateEvent += Buffer_LineUpadateEvent;
 			buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
 			buffer.LineRemoveEvent += Buffer_LineRemoveEvent;
@@ -75,7 +66,6 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		Dictionary<int,TextFormating> formating = new Dictionary<int, TextFormating>();
 
 		public event EventHandler TextChanged;
 
@@ -87,7 +77,7 @@ namespace Crow.Coding
 		#region private and protected fields
 		int visibleLines = 1;
 		int visibleColumns = 1;
-		CodeTextBuffer buffer;
+		CodeBuffer buffer;
 		Parser parser;
 		Color selBackground;
 		Color selForeground;
@@ -96,37 +86,13 @@ namespace Crow.Coding
 		Point _selBegin = -1;	//selection start (row,column)
 		Point _selRelease = -1;	//selection end (row,column)
 
+		Dictionary<int,TextFormatting> formatting = new Dictionary<int, TextFormatting>();
+
 		protected Rectangle rText;
 		protected FontExtents fe;
 		protected TextExtents te;
 		#endregion
 
-		[XmlAttributeAttribute][DefaultValue("label")]
-		public string Text
-		{
-			get {
-				return buffer == null ? "" : buffer.FullText;
-			}
-			set
-			{
-				if (string.Equals (value, buffer?.FullText, StringComparison.Ordinal))
-					return;
-
-				buffer.Load (value);
-
-				MaxScrollY = Math.Max (0, buffer.Length - visibleLines);
-				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
-
-				OnTextChanged (this, null);
-				RegisterForGraphicUpdate ();
-			}
-		}
-
-		void Buffer_BufferCleared (object sender, EventArgs e)
-		{
-			parser = new XMLParser (buffer);
-			RegisterForGraphicUpdate ();
-		}
 		void reparseSource () {
 			for (int i = 0; i < parser.Tokens.Count; i++) {
 				if (parser.Tokens[i].Dirty)
@@ -136,10 +102,16 @@ namespace Crow.Coding
 		void tryParseBufferLine(int lPtr) {
 			try {
 				parser.Parse (lPtr);
-			} catch (Exception ex) {
+			} catch (ParsingException ex) {
 				Debug.WriteLine (ex.ToString ());
-				parser.SetLineInError (lPtr);
+				parser.SetLineInError (ex);
 			}
+			RegisterForGraphicUpdate ();
+		}
+		#region Buffer events handlers
+		void Buffer_BufferCleared (object sender, EventArgs e)
+		{
+			parser = new XMLParser (buffer);
 			RegisterForGraphicUpdate ();
 		}
 		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e)
@@ -167,7 +139,29 @@ namespace Crow.Coding
 			reparseSource ();
 			RegisterForGraphicUpdate ();
 		}
+		#endregion
 
+		#region Public Crow Properties
+		[XmlAttributeAttribute][DefaultValue("label")]
+		public string Text
+		{
+			get {
+				return buffer == null ? "" : buffer.FullText;
+			}
+			set
+			{
+				if (string.Equals (value, buffer?.FullText, StringComparison.Ordinal))
+					return;
+
+				buffer.Load (value);
+
+				MaxScrollY = Math.Max (0, buffer.Length - visibleLines);
+				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
+
+				OnTextChanged (this, null);
+				RegisterForGraphicUpdate ();
+			}
+		}
 		[XmlAttributeAttribute][DefaultValue("BlueGray")]
 		public virtual Color SelectionBackground {
 			get { return selBackground; }
@@ -317,7 +311,9 @@ namespace Crow.Coding
 		}
 		[XmlIgnore]public bool selectionIsEmpty
 		{ get { return SelRelease == SelBegin; } }
+		#endregion
 
+		#region Editing and moving cursor
 		/// <summary>
 		/// Moves cursor one char to the left.
 		/// </summary>
@@ -406,42 +402,39 @@ namespace Crow.Coding
 			}
 			OnTextChanged (this, null);
 		}
-
-		#region GraphicObject overrides
-		public override Font Font {
-			get { return base.Font; }
-			set {
-				base.Font = value;
-
-				using (ImageSurface img = new ImageSurface (Format.Argb32, 1, 1)) {
-					using (Context gr = new Context (img)) {
-						gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
-						gr.SetFontSize (Font.Size);
-
-						fe = gr.FontExtents;
-					}
-				}
-				MaxScrollY = 0;
-				RegisterForGraphicUpdate ();
+		/// <summary>
+		/// Insert new string at caret position, should be sure no line break is inside.
+		/// </summary>
+		/// <param name="str">String.</param>
+		protected void Insert(string str)
+		{
+			if (!selectionIsEmpty)
+				this.DeleteChar ();
+			string[] strLines = Regex.Split (str, "\r\n|\r|\n|" + @"\\n").ToArray();
+			buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[0]);
+			CurrentColumn += strLines[0].Length;
+			for (int i = 1; i < strLines.Length; i++) {
+				InsertLineBreak ();
+				buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[i]);
+				CurrentColumn += strLines[i].Length;
 			}
+			OnTextChanged (this, null);
+			RegisterForGraphicUpdate();
 		}
-		protected override int measureRawSize(LayoutingType lt)
+		/// <summary>
+		/// Insert a line break.
+		/// </summary>
+		protected void InsertLineBreak()
 		{
-			if (lt == LayoutingType.Height)
-				return (int)Math.Ceiling(fe.Height * buffer.Length) + Margin * 2;
-
-			return (int)(fe.MaxXAdvance * buffer.longestLineCharCount) + Margin * 2;
+			buffer.Insert(CurrentLine + 1, buffer[CurrentLine].Substring(CurrentColumn));
+			buffer [CurrentLine] = buffer [CurrentLine].Substring (0, CurrentColumn);
+			CurrentLine++;
+			CurrentColumn = 0;
+			OnTextChanged (this, null);
 		}
-		public override void OnLayoutChanges (LayoutingType layoutType)
-		{
-			base.OnLayoutChanges (layoutType);
+		#endregion
 
-			if (layoutType == LayoutingType.Height)
-				updateVisibleLines ();
-			else if (layoutType == LayoutingType.Width)
-				updateVisibleColumns ();
-		}
-
+		#region Drawing
 		void draw(Context gr){
 			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 			gr.SetFontSize (Font.Size);
@@ -559,8 +552,8 @@ namespace Crow.Coding
 				Color selbg = this.SelectionBackground;
 				Color selfg = this.SelectionForeground;
 
-				if (formating.ContainsKey ((int)tokens [t].Type)) {
-					TextFormating tf = formating [(int)tokens [t].Type];
+				if (formatting.ContainsKey ((int)tokens [t].Type)) {
+					TextFormatting tf = formatting [(int)tokens [t].Type];
 					bg = tf.Background;
 					fg = tf.Foreground;
 				}
@@ -606,6 +599,43 @@ namespace Crow.Coding
 				lPtr += lstr.Length;
 			}
 		}
+		#endregion
+
+		#region GraphicObject overrides
+		public override Font Font {
+			get { return base.Font; }
+			set {
+				base.Font = value;
+
+				using (ImageSurface img = new ImageSurface (Format.Argb32, 1, 1)) {
+					using (Context gr = new Context (img)) {
+						gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+						gr.SetFontSize (Font.Size);
+
+						fe = gr.FontExtents;
+					}
+				}
+				MaxScrollY = 0;
+				RegisterForGraphicUpdate ();
+			}
+		}
+		protected override int measureRawSize(LayoutingType lt)
+		{
+			if (lt == LayoutingType.Height)
+				return (int)Math.Ceiling(fe.Height * buffer.Length) + Margin * 2;
+
+			return (int)(fe.MaxXAdvance * buffer.longestLineCharCount) + Margin * 2;
+		}
+		public override void OnLayoutChanges (LayoutingType layoutType)
+		{
+			base.OnLayoutChanges (layoutType);
+
+			if (layoutType == LayoutingType.Height)
+				updateVisibleLines ();
+			else if (layoutType == LayoutingType.Width)
+				updateVisibleColumns ();
+		}
+
 		protected override void onDraw (Context gr)
 		{
 			base.onDraw (gr);
@@ -909,40 +939,6 @@ namespace Crow.Coding
 
 			System.Diagnostics.Debug.WriteLine ("update visible columns: " + visibleColumns);
 			System.Diagnostics.Debug.WriteLine ("update MaxScrollX: " + MaxScrollX);
-		}
-
-
-
-		/// <summary>
-		/// Insert new string at caret position, should be sure no line break is inside.
-		/// </summary>
-		/// <param name="str">String.</param>
-		protected void Insert(string str)
-		{
-			if (!selectionIsEmpty)
-				this.DeleteChar ();
-			string[] strLines = Regex.Split (str, "\r\n|\r|\n|" + @"\\n").ToArray();
-			buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[0]);
-			CurrentColumn += strLines[0].Length;
-			for (int i = 1; i < strLines.Length; i++) {
-				InsertLineBreak ();
-				buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[i]);
-				CurrentColumn += strLines[i].Length;
-			}
-			OnTextChanged (this, null);
-			RegisterForGraphicUpdate();
-		}
-
-		/// <summary>
-		/// Insert a line break.
-		/// </summary>
-		protected void InsertLineBreak()
-		{
-			buffer.Insert(CurrentLine + 1, buffer[CurrentLine].Substring(CurrentColumn));
-			buffer [CurrentLine] = buffer [CurrentLine].Substring (0, CurrentColumn);
-			CurrentLine++;
-			CurrentColumn = 0;
-			OnTextChanged (this, null);
 		}
 	}
 }

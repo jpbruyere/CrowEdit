@@ -25,21 +25,7 @@ using System.Text.RegularExpressions;
 
 namespace Crow.Coding
 {
-	public class CodeBufferEventArgs : EventArgs {
-		public int LineStart;
-		public int LineCount;
-
-		public CodeBufferEventArgs(int lineNumber) {
-			LineStart = lineNumber;
-			LineCount = 1;
-		}
-		public CodeBufferEventArgs(int lineStart, int lineCount) {
-			LineStart = lineStart;
-			LineCount = lineCount;
-		}
-	}
-
-	public class CodeTextBuffer
+	public class CodeBuffer
 	{
 		#region Events
 		public event EventHandler<CodeBufferEventArgs> LineUpadateEvent;
@@ -49,11 +35,13 @@ namespace Crow.Coding
 		#endregion
 
 		#region CTOR
-		public CodeTextBuffer () : base() {}
+		public CodeBuffer () : base() {}
 		#endregion
 
-
+		string lineBreak = Interface.LineBreak;
 		List<string> lines = new List<string>();
+		public int longestLineIdx = 0;
+		public int longestLineCharCount = 0;
 
 		public int Length { get { return lines.Count;}}
 
@@ -86,7 +74,6 @@ namespace Crow.Coding
 			BufferCleared.Raise (this, null);
 		}
 
-
 		public void Load(string rawSource) {
 			this.Clear();
 
@@ -98,10 +85,6 @@ namespace Crow.Coding
 			lineBreak = detectLineBreakKind (rawSource);
 			findLongestLine ();
 		}
-		string lineBreak = Interface.LineBreak;
-
-		public int longestLineIdx = 0;
-		public int longestLineCharCount = 0;
 
 		void findLongestLine(){
 			longestLineCharCount = 0;

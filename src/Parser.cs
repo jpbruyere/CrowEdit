@@ -30,19 +30,6 @@ namespace Crow.Coding
 			Preprocessor,
 		}
 
-		public class ParsingException : Exception
-		{
-			public ParsingException(Parser parser, string txt)
-				: base(string.Format("Parser exception ({0},{1}): {2}", parser.currentLine, parser.currentColumn, txt))
-			{
-			}
-			public ParsingException(Parser parser, string txt, Exception innerException)
-				: base(txt, innerException)
-			{
-				txt = string.Format("Parser exception ({0},{1}): {2}", parser.currentLine, parser.currentColumn, txt);
-			}
-		}
-
 		#region CTOR
 		public Parser (CodeBuffer _buffer)
 		{
@@ -54,30 +41,29 @@ namespace Crow.Coding
 
 		#endregion
 
-		protected int currentLine = 0;
-		protected int currentColumn = 0;
+		CodeBuffer buffer;
+
+		internal int currentLine = 0;
+		internal int currentColumn = 0;
 		protected Token currentTok;
 		protected bool eof = true;
 
-		CodeBuffer buffer;
-
 		public List<TokenList> Tokens;
-		protected TokenList TokensLine;
 
 		public Point CurrentPosition { get { return new Point (currentLine, currentColumn); } }
 
-		public virtual void SetLineInError(int lineNumber) {
-			currentTok = default(Token);
-			Tokens [lineNumber] = new TokenList () {new Token () { Content = buffer [lineNumber] }};
-		}
 		public abstract void Parse(int line);
+		public virtual void SetLineInError(ParsingException ex) {
+			currentTok = default(Token);
+			Tokens [ex.Line] = new TokenList () {new Token () { Content = buffer [ex.Line] }};
+		}
 
+		#region low level parsing
 		protected void readToCurrTok(bool startOfTok = false){
 			if (startOfTok)
 				currentTok.Start = CurrentPosition;
 			currentTok += Read();
 		}
-
 		protected void readAndResetCurrentTok(System.Enum type, bool startToc = false) {
 			readToCurrTok ();
 			saveAndResetCurrentTok (type);
@@ -86,11 +72,9 @@ namespace Crow.Coding
 		protected void saveAndResetCurrentTok(System.Enum type) {
 			currentTok.Type = (TokenType)type;
 			currentTok.End = CurrentPosition;
-			TokensLine.Add (currentTok);
-
+			Tokens[currentLine].Add (currentTok);
 			currentTok = default(Token);
 		}
-
 		protected virtual char Peek() {
 			if (eof)
 				throw new ParsingException (this, "Unexpected End of File");
@@ -116,7 +100,6 @@ namespace Crow.Coding
 				currentColumn++;
 			return c;
 		}
-
 		protected virtual string ReadUntil (string endExp){
 			string tmp = "";
 
@@ -134,7 +117,6 @@ namespace Crow.Coding
 			}
 			throw new ParsingException (this, string.Format("Expectign '{0}'", endExp));
 		}
-
 		protected void SkipWhiteSpaces () {
 			if (currentTok.Type != TokenType.Unknown)
 				throw new ParsingException (this, "current token should be reset to unknown (0) before skiping white spaces");
@@ -147,5 +129,6 @@ namespace Crow.Coding
 			if (currentTok.Type != TokenType.Unknown)
 				saveAndResetCurrentTok ();
 		}
+		#endregion
 	}
 }

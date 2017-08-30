@@ -28,7 +28,7 @@ namespace Crow.Coding
 			Preprocessor,
 		}
 
-		public CSharpParser (CodeTextBuffer _buffer) : base(_buffer)
+		public CSharpParser (CodeBuffer _buffer) : base(_buffer)
 		{
 		}
 

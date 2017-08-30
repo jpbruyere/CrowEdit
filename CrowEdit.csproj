@@ -81,6 +81,9 @@
     <Compile Include="src\CSharpParser.cs" />
     <Compile Include="src\TokenList.cs" />
     <Compile Include="src\CodeBuffer.cs" />
+    <Compile Include="src\TextFormatting.cs" />
+    <Compile Include="ParsingException.cs" />
+    <Compile Include="CodeBufferEventArgs.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />
