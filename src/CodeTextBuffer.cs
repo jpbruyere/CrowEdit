@@ -25,64 +25,70 @@ using System.Text.RegularExpressions;
 
 namespace Crow
 {
-	public class CodeTextBuffer : List<SourceLine>
+	public class CodeTextBuffer : List<string>
 	{
-		public CodeTextBuffer () : base()
-		{
-		}
 
-		public int longestLineIdx = 0;
-		public int longestLineCharCount = 0;
+
+		#region CTOR
+		public CodeTextBuffer () : base(){}
 
 		public CodeTextBuffer (string rawSource) : this (){
 			if (string.IsNullOrEmpty (rawSource))
 				return;
-			string[] lines = Regex.Split (rawSource, "\r\n|\r|\n|\\\\n");
-			for (int i = 0; i < lines.Length; i++) {
-				if (lines [i].Length > longestLineCharCount) {
-					longestLineCharCount = lines [i].Length;
+			
+			this.AddRange (Regex.Split (rawSource, "\r\n|\r|\n|\\\\n"));
+
+			lineBreak = detectLineBreakKind (rawSource);
+			findLongestLine ();
+		}
+		#endregion
+
+		string lineBreak = Interface.LineBreak;
+
+		public int longestLineIdx = 0;
+		public int longestLineCharCount = 0;
+
+		void findLongestLine(){
+			longestLineCharCount = 0;
+			for (int i = 0; i < this.Count; i++) {
+				if (this[i].Length > longestLineCharCount) {
+					longestLineCharCount = this[i].Length;
 					longestLineIdx = i;
 				}
-				this.Add (new SourceLine ( lines [i] ));
 			}
 		}
+		/// <summary> line break could be '\r' or '\n' or '\r\n' </summary>
+		static string detectLineBreakKind(string buffer){
+			string strLB = "";
 
+			if (string.IsNullOrEmpty(buffer))
+				return Interface.LineBreak;
+			int i = 0;
+			while ( i < buffer.Length) {
+				if (buffer [i] == '\r') {
+					strLB += '\r';
+					i++;
+				}
+				if (i < buffer.Length) {
+					if (buffer [i] == '\r')
+						return "\r";
+					if (buffer[i] == '\n')
+						strLB += '\n';
+				}
+				if (!string.IsNullOrEmpty (strLB))
+					return strLB;
+				i++;
+			}
+			return Interface.LineBreak;
+		}
 		/// <summary>
 		/// return all lines with linebreaks
 		/// </summary>
 		public string FullText{
 			get {
-				string tmp = "";
-				foreach (SourceLine sl in this)
-					tmp += sl.RawText + Interface.LineBreak;
-				return tmp;
+				return this.Count > 0 ? this.Aggregate((i, j) => i + this.lineBreak + j) : "";
 			}
-		}			
-
-		public void Tokenize (int lineIndex) {
-			//handle multiline block comments
-			if (lineIndex > 0){
-				if (this [lineIndex - 1].Tokens?.LastOrDefault ().Type == TokenType.BlockComment)
-					this [lineIndex].PresetCurrentToken (TokenType.BlockComment);
-			}
-			this [lineIndex].Tokenize ();
 		}
-
-		public void InsertLine(int index, SourceLine line){
-			base.Insert (index, line);
-		}
-		public void RemoveLine (int index) {
-			base.RemoveAt (index);
-		}
-
-		//public void Tokenize (int lineIndex) {
-		//	//handle multiline block comments
-		//	if (lineIndex > 0){
-		//		if (this [lineIndex - 1].Tokens?.LastOrDefault ().Type == TokenType.BlockComment)
-		//			this [lineIndex].PresetCurrentToken (TokenType.BlockComment);
-		//	}
-		//	this [lineIndex].Tokenize ();
-		//}
 	}
 }
 

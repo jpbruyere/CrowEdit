@@ -122,7 +122,7 @@ namespace CrowEdit
 			NotifyValueChanged ("IsDirty", IsDirty);
 
 			if (redoStack.Count == 0)
-				CMDRedo.CanExecute = false;			
+				CMDRedo.CanExecute = false;
 		}
 		void openFileDialog(){
 			Load ("#CrowEdit.ui.openFile.crow").DataSource = this;
@@ -201,7 +201,7 @@ namespace CrowEdit
 		}
 
 		void textView_KeyDown (object sender, Crow.KeyboardKeyEventArgs e)
-		{			
+		{
 			if (e.Control) {
 				if (e.Key == Key.W) {
 					if (e.Shift)

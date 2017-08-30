@@ -58,11 +58,9 @@ namespace Crow
 		}
 
 		#region private and protected fields
-		string lineBreak = Interface.LineBreak;
 		int visibleLines = 1;
 		int visibleColumns = 1;
 		CodeTextBuffer buffer;
-		string _text = "label";
 		Color selBackground;
 		Color selForeground;
 		int _currentCol;        //0 based cursor position in string
@@ -79,20 +77,14 @@ namespace Crow
 		public string Text
 		{
 			get {
-				return buffer == null ?
-					_text : buffer.FullText;
+				return buffer == null ? "" : buffer.FullText;
 			}
 			set
 			{
-				if (string.Equals (value, _text, StringComparison.Ordinal))
+				if (string.Equals (value, buffer?.FullText, StringComparison.Ordinal))
 					return;
 
-				_text = value;
-
-				if (string.IsNullOrEmpty(_text))
-					_text = "";
-
-				buffer = new CodeTextBuffer (_text);
+				buffer = new CodeTextBuffer (value);
 				MaxScrollY = Math.Max (0, buffer.Count - visibleLines);
 				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
 
@@ -239,24 +231,19 @@ namespace Crow
 				if (SelRelease < 0 || SelBegin < 0)
 					return "";
 				if (selectionStart.Y == selectionEnd.Y)
-					return buffer [selectionStart.Y].RawText.Substring (selectionStart.X, selectionEnd.X - selectionStart.X);
+					return buffer [selectionStart.Y].Substring (selectionStart.X, selectionEnd.X - selectionStart.X);
 				string tmp = "";
-				tmp = buffer [selectionStart.Y].RawText.Substring (selectionStart.X);
+				tmp = buffer [selectionStart.Y].Substring (selectionStart.X);
 				for (int l = selectionStart.Y + 1; l < selectionEnd.Y; l++) {
 					tmp += Interface.LineBreak + buffer [l];
 				}
-				tmp += Interface.LineBreak + buffer [selectionEnd.Y].RawText.Substring (0, selectionEnd.X);
+				tmp += Interface.LineBreak + buffer [selectionEnd.Y].Substring (0, selectionEnd.X);
 				return tmp;
 			}
 		}
 		[XmlIgnore]public bool selectionIsEmpty
 		{ get { return SelRelease == SelBegin; } }
 
-		List<string> getLines {
-			get {
-				return Regex.Split (_text, "\r\n|\r|\n|\\\\n").ToList();
-			}
-		}
 		/// <summary>
 		/// Moves cursor one char to the left.
 		/// </summary>
@@ -318,27 +305,27 @@ namespace Crow
 						return;
 					CurrentLine--;
 					CurrentColumn = buffer [CurrentLine].Length;
-					buffer [CurrentLine].RawText += buffer [CurrentLine + 1].RawText;
-					buffer.RemoveLine (CurrentLine + 1);
+					buffer [CurrentLine] += buffer [CurrentLine + 1];
+					buffer.RemoveAt (CurrentLine + 1);
 					OnTextChanged (this, null);
 					return;
 				}
 				CurrentColumn--;
-				buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Remove (CurrentColumn, 1);
+				buffer [CurrentLine] = buffer [CurrentLine].Remove (CurrentColumn, 1);
 			} else {
 				int linesToRemove = selectionEnd.Y - selectionStart.Y + 1;
 				int l = selectionStart.Y;
 
 				if (linesToRemove > 0) {
-					buffer [l].RawText = buffer [l].RawText.Remove (selectionStart.X, buffer [l].Length - selectionStart.X) +
-						buffer [selectionEnd.Y].RawText.Substring (selectionEnd.X, buffer [selectionEnd.Y].Length - selectionEnd.X);
+					buffer [l] = buffer [l].Remove (selectionStart.X, buffer [l].Length - selectionStart.X) +
+						buffer [selectionEnd.Y].Substring (selectionEnd.X, buffer [selectionEnd.Y].Length - selectionEnd.X);
 					l++;
 					for (int c = 0; c < linesToRemove-1; c++)
-						buffer.RemoveLine (l);
+						buffer.RemoveAt (l);
 					CurrentLine = selectionStart.Y;
 					CurrentColumn = selectionStart.X;
 				} else
-					buffer [l].RawText = buffer [l].RawText.Remove (selectionStart.X, selectionEnd.X - selectionStart.X);
+					buffer [l] = buffer [l].Remove (selectionStart.X, selectionEnd.X - selectionStart.X);
 				CurrentColumn = selectionStart.X;
 				SelBegin = -1;
 				SelRelease = -1;
@@ -369,15 +356,7 @@ namespace Crow
 			if (lt == LayoutingType.Height)
 				return (int)Math.Ceiling(fe.Height * buffer.Count) + Margin * 2;
 
-			string txt = _text.Replace("\t", new String (' ', Interface.TabSize));
-
-
-			int maxChar = 0;
-			foreach (string s in Regex.Split (txt, "\r\n|\r|\n|\\\\n")) {
-				if (maxChar < s.Length)
-					maxChar = s.Length;
-			}
-			return (int)(fe.MaxXAdvance * maxChar) + Margin * 2;
+			return (int)(fe.MaxXAdvance * buffer.longestLineCharCount) + Margin * 2;
 		}
 		public override void OnLayoutChanges (LayoutingType layoutType)
 		{
@@ -421,7 +400,7 @@ namespace Crow
 				int curL = i + ScrollY;
 				if (curL >= buffer.Count)
 					break;
-				string lstr = buffer[curL].RawText;
+				string lstr = buffer[curL];
 				if (ScrollX < lstr.Length)
 					lstr = lstr.Substring (ScrollX);
 				else
@@ -687,7 +666,7 @@ namespace Crow
 					SelRelease = CurrentPosition;
 					break;
 				}
-				SelRelease = -1;				
+				SelRelease = -1;
 				CurrentLine += visibleLines;
 				break;
 			case Key.PageUp:
@@ -697,13 +676,21 @@ namespace Crow
 					CurrentLine -= visibleLines;
 					SelRelease = CurrentPosition;
 					break;
-				}				
+				}
 				CurrentLine -= visibleLines;
 				break;
 			case Key.RWin:
 				break;
 			case Key.Tab:
 				this.Insert ("\t");
+				break;
+			case Key.F8:
+				try {
+					CrowEdit.XMLParser parser = new CrowEdit.XMLParser (buffer);
+					parser.Parse ();
+				}catch(Exception ee){
+					Debug.WriteLine (ee.ToString ());
+				}
 				break;
 			default:
 				break;
@@ -728,37 +715,12 @@ namespace Crow
 		double GetXFromTextPointer(Context gr, Point pos)
 		{
 			try {
-				string l = buffer [pos.Y].RawText.Substring (0, pos.X).
+				string l = buffer [pos.Y].Substring (0, pos.X).
 					Replace ("\t", new String (' ', Interface.TabSize));
 				return gr.TextExtents (l).XAdvance;
 			} catch{
 				return -1;
 			}
-		}
-
-		/// <summary> line break could be '\r' or '\n' or '\r\n' </summary>
-		string detectLineBreakKind(){
-			string strLB = "";
-
-			if (string.IsNullOrEmpty(_text))
-				return Interface.LineBreak;
-			int i = 0;
-			while ( i < _text.Length) {
-				if (_text [i] == '\r') {
-					strLB += '\r';
-					i++;
-				}
-				if (i < _text.Length) {
-					if (_text [i] == '\r')
-						return "\r";
-					if (_text [i] == '\n')
-						strLB += '\n';
-				}
-				if (!string.IsNullOrEmpty (strLB))
-					return strLB;
-				i++;
-			}
-			return Interface.LineBreak;
 		}
 
 		void updateVisibleLines(){
@@ -787,11 +749,11 @@ namespace Crow
 			if (!selectionIsEmpty)
 				this.DeleteChar ();
 			string[] strLines = Regex.Split (str, "\r\n|\r|\n|" + @"\\n").ToArray();
-			buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Insert (CurrentColumn, strLines[0]);
+			buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[0]);
 			CurrentColumn += strLines[0].Length;
 			for (int i = 1; i < strLines.Length; i++) {
 				InsertLineBreak ();
-				buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Insert (CurrentColumn, strLines[i]);
+				buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[i]);
 				CurrentColumn += strLines[i].Length;
 			}
 			OnTextChanged (this, null);
@@ -803,8 +765,8 @@ namespace Crow
 		/// </summary>
 		protected void InsertLineBreak()
 		{
-			buffer.InsertLine(CurrentLine + 1, new SourceLine (buffer[CurrentLine].RawText.Substring(CurrentColumn)));
-			buffer [CurrentLine].RawText = buffer [CurrentLine].RawText.Substring (0, CurrentColumn);
+			buffer.Insert(CurrentLine + 1, buffer[CurrentLine].Substring(CurrentColumn));
+			buffer [CurrentLine] = buffer [CurrentLine].Substring (0, CurrentColumn);
 			CurrentLine++;
 			CurrentColumn = 0;
 			OnTextChanged (this, null);

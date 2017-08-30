@@ -19,41 +19,48 @@
 //  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 using System;
+using CrowEdit;
 
 namespace Crow
 {
-	public enum TokenType {
-		Unknown,
-		WhiteSpace,
-		OpenParenth,
-		CloseParenth,
-		OpenBlock,
-		CloseBlock,
-		StatementEnding,
-		UnaryOp,
-		BinaryOp,
-		Affectation,
-		StringLiteral,
-		CharacterLiteral,
-		DigitalLiteral,
-		Literal,
-		Identifier,
-		Indexer,
-		Type,
-		LineComment,
-		BlockComment,
-	}
-	public class Token
+	public struct Token
 	{
-		public TokenType Type;
+		public Parser.TokenType Type;
 		public string Content;
+		public Point Start;
+		public Point End;
 
-		public Token ()
-		{
+//		public Token (TokenType tokType, string content = ""){
+//			Type = tokType;
+//			Content = content;
+//		}
+
+		public bool IsEmpty { get { return string.IsNullOrEmpty(Content); }}
+
+		public static bool operator == (Token t, System.Enum tt){
+			return Convert.ToInt32(t.Type) == Convert.ToInt32(tt);
 		}
-		public Token (TokenType tokType, string content = null){
-			Type = tokType;
-			Content = content;
+		public static bool operator != (Token t, System.Enum tt){
+			return Convert.ToInt32(t.Type) != Convert.ToInt32(tt);
+		}
+		public static bool operator == (System.Enum tt, Token t){
+			return Convert.ToInt32(t.Type) == Convert.ToInt32(tt);
+		}
+		public static bool operator != (System.Enum tt, Token t){
+			return Convert.ToInt32(t.Type) != Convert.ToInt32(tt);
+		}
+
+		public static Token operator +(Token t, char c){
+			t.Content += c;
+			return t;
+		}
+		public static Token operator +(Token t, string s){
+			t.Content += s;
+			return t;
+		}
+		public override string ToString ()
+		{
+			return string.Format ("[Tok{2}->{3}:{0}: {1}]", Type,Content,Start,End);
 		}
 	}
 }
