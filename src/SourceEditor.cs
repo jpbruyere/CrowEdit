@@ -64,6 +64,14 @@ namespace Crow
 			formating.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormating (Color.DarkPink, Color.Transparent));
 			formating.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormating (Color.DarkPink, Color.Transparent));
 			formating.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormating (Color.DarkPink, Color.Transparent));
+
+			buffer = new CodeTextBuffer ();
+			buffer.LineUpadateEvent += Buffer_LineUpadateEvent;
+			buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
+			buffer.LineRemoveEvent += Buffer_LineRemoveEvent;
+			buffer.BufferCleared += Buffer_BufferCleared;
+
+			parser = new CrowEdit.XMLParser (buffer);
 		}
 		#endregion
 
@@ -104,8 +112,9 @@ namespace Crow
 				if (string.Equals (value, buffer?.FullText, StringComparison.Ordinal))
 					return;
 
-				buffer = new CodeTextBuffer (value);
-				MaxScrollY = Math.Max (0, buffer.Count - visibleLines);
+				buffer.Load (value);
+
+				MaxScrollY = Math.Max (0, buffer.Length - visibleLines);
 				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
 
 				OnTextChanged (this, null);
@@ -113,6 +122,51 @@ namespace Crow
 			}
 		}
 
+		void Buffer_BufferCleared (object sender, EventArgs e)
+		{
+			parser = new CrowEdit.XMLParser (buffer);
+			RegisterForGraphicUpdate ();
+		}
+		void reparseSource () {
+			for (int i = 0; i < parser.Tokens.Count; i++) {
+				if (parser.Tokens[i].Dirty)
+					tryParseBufferLine (i);
+			}
+		}
+		void tryParseBufferLine(int lPtr) {
+			try {
+				parser.Parse (lPtr);
+			} catch (Exception ex) {
+				Debug.WriteLine (ex.ToString ());
+				parser.SetLineInError (lPtr);
+			}
+			RegisterForGraphicUpdate ();
+		}
+		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e)
+		{
+			for (int i = 0; i < e.LineCount; i++) {
+				parser.Tokens.Insert (e.LineStart + i, new TokenList());
+				tryParseBufferLine (e.LineStart + i);
+			}
+			reparseSource ();
+			RegisterForGraphicUpdate ();
+		}
+
+		void Buffer_LineRemoveEvent (object sender, CodeBufferEventArgs e)
+		{
+			for (int i = 0; i < e.LineCount; i++)
+				parser.Tokens.RemoveAt (e.LineStart + i);
+			reparseSource ();
+			RegisterForGraphicUpdate ();
+		}
+
+		void Buffer_LineUpadateEvent (object sender, CodeBufferEventArgs e)
+		{
+			for (int i = 0; i < e.LineCount; i++)
+				tryParseBufferLine (e.LineStart + i);
+			reparseSource ();
+			RegisterForGraphicUpdate ();
+		}
 
 		[XmlAttributeAttribute][DefaultValue("BlueGray")]
 		public virtual Color SelectionBackground {
@@ -163,8 +217,8 @@ namespace Crow
 			set {
 				if (value == _currentLine)
 					return;
-				if (value >= buffer.Count)
-					_currentLine = buffer.Count-1;
+				if (value >= buffer.Length)
+					_currentLine = buffer.Length-1;
 				else if (value < 0)
 					_currentLine = 0;
 				else
@@ -286,7 +340,7 @@ namespace Crow
 		public bool MoveRight(){
 			int tmp = _currentCol + 1;
 			if (tmp > buffer [_currentLine].Length){
-				if (CurrentLine == buffer.Count - 1)
+				if (CurrentLine == buffer.Length - 1)
 					return false;
 				CurrentLine++;
 				CurrentColumn = 0;
@@ -321,7 +375,7 @@ namespace Crow
 		{
 			if (selectionIsEmpty) {
 				if (CurrentColumn == 0) {
-					if (CurrentLine == 0 && buffer.Count == 1)
+					if (CurrentLine == 0 && buffer.Length == 1)
 						return;
 					CurrentLine--;
 					CurrentColumn = buffer [CurrentLine].Length;
@@ -374,7 +428,7 @@ namespace Crow
 		protected override int measureRawSize(LayoutingType lt)
 		{
 			if (lt == LayoutingType.Height)
-				return (int)Math.Ceiling(fe.Height * buffer.Count) + Margin * 2;
+				return (int)Math.Ceiling(fe.Height * buffer.Length) + Margin * 2;
 
 			return (int)(fe.MaxXAdvance * buffer.longestLineCharCount) + Margin * 2;
 		}
@@ -414,7 +468,7 @@ namespace Crow
 
 			for (int i = 0; i < visibleLines; i++) {
 				int curL = i + ScrollY;
-				if (curL >= buffer.Count)
+				if (curL >= buffer.Length)
 					break;
 				string lstr = buffer[curL];
 				if (ScrollX < lstr.Length)
@@ -480,13 +534,13 @@ namespace Crow
 			#endregion
 
 			for (int i = 0; i < visibleLines; i++) {
-				int curL = i + ScrollY;
-				if (curL >= parser.Tokens.Count)
+				if (i + ScrollY >= parser.Tokens.Count)
 					break;
-				drawTokenLine (gr, curL, selectionInProgress);
+				drawTokenLine (gr, i, selectionInProgress, cb);
 			}
 		}
-		void drawTokenLine(Context gr, int curL, bool selectionInProgress) {
+		void drawTokenLine(Context gr, int i, bool selectionInProgress, Rectangle cb) {
+			int curL = i + ScrollY;
 			List<Token> tokens = parser.Tokens[curL];
 			int lPtr = 0;
 
@@ -526,13 +580,14 @@ namespace Crow
 					double rLineX = x,
 					rLineY = cb.Y + i * fe.Height,
 					rLineW = lstr.Length * fe.MaxXAdvance;
+					double startAdjust = 0.0;
 
-					if ((curL == selectionStart.Y) && (selectionStart.X < lPtr + lstr.Length) && (selectionStart.X > lPtr)) {
-						rLineX += (selectionStart.X - lPtr) * fe.MaxXAdvance;
-						rLineW -= (selectionStart.X - lPtr) * fe.MaxXAdvance;
-					}
+					if ((curL == selectionStart.Y) && (selectionStart.X < lPtr + lstr.Length) && (selectionStart.X > lPtr))
+						startAdjust = (selectionStart.X - lPtr) * fe.MaxXAdvance;
+					rLineX += startAdjust;
 					if ((curL == selectionEnd.Y) && (selectionEnd.X < lPtr + lstr.Length))
 						rLineW = (selectionEnd.X - lPtr) * fe.MaxXAdvance;
+					rLineW -= startAdjust;
 
 					gr.Save ();
 					gr.Operator = Operator.Source;
@@ -555,7 +610,7 @@ namespace Crow
 		{
 			base.onDraw (gr);
 
-			if (parser?.Parsed == true)
+			if (parser != null)
 				drawParsed (gr);
 			else
 				draw(gr);
@@ -807,16 +862,8 @@ namespace Crow
 				this.Insert ("\t");
 				break;
 			case Key.F8:
-				try {
-					parser = new CrowEdit.XMLParser (buffer);
-					parser.Parse ();
-				} catch (Exception ee) {
-					Debug.WriteLine (ee.ToString ());
-					parser = null;
-				}
-				break;
-			case Key.F9:
-				parser = null;
+				if (parser != null)
+					reparseSource ();
 				break;
 			default:
 				break;
@@ -851,7 +898,7 @@ namespace Crow
 
 		void updateVisibleLines(){
 			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
-			MaxScrollY = Math.Max (0, buffer.Count - visibleLines);
+			MaxScrollY = Math.Max (0, buffer.Length - visibleLines);
 
 			System.Diagnostics.Debug.WriteLine ("update visible lines: " + visibleLines);
 			System.Diagnostics.Debug.WriteLine ("update MaxScrollY: " + MaxScrollY);

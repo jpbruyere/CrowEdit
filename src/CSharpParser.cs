@@ -31,7 +31,8 @@ namespace CrowEdit
 		public CSharpParser (CodeTextBuffer _buffer) : base(_buffer)
 		{
 		}
-		public override void Parse ()
+
+		public override void Parse (int line)
 		{
 			throw new NotImplementedException ();
 		}

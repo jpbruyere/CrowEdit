@@ -25,24 +25,79 @@ using System.Text.RegularExpressions;
 
 namespace Crow
 {
-	public class CodeTextBuffer : List<string>
-	{
+	public class CodeBufferEventArgs : EventArgs {
+		public int LineStart;
+		public int LineCount;
 
+		public CodeBufferEventArgs(int lineNumber) {
+			LineStart = lineNumber;
+			LineCount = 1;
+		}
+		public CodeBufferEventArgs(int lineStart, int lineCount) {
+			LineStart = lineStart;
+			LineCount = lineCount;
+		}
+	}
+
+	public class CodeTextBuffer
+	{
+		#region Events
+		public event EventHandler<CodeBufferEventArgs> LineUpadateEvent;
+		public event EventHandler<CodeBufferEventArgs> LineRemoveEvent;
+		public event EventHandler<CodeBufferEventArgs> LineAdditionEvent;
+		public event EventHandler BufferCleared;
+		#endregion
 
 		#region CTOR
-		public CodeTextBuffer () : base(){}
+		public CodeTextBuffer () : base() {}
+		#endregion
 
-		public CodeTextBuffer (string rawSource) : this (){
+
+		List<string> lines = new List<string>();
+
+		public int Length { get { return lines.Count;}}
+
+		public string this[int i]
+		{
+			get { return lines[i]; }
+			set {
+				if (lines [i] == value)
+					return;
+				lines[i] = value;
+				LineUpadateEvent.Raise (this, new CodeBufferEventArgs (i));
+			}
+		}
+
+		public void RemoveAt(int i){
+			lines.RemoveAt(i);
+			LineRemoveEvent.Raise (this, new CodeBufferEventArgs (i));
+		}
+		public void Insert(int i, string item){
+			lines.Insert (i, item);
+			LineAdditionEvent.Raise (this, new CodeBufferEventArgs (i));
+		}
+		public void AddRange (string[] items){
+			int start = lines.Count;
+			lines.AddRange (items);
+			LineAdditionEvent.Raise (this, new CodeBufferEventArgs (start, items.Length));
+		}
+		public void Clear () {
+			lines.Clear();
+			BufferCleared.Raise (this, null);
+		}
+
+
+		public void Load(string rawSource) {
+			this.Clear();
+
 			if (string.IsNullOrEmpty (rawSource))
 				return;
-			
-			this.AddRange (Regex.Split (rawSource, "\r\n|\r|\n|\\\\n"));
+
+			AddRange (Regex.Split (rawSource, "\r\n|\r|\n|\\\\n"));
 
 			lineBreak = detectLineBreakKind (rawSource);
 			findLongestLine ();
 		}
-		#endregion
-
 		string lineBreak = Interface.LineBreak;
 
 		public int longestLineIdx = 0;
@@ -50,9 +105,9 @@ namespace Crow
 
 		void findLongestLine(){
 			longestLineCharCount = 0;
-			for (int i = 0; i < this.Count; i++) {
-				if (this[i].Length > longestLineCharCount) {
-					longestLineCharCount = this[i].Length;
+			for (int i = 0; i < lines.Count; i++) {
+				if (lines[i].Length > longestLineCharCount) {
+					longestLineCharCount = lines[i].Length;
 					longestLineIdx = i;
 				}
 			}
@@ -86,7 +141,7 @@ namespace Crow
 		/// </summary>
 		public string FullText{
 			get {
-				return this.Count > 0 ? this.Aggregate((i, j) => i + this.lineBreak + j) : "";
+				return lines.Count > 0 ? lines.Aggregate((i, j) => i + this.lineBreak + j) : "";
 			}
 		}
 	}

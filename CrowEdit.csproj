@@ -80,6 +80,7 @@
     <Compile Include="src\Parser.cs" />
     <Compile Include="src\XMLParser.cs" />
     <Compile Include="src\CSharpParser.cs" />
+    <Compile Include="src\TokenList.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />

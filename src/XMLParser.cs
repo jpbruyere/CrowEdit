@@ -2,6 +2,7 @@
 using Crow;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace CrowEdit
 {
@@ -96,18 +97,35 @@ namespace CrowEdit
 //		}
 		#endregion
 
-		public override void Parse ()
+		public override void SetLineInError (int lineNumber)
 		{
-			parsed = false;
-			Tokens = new List<List<Token>> ();
-			TokensLine = new List<Token> ();
-			currentLine = currentColumn = 0;
-			currentTok = default(Token);
-			curState = States.init;
+			base.SetLineInError (lineNumber);
+			Tokens[lineNumber].EndingState = (int)States.init;
+		}
 
-			string tmp = "";
+		public override void Parse (int line)
+		{
+			Debug.WriteLine (string.Format("parsing line:{0}", line));
 
-			while (!eof) {
+			currentLine = line;
+			currentColumn = 0;
+			eof = false;
+			bool eol = false;
+
+			if (line > 0)
+				curState = (States)Tokens [line - 1].EndingState;
+			else
+				curState = States.init;
+
+			TokensLine = Tokens [line];
+
+			States previousEndingState = (States)TokensLine.EndingState;
+
+			TokensLine.Clear ();
+
+
+
+			while (! (eof||eol)) {
 				SkipWhiteSpaces ();
 
 				if (eof)
@@ -118,8 +136,7 @@ namespace CrowEdit
 					if (currentTok != TokenType.Unknown)
 						throw new ParsingException (this, "Unexpected end of line");
 					Read ();
-					Tokens.Add (TokensLine);
-					TokensLine = new List<Token> ();
+					eol = true;
 					break;
 				case '<':
 					readToCurrTok (true);
@@ -226,10 +243,14 @@ namespace CrowEdit
 					break;
 				}
 			}
-			if (TokensLine.Count > 0)
-				Tokens.Add (TokensLine);
 
-			parsed = true;
+			TokensLine.EndingState = (int)curState;
+			TokensLine.Dirty = false;
+
+			Debug.WriteLine ("\tState:{0}->{1}", previousEndingState, curState);
+
+			if (previousEndingState != curState && line < Tokens.Count - 1)
+				Tokens [line + 1].Dirty = true;
 		}
 	}
 }

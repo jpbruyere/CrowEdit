@@ -2,6 +2,7 @@
 using System.IO;
 using Crow;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace CrowEdit
 {
@@ -42,14 +43,17 @@ namespace CrowEdit
 			}
 		}
 
+		#region CTOR
 		public Parser (CodeTextBuffer _buffer)
 		{
 			buffer = _buffer;
-			if (buffer.Count > 0)
+			Tokens = new List<TokenList> ();
+			if (buffer.Length > 0)
 				eof = false;
 		}
 
-		protected bool parsed = false;
+		#endregion
+
 		protected int currentLine = 0;
 		protected int currentColumn = 0;
 		protected Token currentTok;
@@ -57,13 +61,16 @@ namespace CrowEdit
 
 		CodeTextBuffer buffer;
 
-		public List<List<Token>> Tokens;
-		protected List<Token> TokensLine;
+		public List<TokenList> Tokens;
+		protected TokenList TokensLine;
 
-		public bool Parsed { get { return parsed; }}
 		public Point CurrentPosition { get { return new Point (currentLine, currentColumn); } }
 
-		public abstract void Parse();
+		public virtual void SetLineInError(int lineNumber) {
+			currentTok = default(Token);
+			Tokens [lineNumber] = new TokenList () {new Token () { Content = buffer [lineNumber] }};
+		}
+		public abstract void Parse(int line);
 
 		protected void readToCurrTok(bool startOfTok = false){
 			if (startOfTok)
@@ -102,27 +109,12 @@ namespace CrowEdit
 
 			if (c == '\n') {
 				currentLine++;
-				if (currentLine >= buffer.Count)
+				if (currentLine >= buffer.Length)
 					eof = true;
 				currentColumn = 0;
 			} else
 				currentColumn++;
 			return c;
-		}
-		protected virtual string Read(uint length) {
-			string tmp = "";
-			for (int i = 0; i < length; i++) {
-				char c = Peek ();
-				if (c == '\n') {
-					currentLine++;
-					if (currentLine >= buffer.Count)
-						eof = true;
-					currentColumn = 0;
-				} else
-					currentColumn++;
-				tmp += c;
-			}
-			return tmp;
 		}
 
 		protected virtual string ReadUntil (string endExp){
@@ -131,7 +123,7 @@ namespace CrowEdit
 			while (!eof) {
 				if (buffer [currentLine].Length - currentColumn - endExp.Length < 0) {
 					currentLine++;
-					if (currentLine >= buffer.Count)
+					if (currentLine >= buffer.Length)
 						eof = true;
 					currentColumn = 0;
 					continue;
