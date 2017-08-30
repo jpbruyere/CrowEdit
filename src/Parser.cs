@@ -4,7 +4,7 @@ using Crow;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace CrowEdit
+namespace Crow.Coding
 {
 	public abstract class Parser
 	{
@@ -44,7 +44,7 @@ namespace CrowEdit
 		}
 
 		#region CTOR
-		public Parser (CodeTextBuffer _buffer)
+		public Parser (CodeBuffer _buffer)
 		{
 			buffer = _buffer;
 			Tokens = new List<TokenList> ();
@@ -59,7 +59,7 @@ namespace CrowEdit
 		protected Token currentTok;
 		protected bool eof = true;
 
-		CodeTextBuffer buffer;
+		CodeBuffer buffer;
 
 		public List<TokenList> Tokens;
 		protected TokenList TokensLine;

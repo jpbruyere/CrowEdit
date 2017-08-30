@@ -69,7 +69,6 @@
     <Compile Include="src\CrowEdit.cs" />
     <Compile Include="src\CrowEditExtentions.cs" />
     <Compile Include="src\Token.cs" />
-    <Compile Include="src\CodeTextBuffer.cs" />
     <Compile Include="CrowWindow.cs" />
     <Compile Include="InterfaceControler.cs" />
     <Compile Include="OpenGL\Extensions.cs" />
@@ -81,6 +80,7 @@
     <Compile Include="src\XMLParser.cs" />
     <Compile Include="src\CSharpParser.cs" />
     <Compile Include="src\TokenList.cs" />
+    <Compile Include="src\CodeBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />

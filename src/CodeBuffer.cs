@@ -23,7 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Crow
+namespace Crow.Coding
 {
 	public class CodeBufferEventArgs : EventArgs {
 		public int LineStart;

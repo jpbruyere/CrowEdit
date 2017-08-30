@@ -1,7 +1,7 @@
 ﻿using System;
 using Crow;
 
-namespace CrowEdit
+namespace Crow.Coding
 {
 	public class CSharpParser : Parser
 	{

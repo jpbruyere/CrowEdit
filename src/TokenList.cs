@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Crow
+namespace Crow.Coding
 {
 	public class TokenList : List<Token>
 	{

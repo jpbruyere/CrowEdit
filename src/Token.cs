@@ -21,7 +21,7 @@
 using System;
 using CrowEdit;
 
-namespace Crow
+namespace Crow.Coding
 {
 	public struct Token
 	{

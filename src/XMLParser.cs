@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 
-namespace CrowEdit
+namespace Crow.Coding
 {
 	public class XMLParser : Parser
 	{

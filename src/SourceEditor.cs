@@ -36,7 +36,7 @@ using System.Linq;
 using System.Diagnostics;
 using CrowEdit;
 
-namespace Crow
+namespace Crow.Coding
 {
 	public struct TextFormating {
 		public Color Foreground;
@@ -71,7 +71,7 @@ namespace Crow
 			buffer.LineRemoveEvent += Buffer_LineRemoveEvent;
 			buffer.BufferCleared += Buffer_BufferCleared;
 
-			parser = new CrowEdit.XMLParser (buffer);
+			parser = new XMLParser (buffer);
 		}
 		#endregion
 
@@ -124,7 +124,7 @@ namespace Crow
 
 		void Buffer_BufferCleared (object sender, EventArgs e)
 		{
-			parser = new CrowEdit.XMLParser (buffer);
+			parser = new XMLParser (buffer);
 			RegisterForGraphicUpdate ();
 		}
 		void reparseSource () {
