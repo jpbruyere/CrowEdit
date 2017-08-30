@@ -99,7 +99,8 @@ namespace CrowEdit
 		public override void Parse ()
 		{
 			parsed = false;
-			Tokens = new List<Token> ();
+			Tokens = new List<List<Token>> ();
+			TokensLine = new List<Token> ();
 			currentLine = currentColumn = 0;
 			currentTok = default(Token);
 			curState = States.init;
@@ -116,7 +117,9 @@ namespace CrowEdit
 				case '\n':
 					if (currentTok != TokenType.Unknown)
 						throw new ParsingException (this, "Unexpected end of line");
-					readAndResetCurrentTok (TokenType.NewLine, true);
+					Read ();
+					Tokens.Add (TokensLine);
+					TokensLine = new List<Token> ();
 					break;
 				case '<':
 					readToCurrTok (true);
@@ -223,6 +226,8 @@ namespace CrowEdit
 					break;
 				}
 			}
+			if (TokensLine.Count > 0)
+				Tokens.Add (TokensLine);
 
 			parsed = true;
 		}

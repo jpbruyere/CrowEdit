@@ -58,6 +58,7 @@ namespace CrowEdit
 		CodeTextBuffer buffer;
 
 		public List<List<Token>> Tokens;
+		protected List<Token> TokensLine;
 
 		public bool Parsed { get { return parsed; }}
 		public Point CurrentPosition { get { return new Point (currentLine, currentColumn); } }
@@ -78,7 +79,7 @@ namespace CrowEdit
 		protected void saveAndResetCurrentTok(System.Enum type) {
 			currentTok.Type = (TokenType)type;
 			currentTok.End = CurrentPosition;
-			Tokens.Add (currentTok);
+			TokensLine.Add (currentTok);
 
 			currentTok = default(Token);
 		}

@@ -34,9 +34,19 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Diagnostics;
+using CrowEdit;
 
 namespace Crow
 {
+	public struct TextFormating {
+		public Color Foreground;
+		public Color Background;
+
+		public TextFormating(Color fg, Color bg){
+			Foreground = fg;
+			Background = bg;
+		}
+	}
 	/// <summary>
 	/// Scrolling text box optimized for monospace fonts, for coding
 	/// </summary>
@@ -44,11 +54,20 @@ namespace Crow
 	{
 		#region CTOR
 		public SourceEditor ():base()
-		{
+		{			
+			formating.Add ((int)XMLParser.TokenType.AttributeName, new TextFormating (Color.DarkBlue, Color.Transparent));
+			formating.Add ((int)XMLParser.TokenType.ElementName, new TextFormating (Color.DarkRed, Color.Transparent));
+			formating.Add ((int)XMLParser.TokenType.ElementStart, new TextFormating (Color.Red, Color.Transparent));
+			formating.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormating (Color.Red, Color.Transparent));
+			formating.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormating (Color.Red, Color.Transparent));
 
-
+			formating.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormating (Color.DarkPink, Color.Transparent));
+			formating.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormating (Color.DarkPink, Color.Transparent));
+			formating.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormating (Color.DarkPink, Color.Transparent));
 		}
 		#endregion
+
+		Dictionary<int,TextFormating> formating = new Dictionary<int, TextFormating>();
 
 		public event EventHandler TextChanged;
 
@@ -61,6 +80,7 @@ namespace Crow
 		int visibleLines = 1;
 		int visibleColumns = 1;
 		CodeTextBuffer buffer;
+		Parser parser;
 		Color selBackground;
 		Color selForeground;
 		int _currentCol;        //0 based cursor position in string
@@ -367,18 +387,14 @@ namespace Crow
 			else if (layoutType == LayoutingType.Width)
 				updateVisibleColumns ();
 		}
-		protected override void onDraw (Context gr)
-		{
-			base.onDraw (gr);
 
+		void draw(Context gr){
 			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 			gr.SetFontSize (Font.Size);
 			gr.FontOptions = Interface.FontRenderingOptions;
 			gr.Antialias = Interface.Antialias;
 
 			Rectangle cb = ClientRectangle;
-
-			Foreground.SetAsSource (gr);
 
 			bool selectionInProgress = false;
 
@@ -438,6 +454,107 @@ namespace Crow
 					gr.Restore ();
 				}
 			}
+		}
+		void drawParsed(Context gr){
+			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+			gr.SetFontSize (Font.Size);
+			gr.FontOptions = Interface.FontRenderingOptions;
+			gr.Antialias = Interface.Antialias;
+
+			Rectangle cb = ClientRectangle;
+
+			bool selectionInProgress = false;
+
+			Foreground.SetAsSource (gr);
+
+			#region draw text cursor
+			if (SelBegin != SelRelease)
+				selectionInProgress = true;
+			else if (HasFocus){
+				gr.LineWidth = 1.0;
+				double cursorX = cb.X + (CurrentColumn - ScrollX) * fe.MaxXAdvance;
+				gr.MoveTo (0.5 + cursorX, cb.Y + (CurrentLine - ScrollY) * fe.Height);
+				gr.LineTo (0.5 + cursorX, cb.Y + (CurrentLine + 1 - ScrollY) * fe.Height);
+				gr.Stroke();
+			}
+			#endregion
+
+			for (int i = 0; i < visibleLines; i++) {
+				int curL = i + ScrollY;
+				if (curL >= parser.Tokens.Count)
+					break;
+				List<Token> tokens = parser.Tokens[curL];
+				int lPtr = 0;
+
+				for (int t = 0; t < tokens.Count; t++) {
+					string lstr = tokens [t].Content;
+					if (lPtr < ScrollX) {
+						if (lPtr - ScrollX + lstr.Length <= 0) {
+							lPtr += lstr.Length;
+							continue;
+						}
+						lstr = lstr.Substring (ScrollX - lPtr);
+						lPtr += ScrollX - lPtr;
+					}
+					Color bg = this.Background;
+					Color fg = this.Foreground;
+
+					if (formating.ContainsKey ((int)tokens [t].Type)) {
+						TextFormating tf = formating [(int)tokens [t].Type];
+						bg = tf.Background;
+						fg = tf.Foreground;
+					}
+
+					gr.SetSourceColor (fg);
+
+					int x = cb.X + (int)((lPtr - ScrollX) * fe.MaxXAdvance);
+
+					gr.MoveTo (x, cb.Y + fe.Ascent + fe.Height * i);
+					gr.ShowText (lstr);
+					gr.Fill ();
+
+					lPtr += lstr.Length;
+				}
+
+
+//				if (selectionInProgress && curL >= selectionStart.Y && curL <= selectionEnd.Y) {
+//
+//					double rLineX = cb.X,
+//					rLineY = cb.Y + i * fe.Height,
+//					rLineW = lstr.Length * fe.MaxXAdvance;
+//
+//					System.Diagnostics.Debug.WriteLine ("sel start: " + selectionStart + " sel end: " + selectionEnd);
+//					if (curL == selectionStart.Y) {
+//						rLineX += (selectionStart.X - ScrollX) * fe.MaxXAdvance;
+//						rLineW -= selectionStart.X * fe.MaxXAdvance;
+//					}
+//					if (curL == selectionEnd.Y)
+//						rLineW -= (lstr.Length - selectionEnd.X) * fe.MaxXAdvance;
+//
+//					gr.Save ();
+//					gr.Operator = Operator.Source;
+//					gr.Rectangle (rLineX, rLineY, rLineW, fe.Height);
+//					gr.SetSourceColor (SelectionBackground);
+//					gr.FillPreserve ();
+//					gr.Clip ();
+//					gr.Operator = Operator.Over;
+//					gr.SetSourceColor (SelectionForeground);
+//					gr.MoveTo (cb.X, cb.Y + fe.Ascent + fe.Height * i);
+//					gr.ShowText (lstr);
+//					gr.Fill ();
+//					gr.Restore ();
+//				}
+			}
+		}
+		protected override void onDraw (Context gr)
+		{
+			base.onDraw (gr);
+
+			if (parser?.Parsed == true)
+				drawParsed (gr);
+			else
+				draw(gr);
+				
 		}
 		#endregion
 
@@ -686,11 +803,15 @@ namespace Crow
 				break;
 			case Key.F8:
 				try {
-					CrowEdit.XMLParser parser = new CrowEdit.XMLParser (buffer);
+					parser = new CrowEdit.XMLParser (buffer);
 					parser.Parse ();
-				}catch(Exception ee){
+				} catch (Exception ee) {
 					Debug.WriteLine (ee.ToString ());
+					parser = null;
 				}
+				break;
+			case Key.F9:
+				parser = null;
 				break;
 			default:
 				break;
