@@ -111,6 +111,7 @@ namespace Crow.Coding
 			currentColumn = 0;
 			eof = false;
 			bool eol = false;
+			TokensLine = Tokens [line];
 
 			//retrieve current parser state from previous line
 			if (line > 0)
@@ -118,10 +119,8 @@ namespace Crow.Coding
 			else
 				curState = States.init;
 
-			States previousEndingState = (States)Tokens[line].EndingState;
-			Tokens[line].Clear ();
-
-
+			States previousEndingState = (States)TokensLine.EndingState;
+			TokensLine.Clear ();
 
 			while (! (eof||eol)) {
 				SkipWhiteSpaces ();
@@ -143,7 +142,8 @@ namespace Crow.Coding
 						if (curState != States.init)
 							throw new ParsingException (this, "prolog may appear only on first line");
 						readToCurrTok ();
-						currentTok += ReadUntil ("?>");
+						currentTok += ReadLineUntil ("?>");
+						readToCurrTok (2);
 						saveAndResetCurrentTok (TokenType.XMLDecl);
 						curState = States.prolog;
 						break;
@@ -154,7 +154,7 @@ namespace Crow.Coding
 							readToCurrTok ();
 							if (Peek () != '-')
 								throw new ParsingException (this, "Expecting comment start tag");
-							currentTok += ReadUntil ("--");
+							currentTok += ReadLineUntil ("--");
 							if (Peek () != '>')
 								throw new ParsingException (this, "Expecting comment closing tag");
 							readAndResetCurrentTok (TokenType.BlockComment);
@@ -164,7 +164,7 @@ namespace Crow.Coding
 						}
 						break;
 					default:
-						if (!(curState == States.Content || curState == States.XML || curState == States.init))
+						if (!(curState == States.Content || curState == States.XML || curState == States.init || curState == States.prolog))
 							throw new ParsingException (this, "Unexpected char: '<'");
 						if (Peek () == '/') {
 							curState = States.EndTag;
@@ -228,7 +228,7 @@ namespace Crow.Coding
 						readAndResetCurrentTok (TokenType.AttributeValueOpening, true);
 
 						currentTok.Start = CurrentPosition;
-						currentTok.Content = ReadUntil (new string (new char[]{ openAttVal }));
+						currentTok.Content = ReadLineUntil (new string (new char[]{ openAttVal }));
 						saveAndResetCurrentTok (TokenType.AttributeValue);
 
 						if (Peek () != openAttVal)
@@ -242,8 +242,8 @@ namespace Crow.Coding
 				}
 			}
 
-			Tokens[line].EndingState = (int)curState;
-			Tokens [line].Dirty = false;
+			TokensLine.EndingState = (int)curState;
+			TokensLine.Dirty = false;
 
 			if (previousEndingState != curState && line < Tokens.Count - 1)
 				Tokens [line + 1].Dirty = true;

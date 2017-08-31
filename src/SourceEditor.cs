@@ -46,15 +46,17 @@ namespace Crow.Coding
 		#region CTOR
 		public SourceEditor ():base()
 		{
-			formatting.Add ((int)XMLParser.TokenType.AttributeName, new TextFormatting (Color.DarkBlue, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Color.DarkRed, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Color.Red, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Color.Red, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Color.Red, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeName, new TextFormatting (Color.UnitedNationsBlue, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Color.DarkBlue, Color.Transparent, true));
+			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Color.Red, Color.Transparent,true));
+			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Color.Red, Color.Transparent,true));
+			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Color.Red, Color.Transparent, true));
+			formatting.Add ((int)XMLParser.TokenType.Affectation, new TextFormatting (Color.Red, Color.Transparent, true));
 
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.DarkPink, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.DarkPink, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.DarkPink, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.DarkPink, Color.Transparent,true));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.DarkPink, Color.Transparent,true));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.DarkPink, Color.Transparent, false, true));
+			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.SeaGreen, Color.Transparent, true));
 
 			buffer = new CodeBuffer ();
 			buffer.LineUpadateEvent += Buffer_LineUpadateEvent;
@@ -86,7 +88,7 @@ namespace Crow.Coding
 		Point _selBegin = -1;	//selection start (row,column)
 		Point _selRelease = -1;	//selection end (row,column)
 
-		Dictionary<int,TextFormatting> formatting = new Dictionary<int, TextFormatting>();
+		Dictionary<int, TextFormatting> formatting = new Dictionary<int, TextFormatting>();
 
 		protected Rectangle rText;
 		protected FontExtents fe;
@@ -505,13 +507,20 @@ namespace Crow.Coding
 				Color fg = this.Foreground;
 				Color selbg = this.SelectionBackground;
 				Color selfg = this.SelectionForeground;
+				FontSlant fts = FontSlant.Normal;
+				FontWeight ftw = FontWeight.Normal;
 
 				if (formatting.ContainsKey ((int)tokens [t].Type)) {
 					TextFormatting tf = formatting [(int)tokens [t].Type];
 					bg = tf.Background;
 					fg = tf.Foreground;
+					if (tf.Bold)
+						ftw = FontWeight.Bold;
+					if (tf.Italic)
+						fts = FontSlant.Italic;
 				}
 
+				gr.SelectFontFace (Font.Name, fts, ftw);
 				gr.SetSourceColor (fg);
 
 				int x = cb.X + (int)((lPtr - ScrollX) * fe.MaxXAdvance);
@@ -614,6 +623,8 @@ namespace Crow.Coding
 				CurrentLine--;
 			else
 				CurrentLine = ScrollY + (int)Math.Floor (mouseLocalPos.Y / fe.Height);
+
+			CurrentPosition = buffer.VisualPosition; //for rounding if in middle of tabs
 		}
 		public override void onMouseEnter (object sender, MouseMoveEventArgs e)
 		{

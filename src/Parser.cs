@@ -49,6 +49,7 @@ namespace Crow.Coding
 		protected bool eof = true;
 
 		public List<TokenList> Tokens;
+		protected TokenList TokensLine;
 
 		public Point CurrentPosition { get { return new Point (currentLine, currentColumn); } }
 
@@ -64,6 +65,10 @@ namespace Crow.Coding
 				currentTok.Start = CurrentPosition;
 			currentTok += Read();
 		}
+		protected void readToCurrTok(int length) {
+			for (int i = 0; i < length; i++)
+				currentTok += Read ();
+		}
 		protected void readAndResetCurrentTok(System.Enum type, bool startToc = false) {
 			readToCurrTok ();
 			saveAndResetCurrentTok (type);
@@ -72,7 +77,7 @@ namespace Crow.Coding
 		protected void saveAndResetCurrentTok(System.Enum type) {
 			currentTok.Type = (TokenType)type;
 			currentTok.End = CurrentPosition;
-			Tokens[currentLine].Add (currentTok);
+			TokensLine.Add (currentTok);
 			currentTok = default(Token);
 		}
 		protected virtual char Peek() {
@@ -100,17 +105,12 @@ namespace Crow.Coding
 				currentColumn++;
 			return c;
 		}
-		protected virtual string ReadUntil (string endExp){
+		protected virtual string ReadLineUntil (string endExp){
 			string tmp = "";
 
 			while (!eof) {
-				if (buffer [currentLine].Length - currentColumn - endExp.Length < 0) {
-					currentLine++;
-					if (currentLine >= buffer.Length)
-						eof = true;
-					currentColumn = 0;
-					continue;
-				}
+				if (buffer [currentLine].Length - currentColumn - endExp.Length < 0)
+					break;
 				if (string.Equals (Peek (endExp.Length), endExp))
 					return tmp;
 				tmp += Read();
