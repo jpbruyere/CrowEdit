@@ -89,9 +89,10 @@ namespace Crow.Coding
 		protected virtual string Peek(int length) {
 			if (eof)
 				throw new ParsingException (this, "Unexpected End of File");
-			if (buffer[currentLine].Length - currentColumn - length < 0)
-				throw new ParsingException (this, "Unexpected End of line");
-			return buffer [currentLine].Substring (currentColumn, length);
+			int lg = Math.Min(length, Math.Max (buffer [currentLine].Length - currentColumn, buffer [currentLine].Length - currentColumn - length));
+			if (lg == 0)
+				return "";
+			return buffer [currentLine].Substring (currentColumn, lg);
 		}
 		protected virtual char Read() {
 			char c = Peek ();
@@ -105,17 +106,28 @@ namespace Crow.Coding
 				currentColumn++;
 			return c;
 		}
+		protected virtual string ReadLine () {
+			string tmp = "";
+			while (!eof) {
+				if (Peek () == '\n')
+					return tmp;
+				tmp += Read ();
+			}
+			return tmp;
+		}
 		protected virtual string ReadLineUntil (string endExp){
 			string tmp = "";
 
 			while (!eof) {
-				if (buffer [currentLine].Length - currentColumn - endExp.Length < 0)
+				if (buffer [currentLine].Length - currentColumn - endExp.Length < 0) {
+					tmp += ReadLine();
 					break;
+				}
 				if (string.Equals (Peek (endExp.Length), endExp))
 					return tmp;
 				tmp += Read();
 			}
-			throw new ParsingException (this, string.Format("Expectign '{0}'", endExp));
+			return tmp;
 		}
 		protected void SkipWhiteSpaces () {
 			if (currentTok.Type != TokenType.Unknown)

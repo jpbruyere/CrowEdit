@@ -56,7 +56,8 @@ namespace Crow.Coding
 			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.DarkPink, Color.Transparent,true));
 			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.DarkPink, Color.Transparent,true));
 			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.DarkPink, Color.Transparent, false, true));
-			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.SeaGreen, Color.Transparent, true));
+			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.BlueCrayola, Color.Transparent, true));
+			formatting.Add ((int)XMLParser.TokenType.BlockComment, new TextFormatting (Color.Gray, Color.Transparent, false, true));
 
 			buffer = new CodeBuffer ();
 			buffer.LineUpadateEvent += Buffer_LineUpadateEvent;

@@ -33,6 +33,7 @@ namespace Crow.Coding
 			InternalSubset,    //doctype declaration subset
 			ExternalSubsetInit,
 			ExternalSubset,
+			BlockComment,
 			DTDEnd,//doctype finished
 			XML,//normal xml
 			StartTag,//inside start tag
@@ -128,21 +129,40 @@ namespace Crow.Coding
 				if (eof)
 					break;
 
-				switch (Peek()) {
-				case '\n':
+				if (Peek () == '\n') {
 					if (currentTok != TokenType.Unknown)
 						throw new ParsingException (this, "Unexpected end of line");
 					Read ();
 					eol = true;
-					break;
+					continue;
+				}
+
+				if (curState == States.BlockComment) {
+					if (currentTok != TokenType.Unknown)
+						Debugger.Break ();
+
+					currentTok.Start = CurrentPosition;
+					currentTok.Type = (Parser.TokenType)TokenType.BlockComment;
+					currentTok += ReadLineUntil ("-->");
+					if (Peek (3) == "-->") {
+						readToCurrTok (3);
+						curState = States.XML;
+					}
+					saveAndResetCurrentTok ();
+					continue;
+				}
+
+				switch (Peek()) {
 				case '<':
 					readToCurrTok (true);
 					switch (Peek()) {
 					case '?':
 						if (curState != States.init)
-							throw new ParsingException (this, "prolog may appear only on first line");
+							throw new ParsingException (this, "xml decl may appear only on first line");
 						readToCurrTok ();
 						currentTok += ReadLineUntil ("?>");
+						if (Peek (2) != "?>")
+							throw new ParsingException (this, "expecting '?>'");
 						readToCurrTok (2);
 						saveAndResetCurrentTok (TokenType.XMLDecl);
 						curState = States.prolog;
@@ -154,13 +174,16 @@ namespace Crow.Coding
 							readToCurrTok ();
 							if (Peek () != '-')
 								throw new ParsingException (this, "Expecting comment start tag");
+							readToCurrTok ();
 							currentTok += ReadLineUntil ("--");
-							if (Peek () != '>')
-								throw new ParsingException (this, "Expecting comment closing tag");
-							readAndResetCurrentTok (TokenType.BlockComment);
+							if (Peek (3) == "-->") {
+								readToCurrTok (3);
+							}else
+								curState = States.BlockComment;
+							saveAndResetCurrentTok (TokenType.BlockComment);
 							break;
 						default:
-							throw new NotImplementedException ();
+							throw new ParsingException(this, "error");
 						}
 						break;
 					default:
