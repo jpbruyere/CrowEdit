@@ -42,8 +42,20 @@ namespace Crow.Coding
 		List<string> lines = new List<string>();
 		public int longestLineIdx = 0;
 		public int longestLineCharCount = 0;
+		/// <summary>
+		/// real position in char arrays, tab = 1 char
+		/// </summary>
+		int _currentLine = 0;
+		int _currentCol = 0;
 
 		public int Length { get { return lines.Count;}}
+
+		/// <summary>
+		/// Return line with tabs replaced by spaces
+		/// </summary>
+		public string GetPrintableLine(int i){
+			return string.IsNullOrEmpty(lines[i]) ? "" : lines[i].Replace("\t", new String(' ', Interface.TabSize));
+		}
 
 		public string this[int i]
 		{
@@ -83,14 +95,14 @@ namespace Crow.Coding
 			AddRange (Regex.Split (rawSource, "\r\n|\r|\n|\\\\n"));
 
 			lineBreak = detectLineBreakKind (rawSource);
-			findLongestLine ();
+			findLongestVisualLine ();
 		}
 
-		void findLongestLine(){
+		void findLongestVisualLine(){
 			longestLineCharCount = 0;
-			for (int i = 0; i < lines.Count; i++) {
-				if (lines[i].Length > longestLineCharCount) {
-					longestLineCharCount = lines[i].Length;
+			for (int i = 0; i < this.Length; i++) {
+				if (this.GetPrintableLine(i).Length > longestLineCharCount) {
+					longestLineCharCount = this.GetPrintableLine(i).Length;
 					longestLineIdx = i;
 				}
 			}
@@ -127,6 +139,207 @@ namespace Crow.Coding
 				return lines.Count > 0 ? lines.Aggregate((i, j) => i + this.lineBreak + j) : "";
 			}
 		}
+
+		/// <summary>
+		/// convert visual position to buffer position
+		/// </summary>
+		Point getBuffPos (Point visualPos) {
+			int i = 0;
+			int buffCol = 0;
+			while (i < visualPos.X) {
+				if (this [visualPos.Y] [buffCol] == '\t')
+					i += Interface.TabSize;
+				else
+					i++;
+				buffCol++;
+			}
+			return new Point (buffCol, visualPos.Y);
+		}
+		/// <summary>
+		/// convert buffer postition to visual position
+		/// </summary>
+		Point getVisualPos (Point buffPos) {
+			int vCol = this[buffPos.Y].Substring(0, buffPos.X).Replace("\t", new String(' ', Interface.TabSize)).Length;
+			return new Point (vCol, buffPos.Y);
+		}
+		/// <summary>
+		/// Gets visual position computed from actual buffer position
+		/// </summary>
+		public Point VisualPosition {
+			get { return getVisualPos (new Point (_currentCol, _currentLine)); }
+		}
+		/// <summary>
+		/// set buffer current position from visual position
+		/// </summary>
+		public void SetBufferPos(Point visualPosition) {
+			CurrentPosition = getBuffPos(visualPosition);
+		}
+
+		#region Editing and moving cursor
+		Point selectionStart = -1;
+		Point selectionEnd = -1;
+		public void SetSelection (Point visualStart, Point visualEnd) {
+			selectionStart = getBuffPos (visualStart);
+			selectionEnd = getBuffPos (visualEnd);
+		}
+		public void ResetSelection () {
+			selectionStart = selectionEnd = -1;
+		}
+		bool selectionIsEmpty {
+			get { return selectionStart == selectionEnd; }
+		}
+		public int CurrentColumn{
+			get { return _currentCol; }
+			set {
+				if (value == _currentCol)
+					return;
+				if (value < 0)
+					_currentCol = 0;
+				else if (value >  lines [_currentLine].Length)
+					_currentCol = lines [_currentLine].Length;
+				else
+					_currentCol = value;
+			}
+		}
+		public int CurrentLine{
+			get { return _currentLine; }
+			set {
+				if (value == _currentLine)
+					return;
+				if (value >= lines.Count)
+					_currentLine = lines.Count-1;
+				else if (value < 0)
+					_currentLine = 0;
+				else
+					_currentLine = value;
+				//force recheck of currentCol for bounding
+				int cc = _currentCol;
+				_currentCol = 0;
+				CurrentColumn = cc;
+			}
+		}
+		public Point CurrentPosition {
+			get { return new Point(CurrentColumn, CurrentLine); }
+			set {
+				_currentCol = value.X;
+				_currentLine = value.Y;
+			}
+		}
+		protected Char CurrentChar { get { return lines [CurrentLine] [CurrentColumn]; } }
+
+		/// <summary>
+		/// Moves cursor one char to the left.
+		/// </summary>
+		/// <returns><c>true</c> if move succeed</returns>
+		public bool MoveLeft(){
+			int tmp = _currentCol - 1;
+			if (tmp < 0) {
+				if (_currentLine == 0)
+					return false;
+				CurrentLine--;
+				CurrentColumn = int.MaxValue;
+			} else
+				CurrentColumn = tmp;
+			return true;
+		}
+		/// <summary>
+		/// Moves cursor one char to the right.
+		/// </summary>
+		/// <returns><c>true</c> if move succeed</returns>
+		public bool MoveRight(){
+			int tmp = _currentCol + 1;
+			if (tmp > this [_currentLine].Length){
+				if (CurrentLine == this.Length - 1)
+					return false;
+				CurrentLine++;
+				CurrentColumn = 0;
+			} else
+				CurrentColumn = tmp;
+			return true;
+		}
+		public void GotoWordStart(){
+			if (this[CurrentLine].Length == 0)
+				return;
+			CurrentColumn--;
+			//skip white spaces
+			while (!char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn > 0)
+				CurrentColumn--;
+			while (char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn > 0)
+				CurrentColumn--;
+			if (!char.IsLetterOrDigit (this.CurrentChar))
+				CurrentColumn++;
+		}
+		public void GotoWordEnd(){
+			//skip white spaces
+			if (CurrentColumn >= this [CurrentLine].Length - 1)
+				return;
+			while (!char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < this [CurrentLine].Length-1)
+				CurrentColumn++;
+			while (char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < this [CurrentLine].Length-1)
+				CurrentColumn++;
+			if (char.IsLetterOrDigit (this.CurrentChar))
+				CurrentColumn++;
+		}
+		public void DeleteChar()
+		{
+			if (selectionIsEmpty) {
+				if (CurrentColumn == 0) {
+					if (CurrentLine == 0 && this.Length == 1)
+						return;
+					CurrentLine--;
+					CurrentColumn = this [CurrentLine].Length;
+					this [CurrentLine] += this [CurrentLine + 1];
+					RemoveAt (CurrentLine + 1);
+					return;
+				}
+				CurrentColumn--;
+				this [CurrentLine] = this [CurrentLine].Remove (CurrentColumn, 1);
+			} else {
+				int linesToRemove = selectionEnd.Y - selectionStart.Y + 1;
+				int l = selectionStart.Y;
+
+				if (linesToRemove > 0) {
+					this [l] = this [l].Remove (selectionStart.X, this [l].Length - selectionStart.X) +
+						this [selectionEnd.Y].Substring (selectionEnd.X, this [selectionEnd.Y].Length - selectionEnd.X);
+					l++;
+					for (int c = 0; c < linesToRemove-1; c++)
+						RemoveAt (l);
+					CurrentLine = selectionStart.Y;
+					CurrentColumn = selectionStart.X;
+				} else
+					this [l] = this [l].Remove (selectionStart.X, selectionEnd.X - selectionStart.X);
+				CurrentColumn = selectionStart.X;
+				ResetSelection ();
+			}
+		}
+		/// <summary>
+		/// Insert new string at caret position, should be sure no line break is inside.
+		/// </summary>
+		/// <param name="str">String.</param>
+		public void Insert(string str)
+		{
+			if (!selectionIsEmpty)
+				this.DeleteChar ();
+			string[] strLines = Regex.Split (str, "\r\n|\r|\n|" + @"\\n").ToArray();
+			this [CurrentLine] = this [CurrentLine].Insert (CurrentColumn, strLines[0]);
+			CurrentColumn += strLines[0].Length;
+			for (int i = 1; i < strLines.Length; i++) {
+				InsertLineBreak ();
+				this [CurrentLine] = this [CurrentLine].Insert (CurrentColumn, strLines[i]);
+				CurrentColumn += strLines[i].Length;
+			}
+		}
+		/// <summary>
+		/// Insert a line break.
+		/// </summary>
+		public void InsertLineBreak()
+		{
+			Insert(CurrentLine + 1, this[CurrentLine].Substring(CurrentColumn));
+			this [CurrentLine] = this [CurrentLine].Substring (0, CurrentColumn);
+			CurrentLine++;
+			CurrentColumn = 0;
+		}
+		#endregion
 	}
 }
 

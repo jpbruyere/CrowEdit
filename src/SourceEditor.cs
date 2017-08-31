@@ -192,10 +192,12 @@ namespace Crow.Coding
 					return;
 				if (value < 0)
 					_currentCol = 0;
-				else if (value > buffer [_currentLine].Length)
-					_currentCol = buffer [_currentLine].Length;
+				else if (value > buffer.GetPrintableLine(_currentLine).Length)
+					_currentCol = buffer.GetPrintableLine(_currentLine).Length;
 				else
 					_currentCol = value;
+
+				buffer.SetBufferPos (CurrentPosition);
 
 				if (_currentCol < ScrollX)
 					ScrollX = _currentCol;
@@ -221,6 +223,9 @@ namespace Crow.Coding
 				int cc = _currentCol;
 				_currentCol = 0;
 				CurrentColumn = cc;
+
+				buffer.SetBufferPos (CurrentPosition);
+
 				//System.Diagnostics.Debug.WriteLine ("Scroll:{0} visibleLines:{1} CurLine:{2}", ScrollY, visibleLines, CurrentLine);
 				if (_currentLine < ScrollY)
 					ScrollY = _currentLine;
@@ -231,6 +236,10 @@ namespace Crow.Coding
 		}
 		[XmlIgnore]public Point CurrentPosition {
 			get { return new Point(CurrentColumn, CurrentLine); }
+			set {
+				CurrentColumn = value.X;
+				CurrentLine = value.Y;
+			}
 		}
 		//TODO:using HasFocus for drawing selection cause SelBegin and Release binding not to work
 		/// <summary>
@@ -319,87 +328,35 @@ namespace Crow.Coding
 		/// </summary>
 		/// <returns><c>true</c> if move succeed</returns>
 		public bool MoveLeft(){
-			int tmp = _currentCol - 1;
-			if (tmp < 0) {
-				if (_currentLine == 0)
-					return false;
-				CurrentLine--;
-				CurrentColumn = int.MaxValue;
-			} else
-				CurrentColumn = tmp;
-			return true;
+			bool res = buffer.MoveLeft();
+			CurrentPosition = buffer.VisualPosition;
+			return res;
 		}
 		/// <summary>
 		/// Moves cursor one char to the right.
 		/// </summary>
 		/// <returns><c>true</c> if move succeed</returns>
 		public bool MoveRight(){
-			int tmp = _currentCol + 1;
-			if (tmp > buffer [_currentLine].Length){
-				if (CurrentLine == buffer.Length - 1)
-					return false;
-				CurrentLine++;
-				CurrentColumn = 0;
-			} else
-				CurrentColumn = tmp;
-			return true;
+			bool res = buffer.MoveRight();
+			CurrentPosition = buffer.VisualPosition;
+			return res;
 		}
 		public void GotoWordStart(){
-			if (buffer[CurrentLine].Length == 0)
-				return;
-			CurrentColumn--;
-			//skip white spaces
-			while (!char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn > 0)
-				CurrentColumn--;
-			while (char.IsLetterOrDigit (buffer [CurrentLine] [CurrentColumn]) && CurrentColumn > 0)
-				CurrentColumn--;
-			if (!char.IsLetterOrDigit (this.CurrentChar))
-				CurrentColumn++;
+			buffer.GotoWordStart();
+			CurrentPosition = buffer.VisualPosition;
 		}
 		public void GotoWordEnd(){
-			//skip white spaces
-			if (CurrentColumn >= buffer [CurrentLine].Length - 1)
-				return;
-			while (!char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < buffer [CurrentLine].Length-1)
-				CurrentColumn++;
-			while (char.IsLetterOrDigit (this.CurrentChar) && CurrentColumn < buffer [CurrentLine].Length-1)
-				CurrentColumn++;
-			if (char.IsLetterOrDigit (this.CurrentChar))
-				CurrentColumn++;
+			buffer.GotoWordEnd();
+			CurrentPosition = buffer.VisualPosition;
 		}
 		public void DeleteChar()
 		{
-			if (selectionIsEmpty) {
-				if (CurrentColumn == 0) {
-					if (CurrentLine == 0 && buffer.Length == 1)
-						return;
-					CurrentLine--;
-					CurrentColumn = buffer [CurrentLine].Length;
-					buffer [CurrentLine] += buffer [CurrentLine + 1];
-					buffer.RemoveAt (CurrentLine + 1);
-					OnTextChanged (this, null);
-					return;
-				}
-				CurrentColumn--;
-				buffer [CurrentLine] = buffer [CurrentLine].Remove (CurrentColumn, 1);
-			} else {
-				int linesToRemove = selectionEnd.Y - selectionStart.Y + 1;
-				int l = selectionStart.Y;
-
-				if (linesToRemove > 0) {
-					buffer [l] = buffer [l].Remove (selectionStart.X, buffer [l].Length - selectionStart.X) +
-						buffer [selectionEnd.Y].Substring (selectionEnd.X, buffer [selectionEnd.Y].Length - selectionEnd.X);
-					l++;
-					for (int c = 0; c < linesToRemove-1; c++)
-						buffer.RemoveAt (l);
-					CurrentLine = selectionStart.Y;
-					CurrentColumn = selectionStart.X;
-				} else
-					buffer [l] = buffer [l].Remove (selectionStart.X, selectionEnd.X - selectionStart.X);
-				CurrentColumn = selectionStart.X;
-				SelBegin = -1;
-				SelRelease = -1;
-			}
+			if (!selectionIsEmpty)
+				buffer.SetSelection (selectionStart, selectionEnd);
+			buffer.DeleteChar ();
+			CurrentPosition = buffer.VisualPosition;
+			SelBegin = -1;
+			SelRelease = -1;
 			OnTextChanged (this, null);
 		}
 		/// <summary>
@@ -409,15 +366,11 @@ namespace Crow.Coding
 		protected void Insert(string str)
 		{
 			if (!selectionIsEmpty)
-				this.DeleteChar ();
-			string[] strLines = Regex.Split (str, "\r\n|\r|\n|" + @"\\n").ToArray();
-			buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[0]);
-			CurrentColumn += strLines[0].Length;
-			for (int i = 1; i < strLines.Length; i++) {
-				InsertLineBreak ();
-				buffer [CurrentLine] = buffer [CurrentLine].Insert (CurrentColumn, strLines[i]);
-				CurrentColumn += strLines[i].Length;
-			}
+				DeleteChar ();
+
+			buffer.Insert (str);
+			CurrentPosition = buffer.VisualPosition;
+
 			OnTextChanged (this, null);
 			RegisterForGraphicUpdate();
 		}
@@ -426,15 +379,16 @@ namespace Crow.Coding
 		/// </summary>
 		protected void InsertLineBreak()
 		{
-			buffer.Insert(CurrentLine + 1, buffer[CurrentLine].Substring(CurrentColumn));
-			buffer [CurrentLine] = buffer [CurrentLine].Substring (0, CurrentColumn);
-			CurrentLine++;
-			CurrentColumn = 0;
+			buffer.InsertLineBreak ();
+			CurrentPosition = buffer.VisualPosition;
 			OnTextChanged (this, null);
 		}
 		#endregion
 
 		#region Drawing
+		/// <summary>
+		/// Draw unparsed buffer.
+		/// </summary>
 		void draw(Context gr){
 			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 			gr.SetFontSize (Font.Size);
@@ -538,7 +492,7 @@ namespace Crow.Coding
 			int lPtr = 0;
 
 			for (int t = 0; t < tokens.Count; t++) {
-				string lstr = tokens [t].Content;
+				string lstr = tokens [t].PrintableContent;
 				if (lPtr < ScrollX) {
 					if (lPtr - ScrollX + lstr.Length <= 0) {
 						lPtr += lstr.Length;
@@ -808,7 +762,7 @@ namespace Crow.Coding
 			case Key.Left:
 				if (e.Shift) {
 					if (selectionIsEmpty)
-						SelBegin = new Point(CurrentColumn, CurrentLine);
+						SelBegin = CurrentPosition;
 					if (e.Control)
 						GotoWordStart ();
 					else if (!MoveLeft ())

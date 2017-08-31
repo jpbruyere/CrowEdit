@@ -30,6 +30,10 @@ namespace Crow.Coding
 		public Point Start;
 		public Point End;
 
+		public string PrintableContent {
+			get { return string.IsNullOrEmpty(Content) ? "" : Content.Replace("\t", new String(' ', Interface.TabSize)); }
+		}
+
 //		public Token (TokenType tokType, string content = ""){
 //			Type = tokType;
 //			Content = content;
