@@ -25,8 +25,13 @@ using System.Text.RegularExpressions;
 
 namespace Crow.Coding
 {
+	/// <summary>
+	/// Code buffer, lines are arranged in a List<string>, new line chars are removed during string.split on '\n...',
+	/// </summary>
 	public class CodeBuffer
 	{
+		//those events are handled in SourceEditor to help keeping sync between textbuffer and parser.
+		//modified lines are marked for reparse
 		#region Events
 		public event EventHandler<CodeBufferEventArgs> LineUpadateEvent;
 		public event EventHandler<CodeBufferEventArgs> LineRemoveEvent;
@@ -158,36 +163,45 @@ namespace Crow.Coding
 		/// <summary>
 		/// convert buffer postition to visual position
 		/// </summary>
-		Point getVisualPos (Point buffPos) {
+		Point getTabulatedPos (Point buffPos) {
 			int vCol = this[buffPos.Y].Substring(0, buffPos.X).Replace("\t", new String(' ', Interface.TabSize)).Length;
 			return new Point (vCol, buffPos.Y);
 		}
 		/// <summary>
 		/// Gets visual position computed from actual buffer position
 		/// </summary>
-		public Point VisualPosition {
-			get { return getVisualPos (new Point (_currentCol, _currentLine)); }
+		public Point TabulatedPosition {
+			get { return getTabulatedPos (new Point (_currentCol, _currentLine)); }
 		}
 		/// <summary>
 		/// set buffer current position from visual position
 		/// </summary>
-		public void SetBufferPos(Point visualPosition) {
-			CurrentPosition = getBuffPos(visualPosition);
+		public void SetBufferPos(Point tabulatedPosition) {
+			CurrentPosition = getBuffPos(tabulatedPosition);
 		}
 
 		#region Editing and moving cursor
 		Point selectionStart = -1;
 		Point selectionEnd = -1;
-		public void SetSelection (Point visualStart, Point visualEnd) {
-			selectionStart = getBuffPos (visualStart);
-			selectionEnd = getBuffPos (visualEnd);
+		/// <summary>
+		/// Set selection in buffer coords from tabulated coords
+		/// </summary>
+		public void SetSelection (Point tabulatedStart, Point tabulatedEnd) {
+			selectionStart = getBuffPos (tabulatedStart);
+			selectionEnd = getBuffPos (tabulatedEnd);
 		}
+		/// <summary>
+		/// Set selection in buffer to -1, empty selection
+		/// </summary>
 		public void ResetSelection () {
 			selectionStart = selectionEnd = -1;
 		}
 		bool selectionIsEmpty {
 			get { return selectionStart == selectionEnd; }
 		}
+		/// <summary>
+		/// Current column in buffer coordinate, tabulation = 1 char
+		/// </summary>
 		public int CurrentColumn{
 			get { return _currentCol; }
 			set {
@@ -201,6 +215,9 @@ namespace Crow.Coding
 					_currentCol = value;
 			}
 		}
+		/// <summary>
+		/// Current row in buffer coordinate, tabulation = 1 char
+		/// </summary>
 		public int CurrentLine{
 			get { return _currentLine; }
 			set {
@@ -218,6 +235,9 @@ namespace Crow.Coding
 				CurrentColumn = cc;
 			}
 		}
+		/// <summary>
+		/// Current position in buffer coordinate, tabulation = 1 char
+		/// </summary>
 		public Point CurrentPosition {
 			get { return new Point(CurrentColumn, CurrentLine); }
 			set {
@@ -225,10 +245,13 @@ namespace Crow.Coding
 				_currentLine = value.Y;
 			}
 		}
+		/// <summary>
+		/// get char at current position in buffer
+		/// </summary>
 		protected Char CurrentChar { get { return lines [CurrentLine] [CurrentColumn]; } }
 
 		/// <summary>
-		/// Moves cursor one char to the left.
+		/// Moves cursor one char to the left, move up if cursor reaches start of line
 		/// </summary>
 		/// <returns><c>true</c> if move succeed</returns>
 		public bool MoveLeft(){
@@ -243,7 +266,7 @@ namespace Crow.Coding
 			return true;
 		}
 		/// <summary>
-		/// Moves cursor one char to the right.
+		/// Moves cursor one char to the right, move down if cursor reaches end of line
 		/// </summary>
 		/// <returns><c>true</c> if move succeed</returns>
 		public bool MoveRight(){

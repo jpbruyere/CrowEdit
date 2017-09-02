@@ -6,8 +6,15 @@ using System.Diagnostics;
 
 namespace Crow.Coding
 {
+	/// <summary>
+	/// base class for tokenizing sources
+	/// </summary>
 	public abstract class Parser
 	{
+		/// <summary>
+		/// Default tokens, this enum may be overriden in derived parser with the new keyword,
+		/// see XMLParser for example.
+		/// </summary>
 		public enum TokenType {
 			Unknown,
 			WhiteSpace,
@@ -60,32 +67,64 @@ namespace Crow.Coding
 		}
 
 		#region low level parsing
+		/// <summary>
+		/// Read one char from current position in buffer and store it into the current token
+		/// </summary>
+		/// <param name="startOfTok">if true, set the Start position of the current token to the current position</param>
 		protected void readToCurrTok(bool startOfTok = false){
 			if (startOfTok)
 				currentTok.Start = CurrentPosition;
 			currentTok += Read();
 		}
+		/// <summary>
+		/// read n char from the buffer and store it into the current token
+		/// </summary>
 		protected void readToCurrTok(int length) {
 			for (int i = 0; i < length; i++)
 				currentTok += Read ();
 		}
-		protected void readAndResetCurrentTok(System.Enum type, bool startToc = false) {
-			readToCurrTok ();
-			saveAndResetCurrentTok (type);
-		}
-		protected void saveAndResetCurrentTok() { this.saveAndResetCurrentTok (currentTok.Type); }
-		protected void saveAndResetCurrentTok(System.Enum type) {
-			currentTok.Type = (TokenType)type;
+		/// <summary>
+		/// Save current token into current TokensLine and raz current token
+		/// </summary>
+		protected void saveAndResetCurrentTok() {
 			currentTok.End = CurrentPosition;
 			TokensLine.Add (currentTok);
 			currentTok = default(Token);
 		}
+		/// <summary>
+		/// read one char and add current token to current TokensLine, current token is reset
+		/// </summary>
+		/// <param name="type">Type of the token</param>
+		/// <param name="startToc">set start of token to current position</param>
+		protected void readAndResetCurrentTok(System.Enum type, bool startToc = false) {
+			readToCurrTok ();
+			saveAndResetCurrentTok (type);
+		}
+		/// <summary>
+		/// Save current tok
+		/// </summary>
+		/// <param name="type">set the type of the tok</param>
+		protected void saveAndResetCurrentTok(System.Enum type) {
+			currentTok.Type = (TokenType)type;
+			saveAndResetCurrentTok ();
+		}
+		/// <summary>
+		/// Peek next char, emit '\n' if current column > buffer's line length
+		/// Throw error if eof is true
+		/// </summary>
 		protected virtual char Peek() {
 			if (eof)
 				throw new ParsingException (this, "Unexpected End of File");
 			return currentColumn < buffer [currentLine].Length ?
 				buffer [currentLine] [currentColumn] : '\n';
 		}
+		/// <summary>
+		/// Peek n char from buffer or less if remaining char in buffer's line is less than requested
+		/// if end of line is reached, no '\n' will be emitted, instead, empty string is returned. '\n' should be checked only
+		/// with single char Peek().
+		/// Throw error is eof is true
+		/// </summary>
+		/// <param name="length">Length.</param>
 		protected virtual string Peek(int length) {
 			if (eof)
 				throw new ParsingException (this, "Unexpected End of File");
@@ -94,9 +133,13 @@ namespace Crow.Coding
 				return "";
 			return buffer [currentLine].Substring (currentColumn, lg);
 		}
+		/// <summary>
+		/// read one char from buffer at current position, if '\n' is read, current line is incremented
+		/// and column is reset to 0
+		/// </summary>
 		protected virtual char Read() {
 			char c = Peek ();
-
+			//TODO: the parsing is done line by line, we should be able to remove the next line handling from read
 			if (c == '\n') {
 				currentLine++;
 				if (currentLine >= buffer.Length)
@@ -106,6 +149,10 @@ namespace Crow.Coding
 				currentColumn++;
 			return c;
 		}
+		/// <summary>
+		/// read until end of line is reached
+		/// </summary>
+		/// <returns>string read</returns>
 		protected virtual string ReadLine () {
 			string tmp = "";
 			while (!eof) {
@@ -115,6 +162,11 @@ namespace Crow.Coding
 			}
 			return tmp;
 		}
+		/// <summary>
+		/// read until end expression is reached or end of line.
+		/// </summary>
+		/// <returns>string read minus the ending expression that has to be read after</returns>
+		/// <param name="endExp">Expression to search for</param>
 		protected virtual string ReadLineUntil (string endExp){
 			string tmp = "";
 
@@ -129,6 +181,9 @@ namespace Crow.Coding
 			}
 			return tmp;
 		}
+		/// <summary>
+		/// skip white spaces, but not line break. Save spaces in a WhiteSpace token.
+		/// </summary>
 		protected void SkipWhiteSpaces () {
 			if (currentTok.Type != TokenType.Unknown)
 				throw new ParsingException (this, "current token should be reset to unknown (0) before skiping white spaces");

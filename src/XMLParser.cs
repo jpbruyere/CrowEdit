@@ -77,25 +77,6 @@ namespace Crow.Coding
 		{
 			get { return rxNameChar.IsMatch(new string(new char[]{Peek()})); }
 		}
-//		public bool NameIsValid(string name)
-//		{
-//			if (!rxNameStartChar.IsMatch(char.ConvertFromUtf32(((string)name)[0])))
-//				return false;
-//
-//			return rxNameChar.IsMatch(name);
-//		}
-//		private bool NextCharIsValidPubidChar
-//		{
-//			get { return rxPubidChar.IsMatch(char.ConvertFromUtf32(Peek())); }
-//		}
-//		private bool AttributeValueIsValid(string name)
-//		{
-//			return string.IsNullOrEmpty(name) ? true : rxAttributeValue.IsMatch(name);
-//		}
-//		private bool NextCharIsValidEntityValue
-//		{
-//			get { return rxEntityValue.IsMatch(char.ConvertFromUtf32(Peek())); }
-//		}
 		#endregion
 
 		public override void SetLineInError (ParsingException ex)

@@ -138,18 +138,11 @@ namespace CrowEdit
 			CurFilePath = fd.SelectedFile;
 			CurrentDir = fd.SelectedDirectory;
 
-			using (StreamReader sr = new StreamReader (CurFileFullPath)) {
-				_origText = sr.ReadToEnd ();
-			}
-			_text = _origText;
-
-			NotifyValueChanged ("Text", _text);
-			NotifyValueChanged ("IsDirty", false);
-			redoStack.Clear ();
-			undoStack.Clear ();
-			CMDRedo.CanExecute = false;
-			CMDUndo.CanExecute = false;
-
+//			redoStack.Clear ();
+//			undoStack.Clear ();
+//			CMDRedo.CanExecute = false;
+//			CMDUndo.CanExecute = false;
+//
 			NotifyValueChanged ("CurFileFullPath", CurFileFullPath);
 		}
 		void saveFileDialog_OkClicked (object sender, EventArgs e)

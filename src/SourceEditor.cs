@@ -35,6 +35,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Diagnostics;
 using CrowEdit;
+using System.IO;
 
 namespace Crow.Coding
 {
@@ -78,6 +79,8 @@ namespace Crow.Coding
 		}
 
 		#region private and protected fields
+		string filePath = "unamed.txt";
+		int leftMargin = 0;	//margin used to display line numbers, folding errors,etc...
 		int visibleLines = 1;
 		int visibleColumns = 1;
 		CodeBuffer buffer;
@@ -111,6 +114,7 @@ namespace Crow.Coding
 			}
 			RegisterForGraphicUpdate ();
 		}
+
 		#region Buffer events handlers
 		void Buffer_BufferCleared (object sender, EventArgs e)
 		{
@@ -145,23 +149,31 @@ namespace Crow.Coding
 		#endregion
 
 		#region Public Crow Properties
-		[XmlAttributeAttribute][DefaultValue("label")]
-		public string Text
+		[XmlAttributeAttribute]
+		public string FilePath
 		{
 			get {
 				return buffer == null ? "" : buffer.FullText;
 			}
 			set
 			{
-				if (string.Equals (value, buffer?.FullText, StringComparison.Ordinal))
+				if (filePath == value)
 					return;
 
-				buffer.Load (value);
+				filePath = value;
+				NotifyValueChanged ("FilePath", filePath);
+
+				if (!File.Exists (filePath))
+					return;
+
+				using (StreamReader sr = new StreamReader (filePath)) {
+					string txt = sr.ReadToEnd ();
+					buffer.Load (txt);
+				}
 
 				MaxScrollY = Math.Max (0, buffer.Length - visibleLines);
 				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
 
-				OnTextChanged (this, null);
 				RegisterForGraphicUpdate ();
 			}
 		}
@@ -332,7 +344,7 @@ namespace Crow.Coding
 		/// <returns><c>true</c> if move succeed</returns>
 		public bool MoveLeft(){
 			bool res = buffer.MoveLeft();
-			CurrentPosition = buffer.VisualPosition;
+			CurrentPosition = buffer.TabulatedPosition;
 			return res;
 		}
 		/// <summary>
@@ -341,23 +353,23 @@ namespace Crow.Coding
 		/// <returns><c>true</c> if move succeed</returns>
 		public bool MoveRight(){
 			bool res = buffer.MoveRight();
-			CurrentPosition = buffer.VisualPosition;
+			CurrentPosition = buffer.TabulatedPosition;
 			return res;
 		}
 		public void GotoWordStart(){
 			buffer.GotoWordStart();
-			CurrentPosition = buffer.VisualPosition;
+			CurrentPosition = buffer.TabulatedPosition;
 		}
 		public void GotoWordEnd(){
 			buffer.GotoWordEnd();
-			CurrentPosition = buffer.VisualPosition;
+			CurrentPosition = buffer.TabulatedPosition;
 		}
 		public void DeleteChar()
 		{
 			if (!selectionIsEmpty)
 				buffer.SetSelection (selectionStart, selectionEnd);
 			buffer.DeleteChar ();
-			CurrentPosition = buffer.VisualPosition;
+			CurrentPosition = buffer.TabulatedPosition;
 			SelBegin = -1;
 			SelRelease = -1;
 			OnTextChanged (this, null);
@@ -372,7 +384,7 @@ namespace Crow.Coding
 				DeleteChar ();
 
 			buffer.Insert (str);
-			CurrentPosition = buffer.VisualPosition;
+			CurrentPosition = buffer.TabulatedPosition;
 
 			OnTextChanged (this, null);
 			RegisterForGraphicUpdate();
@@ -383,7 +395,7 @@ namespace Crow.Coding
 		protected void InsertLineBreak()
 		{
 			buffer.InsertLineBreak ();
-			CurrentPosition = buffer.VisualPosition;
+			CurrentPosition = buffer.TabulatedPosition;
 			OnTextChanged (this, null);
 		}
 		#endregion
@@ -625,7 +637,7 @@ namespace Crow.Coding
 			else
 				CurrentLine = ScrollY + (int)Math.Floor (mouseLocalPos.Y / fe.Height);
 
-			CurrentPosition = buffer.VisualPosition; //for rounding if in middle of tabs
+			CurrentPosition = buffer.TabulatedPosition; //for rounding if in middle of tabs
 		}
 		public override void onMouseEnter (object sender, MouseMoveEventArgs e)
 		{
@@ -731,8 +743,6 @@ namespace Crow.Coding
 				this.InsertLineBreak ();
 				break;
 			case Key.Escape:
-				Text = "";
-				CurrentColumn = 0;
 				SelRelease = -1;
 				break;
 			case Key.Home:

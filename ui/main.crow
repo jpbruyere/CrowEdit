@@ -24,7 +24,7 @@
 		<HorizontalStack Height="Stretched" >
 			<SourceEditor Focusable="true" Name="editor" Font="couriernew, 14" VerticalAlignment="Top" Margin="10"
 					Foreground="Jet" Background="Ivory" Width="Stretched" Height="Stretched"
-					Text="{Text}"  KeyDown="textView_KeyDown"/>
+					 FilePath="{CurFileFullPath}"  KeyDown="textView_KeyDown"/>
 			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
 				Maximum="{../editor.MaxScrollY}" Orientation="Vertical"
 				Width="14" />
