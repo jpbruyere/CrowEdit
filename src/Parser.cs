@@ -42,7 +42,7 @@ namespace Crow.Coding
 		{
 			buffer = _buffer;
 			Tokens = new List<TokenList> ();
-			if (buffer.Length > 0)
+			if (buffer.LineCount > 0)
 				eof = false;
 		}
 
@@ -58,12 +58,18 @@ namespace Crow.Coding
 		public List<TokenList> Tokens;
 		protected TokenList TokensLine;
 
-		public Point CurrentPosition { get { return new Point (currentLine, currentColumn); } }
+		public Point CurrentPosition {
+			get { return new Point (currentLine, currentColumn); } 
+			set {
+				currentLine = value.Y;
+				currentColumn = value.X;
+			}
+		}
 
 		public abstract void Parse(int line);
 		public virtual void SetLineInError(ParsingException ex) {
 			currentTok = default(Token);
-			Tokens [ex.Line] = new TokenList () {new Token () { Content = buffer [ex.Line] }};
+			Tokens [ex.Line] = new TokenList (ex, buffer [ex.Line]);
 		}
 
 		#region low level parsing
@@ -142,7 +148,7 @@ namespace Crow.Coding
 			//TODO: the parsing is done line by line, we should be able to remove the next line handling from read
 			if (c == '\n') {
 				currentLine++;
-				if (currentLine >= buffer.Length)
+				if (currentLine >= buffer.LineCount)
 					eof = true;
 				currentColumn = 0;
 			} else

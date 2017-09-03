@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace Crow.Coding
 {
@@ -53,7 +54,7 @@ namespace Crow.Coding
 		int _currentLine = 0;
 		int _currentCol = 0;
 
-		public int Length { get { return lines.Count;}}
+		public int LineCount { get { return lines.Count;}}
 
 		/// <summary>
 		/// Return line with tabs replaced by spaces
@@ -100,17 +101,18 @@ namespace Crow.Coding
 			AddRange (Regex.Split (rawSource, "\r\n|\r|\n|\\\\n"));
 
 			lineBreak = detectLineBreakKind (rawSource);
-			findLongestVisualLine ();
+			FindLongestVisualLine ();
 		}
 
-		void findLongestVisualLine(){
+		public void FindLongestVisualLine(){
 			longestLineCharCount = 0;
-			for (int i = 0; i < this.Length; i++) {
+			for (int i = 0; i < this.LineCount; i++) {
 				if (this.GetPrintableLine(i).Length > longestLineCharCount) {
 					longestLineCharCount = this.GetPrintableLine(i).Length;
 					longestLineIdx = i;
 				}
 			}
+			Debug.WriteLine ("Longest line: {0}->{1}", longestLineIdx, longestLineCharCount);
 		}
 		/// <summary> line break could be '\r' or '\n' or '\r\n' </summary>
 		static string detectLineBreakKind(string buffer){
@@ -181,6 +183,21 @@ namespace Crow.Coding
 		}
 
 		#region Editing and moving cursor
+		public string SelectedText {
+			get { 
+				if (selectionIsEmpty)
+					return "";
+				if (selectionStart.Y == selectionEnd.Y)
+					return this [selectionStart.Y].Substring (selectionStart.X, selectionEnd.X - selectionStart.X);
+				string tmp = "";
+				tmp = this [selectionStart.Y].Substring (selectionStart.X);
+				for (int l = selectionStart.Y + 1; l < selectionEnd.Y; l++) {
+					tmp += Interface.LineBreak + this [l];
+				}
+				tmp += Interface.LineBreak + this [selectionEnd.Y].Substring (0, selectionEnd.X);
+				return tmp; 
+			}
+		}
 		Point selectionStart = -1;
 		Point selectionEnd = -1;
 		/// <summary>
@@ -259,8 +276,8 @@ namespace Crow.Coding
 			if (tmp < 0) {
 				if (_currentLine == 0)
 					return false;
+				_currentCol = int.MaxValue;
 				CurrentLine--;
-				CurrentColumn = int.MaxValue;
 			} else
 				CurrentColumn = tmp;
 			return true;
@@ -272,7 +289,7 @@ namespace Crow.Coding
 		public bool MoveRight(){
 			int tmp = _currentCol + 1;
 			if (tmp > this [_currentLine].Length){
-				if (CurrentLine == this.Length - 1)
+				if (CurrentLine == this.LineCount - 1)
 					return false;
 				CurrentLine++;
 				CurrentColumn = 0;
@@ -307,7 +324,7 @@ namespace Crow.Coding
 		{
 			if (selectionIsEmpty) {
 				if (CurrentColumn == 0) {
-					if (CurrentLine == 0 && this.Length == 1)
+					if (CurrentLine == 0 && this.LineCount == 1)
 						return;
 					CurrentLine--;
 					CurrentColumn = this [CurrentLine].Length;

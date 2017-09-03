@@ -79,6 +79,7 @@ namespace Crow.Coding
 		}
 
 		#region private and protected fields
+		bool foldingEnabled = true;
 		string filePath = "unamed.txt";
 		int leftMargin = 0;	//margin used to display line numbers, folding errors,etc...
 		int visibleLines = 1;
@@ -99,11 +100,51 @@ namespace Crow.Coding
 		protected TextExtents te;
 		#endregion
 
+		void updateFolding () {
+//			Stack<TokenList> foldings = new Stack<TokenList>();
+//			bool inStartTag = false;
+//
+//			for (int i = 0; i < parser.Tokens.Count; i++) {
+//				TokenList tl = parser.Tokens [i];
+//				tl.foldingTo = null;
+//				int fstTK = tl.FirstNonBlankTokenIndex;
+//				if (fstTK > 0 && fstTK < tl.Count - 1) {
+//					if (tl [fstTK + 1] != XMLParser.TokenType.ElementName)
+//						continue;
+//					if (tl [fstTK] == XMLParser.TokenType.ElementStart) {
+//						//search closing tag
+//						int tkPtr = fstTK+2;
+//						while (tkPtr < tl.Count) {
+//							if (tl [tkPtr] == XMLParser.TokenType.ElementClosing)
+//								
+//							tkPtr++;
+//						}
+//						if (tl.EndingState == (int)XMLParser.States.Content)
+//							foldings.Push (tl);
+//						else if (tl.EndingState == (int)XMLParser.States.StartTag)
+//							inStartTag = true;
+//						continue;
+//					}
+//					if (tl [fstTK] == XMLParser.TokenType.ElementEnd) {
+//						TokenList tls = foldings.Pop ();
+//						int fstTKs = tls.FirstNonBlankTokenIndex;
+//						if (tls [fstTK + 1].Content == tl [fstTK + 1].Content) {
+//							tl.foldingTo = tls;
+//							continue;
+//						}
+//						parser.CurrentPosition = tls [fstTK + 1].Start;
+//						parser.SetLineInError(new ParsingException(parser, "closing tag not corresponding"));
+//					}
+//					
+//				}
+//			}
+		}
 		void reparseSource () {
 			for (int i = 0; i < parser.Tokens.Count; i++) {
 				if (parser.Tokens[i].Dirty)
 					tryParseBufferLine (i);
 			}
+			updateFolding ();
 		}
 		void tryParseBufferLine(int lPtr) {
 			try {
@@ -114,41 +155,98 @@ namespace Crow.Coding
 			}
 			RegisterForGraphicUpdate ();
 		}
+		const int leftMarginGap = 2;
+		const int foldSize = 9;
+		void measureLeftMargin () {			
+			leftMargin = 0;
+			if (PrintLineNumbers)
+				leftMargin += (int)Math.Ceiling((double)buffer.LineCount.ToString().Length * fe.MaxXAdvance);
+			if (foldingEnabled)
+				leftMargin += foldSize;
+			leftMargin += leftMarginGap;
+			updateVisibleColumns ();
+		}
 
 		#region Buffer events handlers
 		void Buffer_BufferCleared (object sender, EventArgs e)
 		{
 			parser = new XMLParser (buffer);
+			buffer.longestLineCharCount = 0;
+			buffer.longestLineIdx = 0;
+			measureLeftMargin ();
+			MaxScrollX = MaxScrollY = 0;
 			RegisterForGraphicUpdate ();
 		}
 		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e)
 		{
 			for (int i = 0; i < e.LineCount; i++) {
-				parser.Tokens.Insert (e.LineStart + i, new TokenList());
+				int lptr = e.LineStart + i;
+				int charCount = buffer.GetPrintableLine (lptr).Length;
+				if (charCount > buffer.longestLineCharCount) {
+					buffer.longestLineIdx = lptr;
+					buffer.longestLineCharCount = charCount;
+				}else if (lptr <= buffer.longestLineIdx)
+					buffer.longestLineIdx++;
+				parser.Tokens.Insert (lptr, new TokenList());
 				tryParseBufferLine (e.LineStart + i);
 			}
+			measureLeftMargin ();
 			reparseSource ();
 			RegisterForGraphicUpdate ();
 		}
 
 		void Buffer_LineRemoveEvent (object sender, CodeBufferEventArgs e)
 		{
-			for (int i = 0; i < e.LineCount; i++)
-				parser.Tokens.RemoveAt (e.LineStart + i);
+			bool trigFindLongestLine = false;
+			for (int i = 0; i < e.LineCount; i++) {
+				int lptr = e.LineStart + i;
+				if (lptr <= buffer.longestLineIdx)
+					trigFindLongestLine = true;
+				parser.Tokens.RemoveAt (lptr);
+			}
+			if (trigFindLongestLine)
+				findLongestLineAndUpdateMaxScrollX ();
+			measureLeftMargin ();
 			reparseSource ();
 			RegisterForGraphicUpdate ();
 		}
 
 		void Buffer_LineUpadateEvent (object sender, CodeBufferEventArgs e)
 		{
-			for (int i = 0; i < e.LineCount; i++)
-				tryParseBufferLine (e.LineStart + i);
+			bool trigFindLongestLine = false;
+			for (int i = 0; i < e.LineCount; i++) {
+				int lptr = e.LineStart + i;
+				if (lptr == buffer.longestLineIdx)
+					trigFindLongestLine = true;
+				tryParseBufferLine (lptr);
+			}
 			reparseSource ();
+			if (trigFindLongestLine)
+				findLongestLineAndUpdateMaxScrollX ();
 			RegisterForGraphicUpdate ();
+		}
+		void findLongestLineAndUpdateMaxScrollX() {			
+			buffer.FindLongestVisualLine ();
+			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
+			Debug.WriteLine ("SourceEditor: Find Longest line and update maxscrollx: {0} visible cols:{1}", MaxScrollX, visibleColumns);
 		}
 		#endregion
 
 		#region Public Crow Properties
+		[XmlAttributeAttribute][DefaultValue(true)]
+		public bool PrintLineNumbers
+		{
+			get { return Configuration.Get<bool> ("PrintLineNumbers");
+			}
+			set
+			{
+				if (PrintLineNumbers == value)
+					return;
+				Configuration.Set ("PrintLineNumbers", value);
+				NotifyValueChanged ("PrintLineNumbers", PrintLineNumbers);
+				RegisterForGraphicUpdate ();
+			}
+		}
 		[XmlAttributeAttribute]
 		public string FilePath
 		{
@@ -171,7 +269,7 @@ namespace Crow.Coding
 					buffer.Load (txt);
 				}
 
-				MaxScrollY = Math.Max (0, buffer.Length - visibleLines);
+				MaxScrollY = Math.Max (0, buffer.LineCount - visibleLines);
 				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
 
 				RegisterForGraphicUpdate ();
@@ -228,8 +326,8 @@ namespace Crow.Coding
 			set {
 				if (value == _currentLine)
 					return;
-				if (value >= buffer.Length)
-					_currentLine = buffer.Length-1;
+				if (value >= buffer.LineCount)
+					_currentLine = buffer.LineCount-1;
 				else if (value < 0)
 					_currentLine = 0;
 				else
@@ -242,6 +340,7 @@ namespace Crow.Coding
 				buffer.SetBufferPos (CurrentPosition);
 
 				//System.Diagnostics.Debug.WriteLine ("Scroll:{0} visibleLines:{1} CurLine:{2}", ScrollY, visibleLines, CurrentLine);
+
 				if (_currentLine < ScrollY)
 					ScrollY = _currentLine;
 				else if (_currentLine >= ScrollY + visibleLines)
@@ -252,8 +351,21 @@ namespace Crow.Coding
 		[XmlIgnore]public Point CurrentPosition {
 			get { return new Point(CurrentColumn, CurrentLine); }
 			set {
-				CurrentColumn = value.X;
-				CurrentLine = value.Y;
+				_currentCol = value.X;
+				_currentLine = value.Y;
+
+				if (_currentCol < ScrollX)
+					ScrollX = _currentCol;
+				else if (_currentCol >= ScrollX + visibleColumns)
+					ScrollX = _currentCol - visibleColumns + 1;
+
+				if (_currentLine < ScrollY)
+					ScrollY = _currentLine;
+				else if (_currentLine >= ScrollY + visibleLines)
+					ScrollY = _currentLine - visibleLines + 1;
+
+				NotifyValueChanged ("CurrentColumn", _currentCol);
+				NotifyValueChanged ("CurrentLine", _currentLine);
 			}
 		}
 		//TODO:using HasFocus for drawing selection cause SelBegin and Release binding not to work
@@ -269,7 +381,7 @@ namespace Crow.Coding
 				_selBegin = value;
 				System.Diagnostics.Debug.WriteLine ("SelBegin=" + _selBegin);
 				NotifyValueChanged ("SelBegin", _selBegin);
-				NotifyValueChanged ("SelectedText", SelectedText);
+				//NotifyValueChanged ("SelectedText", SelectedText);
 			}
 		}
 		/// <summary>
@@ -284,8 +396,9 @@ namespace Crow.Coding
 				if (value == _selRelease)
 					return;
 				_selRelease = value;
+				System.Diagnostics.Debug.WriteLine ("SelRelease=" + _selRelease);
 				NotifyValueChanged ("SelRelease", _selRelease);
-				NotifyValueChanged ("SelectedText", SelectedText);
+				//NotifyValueChanged ("SelectedText", SelectedText);
 			}
 		}
 		/// <summary>
@@ -319,18 +432,9 @@ namespace Crow.Coding
 		[XmlIgnore]public string SelectedText
 		{
 			get {
-
-				if (SelRelease < 0 || SelBegin < 0)
-					return "";
-				if (selectionStart.Y == selectionEnd.Y)
-					return buffer [selectionStart.Y].Substring (selectionStart.X, selectionEnd.X - selectionStart.X);
-				string tmp = "";
-				tmp = buffer [selectionStart.Y].Substring (selectionStart.X);
-				for (int l = selectionStart.Y + 1; l < selectionEnd.Y; l++) {
-					tmp += Interface.LineBreak + buffer [l];
-				}
-				tmp += Interface.LineBreak + buffer [selectionEnd.Y].Substring (0, selectionEnd.X);
-				return tmp;
+				if (!selectionIsEmpty)
+					buffer.SetSelection (selectionStart, selectionEnd);
+				return buffer.SelectedText;
 			}
 		}
 		[XmlIgnore]public bool selectionIsEmpty
@@ -364,6 +468,7 @@ namespace Crow.Coding
 			buffer.GotoWordEnd();
 			CurrentPosition = buffer.TabulatedPosition;
 		}
+
 		public void DeleteChar()
 		{
 			if (!selectionIsEmpty)
@@ -372,7 +477,6 @@ namespace Crow.Coding
 			CurrentPosition = buffer.TabulatedPosition;
 			SelBegin = -1;
 			SelRelease = -1;
-			OnTextChanged (this, null);
 		}
 		/// <summary>
 		/// Insert new string at caret position, should be sure no line break is inside.
@@ -386,7 +490,6 @@ namespace Crow.Coding
 			buffer.Insert (str);
 			CurrentPosition = buffer.TabulatedPosition;
 
-			OnTextChanged (this, null);
 			RegisterForGraphicUpdate();
 		}
 		/// <summary>
@@ -395,8 +498,11 @@ namespace Crow.Coding
 		protected void InsertLineBreak()
 		{
 			buffer.InsertLineBreak ();
+
+			if (_currentLine == buffer.longestLineIdx)
+				findLongestLineAndUpdateMaxScrollX ();
+
 			CurrentPosition = buffer.TabulatedPosition;
-			OnTextChanged (this, null);
 		}
 		#endregion
 
@@ -421,7 +527,7 @@ namespace Crow.Coding
 				selectionInProgress = true;
 			else if (HasFocus){
 				gr.LineWidth = 1.0;
-				double cursorX = cb.X + (CurrentColumn - ScrollX) * fe.MaxXAdvance;
+				double cursorX = cb.X + (CurrentColumn - ScrollX) * fe.MaxXAdvance + leftMargin;
 				gr.MoveTo (0.5 + cursorX, cb.Y + (CurrentLine - ScrollY) * fe.Height);
 				gr.LineTo (0.5 + cursorX, cb.Y + (CurrentLine + 1 - ScrollY) * fe.Height);
 				gr.Stroke();
@@ -430,7 +536,7 @@ namespace Crow.Coding
 
 			for (int i = 0; i < visibleLines; i++) {
 				int curL = i + ScrollY;
-				if (curL >= buffer.Length)
+				if (curL >= buffer.LineCount)
 					break;
 				string lstr = buffer[curL];
 				if (ScrollX < lstr.Length)
@@ -478,6 +584,9 @@ namespace Crow.Coding
 			gr.Antialias = Interface.Antialias;
 
 			Rectangle cb = ClientRectangle;
+			gr.Save ();
+			CairoHelpers.CairoRectangle (gr, cb, CornerRadius);
+			gr.Clip ();
 
 			bool selectionInProgress = false;
 
@@ -488,7 +597,7 @@ namespace Crow.Coding
 				selectionInProgress = true;
 			else if (HasFocus){
 				gr.LineWidth = 1.0;
-				double cursorX = cb.X + (CurrentColumn - ScrollX) * fe.MaxXAdvance;
+				double cursorX = + leftMargin + cb.X + (CurrentColumn - ScrollX) * fe.MaxXAdvance;
 				gr.MoveTo (0.5 + cursorX, cb.Y + (CurrentLine - ScrollY) * fe.Height);
 				gr.LineTo (0.5 + cursorX, cb.Y + (CurrentLine + 1 - ScrollY) * fe.Height);
 				gr.Stroke();
@@ -500,11 +609,54 @@ namespace Crow.Coding
 					break;
 				drawTokenLine (gr, i, selectionInProgress, cb);
 			}
+
+			gr.Restore ();
 		}
 		void drawTokenLine(Context gr, int i, bool selectionInProgress, Rectangle cb) {
 			int curL = i + ScrollY;
-			List<Token> tokens = parser.Tokens[curL];
+			TokenList tokens = parser.Tokens[curL];
 			int lPtr = 0;
+			double y = cb.Y + fe.Height * i;
+
+			//Draw line numbering
+			Color mgFg = Color.Gray;
+			Color mgBg = Color.White;
+			if (PrintLineNumbers){
+				Rectangle mgR = new Rectangle (cb.X, (int)y, leftMargin - leftMarginGap, (int)Math.Ceiling(fe.Height));
+				if (tokens.exception != null) {
+					mgBg = Color.Red;
+					if (CurrentLine == curL)
+						mgFg = Color.White;
+					else
+						mgFg = Color.LightGray;					
+				}else if (CurrentLine == curL) {
+					mgFg = Color.Black;
+				}
+				string strLN = curL.ToString ();
+				gr.SetSourceColor (mgBg);
+				gr.Rectangle (mgR);
+				gr.Fill();
+				gr.SetSourceColor (mgFg);
+
+				gr.MoveTo (cb.X + (int)(gr.TextExtents (parser.Tokens.Count.ToString()).Width - gr.TextExtents (strLN).Width), y + fe.Ascent);
+				gr.ShowText (strLN);
+				gr.Fill ();
+			}
+			//draw folding
+			if (foldingEnabled){
+				if (tokens.foldingTo != null) {
+					gr.SetSourceColor (Color.Black);
+					Rectangle rFld = new Rectangle (cb.X + leftMargin - leftMarginGap - foldSize, (int)(y + fe.Height / 2.0 - foldSize / 2.0), foldSize, foldSize);
+					gr.Rectangle (rFld, 1.0);
+					if (tokens.folded) {
+						gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
+						gr.LineTo (rFld.Center.X + 0.5, rFld.Bottom - 2);
+					}
+					gr.MoveTo (rFld.Left + 2, rFld.Center.Y + 0.5);
+					gr.LineTo (rFld.Right - 2, rFld.Center.Y + 0.5);
+					gr.Stroke ();
+				}
+			}
 
 			for (int t = 0; t < tokens.Count; t++) {
 				string lstr = tokens [t].PrintableContent;
@@ -536,9 +688,9 @@ namespace Crow.Coding
 				gr.SelectFontFace (Font.Name, fts, ftw);
 				gr.SetSourceColor (fg);
 
-				int x = cb.X + (int)((lPtr - ScrollX) * fe.MaxXAdvance);
+				int x = leftMargin + cb.X + (int)((lPtr - ScrollX) * fe.MaxXAdvance);
 
-				gr.MoveTo (x, cb.Y + fe.Ascent + fe.Height * i);
+				gr.MoveTo (x, y + fe.Ascent);
 				gr.ShowText (lstr);
 				gr.Fill ();
 
@@ -598,9 +750,9 @@ namespace Crow.Coding
 		protected override int measureRawSize(LayoutingType lt)
 		{
 			if (lt == LayoutingType.Height)
-				return (int)Math.Ceiling(fe.Height * buffer.Length) + Margin * 2;
+				return (int)Math.Ceiling(fe.Height * buffer.LineCount) + Margin * 2;
 
-			return (int)(fe.MaxXAdvance * buffer.longestLineCharCount) + Margin * 2;
+			return (int)(fe.MaxXAdvance * buffer.longestLineCharCount) + Margin * 2 + leftMargin;
 		}
 		public override void OnLayoutChanges (LayoutingType layoutType)
 		{
@@ -627,10 +779,11 @@ namespace Crow.Coding
 		#region Mouse handling
 		void updatemouseLocalPos(Point mpos){
 			Point mouseLocalPos = mpos - ScreenCoordinates(Slot).TopLeft - ClientRectangle.TopLeft;
+
 			if (mouseLocalPos.X < 0)
 				CurrentColumn--;
 			else
-				CurrentColumn = ScrollX +  (int)Math.Round (mouseLocalPos.X / fe.MaxXAdvance);
+				CurrentColumn = ScrollX +  (int)Math.Round ((mouseLocalPos.X - leftMargin) / fe.MaxXAdvance);
 
 			if (mouseLocalPos.Y < 0)
 				CurrentLine--;
@@ -674,6 +827,9 @@ namespace Crow.Coding
 			if (!HasFocus || SelBegin < 0)
 				return;
 
+			if (e.X < leftMargin + ClientRectangle.X) {
+			}
+
 			updatemouseLocalPos (e.Position);
 			SelRelease = CurrentPosition;
 
@@ -681,17 +837,28 @@ namespace Crow.Coding
 		}
 		public override void onMouseDown (object sender, MouseButtonEventArgs e)
 		{
+			//initialize cursor position if not yet focused
+			if (!this.HasFocus & this.Focusable){
+				updatemouseLocalPos (e.Position);
+				SelBegin = SelRelease = CurrentPosition;
+				RegisterForRedraw();
+			}
+
+			base.onMouseDown (sender, e);
+
+			if (doubleClicked) {
+				doubleClicked = false;
+				return;
+			}
 			if (this.HasFocus){
 				updatemouseLocalPos (e.Position);
 				SelBegin = SelRelease = CurrentPosition;
-				RegisterForRedraw();//TODO:should put it in properties
+				RegisterForRedraw();
 			}
-
-			//done at the end to set 'hasFocus' value after testing it
-			base.onMouseDown (sender, e);
 		}
 		public override void onMouseUp (object sender, MouseButtonEventArgs e)
 		{
+			Debug.WriteLine ("MouseUp");
 			base.onMouseUp (sender, e);
 
 			if (SelBegin == SelRelease)
@@ -700,8 +867,11 @@ namespace Crow.Coding
 			updatemouseLocalPos (e.Position);
 			RegisterForRedraw ();
 		}
+		bool doubleClicked = false;
 		public override void onMouseDoubleClick (object sender, MouseButtonEventArgs e)
 		{
+			doubleClicked = true;
+			Debug.WriteLine ("DoubleClick");
 			base.onMouseDoubleClick (sender, e);
 
 			GotoWordStart ();
@@ -743,7 +913,7 @@ namespace Crow.Coding
 				this.InsertLineBreak ();
 				break;
 			case Key.Escape:
-				SelRelease = -1;
+				SelRelease = SelBegin = -1;
 				break;
 			case Key.Home:
 				if (e.Shift) {
@@ -755,7 +925,7 @@ namespace Crow.Coding
 					SelRelease = new Point (CurrentColumn, CurrentLine);
 					break;
 				}
-				SelRelease = -1;
+				SelRelease = SelBegin = -1;
 				if (e.Control)
 					CurrentLine = 0;
 				CurrentColumn = 0;
@@ -770,7 +940,7 @@ namespace Crow.Coding
 					SelRelease = CurrentPosition;
 					break;
 				}
-				SelRelease = -1;
+				SelRelease = SelBegin = -1;
 				if (e.Control)
 					CurrentLine = int.MaxValue;
 				CurrentColumn = int.MaxValue;
@@ -792,7 +962,7 @@ namespace Crow.Coding
 					SelRelease = CurrentPosition;
 					break;
 				}
-				SelRelease = -1;
+				SelRelease = SelBegin = -1;
 				if (e.Control)
 					GotoWordStart ();
 				else
@@ -809,7 +979,7 @@ namespace Crow.Coding
 					SelRelease = CurrentPosition;
 					break;
 				}
-				SelRelease = -1;
+				SelRelease = SelBegin = -1;
 				if (e.Control)
 					GotoWordEnd ();
 				else
@@ -823,7 +993,7 @@ namespace Crow.Coding
 					SelRelease = CurrentPosition;
 					break;
 				}
-				SelRelease = -1;
+				SelRelease = SelBegin = -1;
 				CurrentLine--;
 				break;
 			case Key.Down:
@@ -834,7 +1004,7 @@ namespace Crow.Coding
 					SelRelease = CurrentPosition;
 					break;
 				}
-				SelRelease = -1;
+				SelRelease = SelBegin = -1;
 				CurrentLine++;
 				break;
 			case Key.Menu:
@@ -889,31 +1059,18 @@ namespace Crow.Coding
 		}
 		#endregion
 
-
-		/// <summary> Compute x offset in cairo unit from text position </summary>
-		double GetXFromTextPointer(Context gr, Point pos)
-		{
-			try {
-				string l = buffer [pos.Y].Substring (0, pos.X).
-					Replace ("\t", new String (' ', Interface.TabSize));
-				return gr.TextExtents (l).XAdvance;
-			} catch{
-				return -1;
-			}
-		}
-
 		void updateVisibleLines(){
 			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
-			MaxScrollY = Math.Max (0, buffer.Length - visibleLines);
+			MaxScrollY = Math.Max (0, buffer.LineCount - visibleLines);
 
 			System.Diagnostics.Debug.WriteLine ("update visible lines: " + visibleLines);
 			System.Diagnostics.Debug.WriteLine ("update MaxScrollY: " + MaxScrollY);
 		}
 		void updateVisibleColumns(){
-			visibleColumns = (int)Math.Floor ((double)ClientRectangle.Width / fe.MaxXAdvance);
+			visibleColumns = (int)Math.Floor ((double)(ClientRectangle.Width - leftMargin)/ fe.MaxXAdvance);
 			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
 
-			System.Diagnostics.Debug.WriteLine ("update visible columns: " + visibleColumns);
+			System.Diagnostics.Debug.WriteLine ("update visible columns: {0} leftMargin:{1}",visibleColumns, leftMargin);
 			System.Diagnostics.Debug.WriteLine ("update MaxScrollX: " + MaxScrollX);
 		}
 	}
