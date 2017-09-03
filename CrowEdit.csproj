@@ -62,7 +62,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
     <Reference Include="Crow">
-      <HintPath>packages\Crow.OpenTK.0.5.4\lib\net45\Crow.dll</HintPath>
+      <HintPath>packages\Crow.OpenTK.0.5.5\lib\net45\Crow.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
