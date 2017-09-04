@@ -65,21 +65,11 @@ namespace Crow.Coding
 			buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
 			buffer.LineRemoveEvent += Buffer_LineRemoveEvent;
 			buffer.BufferCleared += Buffer_BufferCleared;
-
-			parser = new XMLParser (buffer);
 		}
 		#endregion
 
-
-		public event EventHandler TextChanged;
-
-		public virtual void OnTextChanged(Object sender, EventArgs e)
-		{
-			TextChanged.Raise (this, e);
-		}
-
 		#region private and protected fields
-		bool foldingEnabled = true;
+		bool foldingEnabled = false;
 		string filePath = "unamed.txt";
 		int leftMargin = 0;	//margin used to display line numbers, folding errors,etc...
 		int visibleLines = 1;
@@ -116,7 +106,7 @@ namespace Crow.Coding
 //						int tkPtr = fstTK+2;
 //						while (tkPtr < tl.Count) {
 //							if (tl [tkPtr] == XMLParser.TokenType.ElementClosing)
-//								
+//
 //							tkPtr++;
 //						}
 //						if (tl.EndingState == (int)XMLParser.States.Content)
@@ -135,11 +125,13 @@ namespace Crow.Coding
 //						parser.CurrentPosition = tls [fstTK + 1].Start;
 //						parser.SetLineInError(new ParsingException(parser, "closing tag not corresponding"));
 //					}
-//					
+//
 //				}
 //			}
 		}
 		void reparseSource () {
+			if (parser == null)
+				return;
 			for (int i = 0; i < parser.Tokens.Count; i++) {
 				if (parser.Tokens[i].Dirty)
 					tryParseBufferLine (i);
@@ -147,6 +139,8 @@ namespace Crow.Coding
 			updateFolding ();
 		}
 		void tryParseBufferLine(int lPtr) {
+			if (parser == null)
+				return;
 			try {
 				parser.Parse (lPtr);
 			} catch (ParsingException ex) {
@@ -155,9 +149,9 @@ namespace Crow.Coding
 			}
 			RegisterForGraphicUpdate ();
 		}
-		const int leftMarginGap = 2;
+		const int leftMarginGap = 0;
 		const int foldSize = 9;
-		void measureLeftMargin () {			
+		void measureLeftMargin () {
 			leftMargin = 0;
 			if (PrintLineNumbers)
 				leftMargin += (int)Math.Ceiling((double)buffer.LineCount.ToString().Length * fe.MaxXAdvance);
@@ -165,6 +159,25 @@ namespace Crow.Coding
 				leftMargin += foldSize;
 			leftMargin += leftMarginGap;
 			updateVisibleColumns ();
+		}
+		void findLongestLineAndUpdateMaxScrollX() {
+			buffer.FindLongestVisualLine ();
+			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
+			Debug.WriteLine ("SourceEditor: Find Longest line and update maxscrollx: {0} visible cols:{1}", MaxScrollX, visibleColumns);
+		}
+		void updateVisibleLines(){
+			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
+			MaxScrollY = Math.Max (0, buffer.LineCount - visibleLines);
+
+			System.Diagnostics.Debug.WriteLine ("update visible lines: " + visibleLines);
+			System.Diagnostics.Debug.WriteLine ("update MaxScrollY: " + MaxScrollY);
+		}
+		void updateVisibleColumns(){
+			visibleColumns = (int)Math.Floor ((double)(ClientRectangle.Width - leftMargin)/ fe.MaxXAdvance);
+			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
+
+			System.Diagnostics.Debug.WriteLine ("update visible columns: {0} leftMargin:{1}",visibleColumns, leftMargin);
+			System.Diagnostics.Debug.WriteLine ("update MaxScrollX: " + MaxScrollX);
 		}
 
 		#region Buffer events handlers
@@ -187,11 +200,14 @@ namespace Crow.Coding
 					buffer.longestLineCharCount = charCount;
 				}else if (lptr <= buffer.longestLineIdx)
 					buffer.longestLineIdx++;
-				parser.Tokens.Insert (lptr, new TokenList());
-				tryParseBufferLine (e.LineStart + i);
+				if (parser != null) {
+					parser.Tokens.Insert (lptr, new TokenList ());
+					tryParseBufferLine (e.LineStart + i);
+				}
 			}
 			measureLeftMargin ();
-			reparseSource ();
+			if (parser != null)
+				reparseSource ();
 			RegisterForGraphicUpdate ();
 		}
 
@@ -202,12 +218,14 @@ namespace Crow.Coding
 				int lptr = e.LineStart + i;
 				if (lptr <= buffer.longestLineIdx)
 					trigFindLongestLine = true;
-				parser.Tokens.RemoveAt (lptr);
+				if (parser != null)
+					parser.Tokens.RemoveAt (lptr);
 			}
 			if (trigFindLongestLine)
 				findLongestLineAndUpdateMaxScrollX ();
 			measureLeftMargin ();
-			reparseSource ();
+			if (parser != null)
+				reparseSource ();
 			RegisterForGraphicUpdate ();
 		}
 
@@ -218,6 +236,10 @@ namespace Crow.Coding
 				int lptr = e.LineStart + i;
 				if (lptr == buffer.longestLineIdx)
 					trigFindLongestLine = true;
+				else if (buffer.GetPrintableLine (lptr).Length > buffer.longestLineCharCount) {
+					buffer.longestLineCharCount = buffer.GetPrintableLine (lptr).Length;
+					buffer.longestLineIdx = lptr;
+				}
 				tryParseBufferLine (lptr);
 			}
 			reparseSource ();
@@ -225,15 +247,10 @@ namespace Crow.Coding
 				findLongestLineAndUpdateMaxScrollX ();
 			RegisterForGraphicUpdate ();
 		}
-		void findLongestLineAndUpdateMaxScrollX() {			
-			buffer.FindLongestVisualLine ();
-			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
-			Debug.WriteLine ("SourceEditor: Find Longest line and update maxscrollx: {0} visible cols:{1}", MaxScrollX, visibleColumns);
-		}
 		#endregion
 
 		#region Public Crow Properties
-		[XmlAttributeAttribute][DefaultValue(true)]
+		[XmlAttributeAttribute]
 		public bool PrintLineNumbers
 		{
 			get { return Configuration.Get<bool> ("PrintLineNumbers");
@@ -348,6 +365,11 @@ namespace Crow.Coding
 				NotifyValueChanged ("CurrentLine", _currentLine);
 			}
 		}
+		/// <summary>
+		/// Current position is in the printed coord system, tabulation chars are replaced with 4 spaces,
+		/// while in the buffer, the position holds tabulations as single chars
+		/// </summary>
+		/// <value>The current position.</value>
 		[XmlIgnore]public Point CurrentPosition {
 			get { return new Point(CurrentColumn, CurrentLine); }
 			set {
@@ -503,6 +525,8 @@ namespace Crow.Coding
 				findLongestLineAndUpdateMaxScrollX ();
 
 			CurrentPosition = buffer.TabulatedPosition;
+
+			RegisterForGraphicUpdate();
 		}
 		#endregion
 
@@ -538,7 +562,7 @@ namespace Crow.Coding
 				int curL = i + ScrollY;
 				if (curL >= buffer.LineCount)
 					break;
-				string lstr = buffer[curL];
+				string lstr = buffer.GetPrintableLine(curL);
 				if (ScrollX < lstr.Length)
 					lstr = lstr.Substring (ScrollX);
 				else
@@ -628,7 +652,7 @@ namespace Crow.Coding
 					if (CurrentLine == curL)
 						mgFg = Color.White;
 					else
-						mgFg = Color.LightGray;					
+						mgFg = Color.LightGray;
 				}else if (CurrentLine == curL) {
 					mgFg = Color.Black;
 				}
@@ -801,22 +825,6 @@ namespace Crow.Coding
 		{
 			base.onMouseLeave (sender, e);
 			currentInterface.MouseCursor = XCursor.Default;
-		}
-		protected override void onFocused (object sender, EventArgs e)
-		{
-			base.onFocused (sender, e);
-
-			//			SelBegin = new Point(0,0);
-			//			SelRelease = new Point (lines.LastOrDefault ().Length, lines.Count-1);
-			RegisterForRedraw ();
-		}
-		protected override void onUnfocused (object sender, EventArgs e)
-		{
-			base.onUnfocused (sender, e);
-
-			//			SelBegin = -1;
-			//			SelRelease = -1;
-			RegisterForRedraw ();
 		}
 		public override void onMouseMove (object sender, MouseMoveEventArgs e)
 		{
@@ -1058,20 +1066,5 @@ namespace Crow.Coding
 			RegisterForGraphicUpdate();
 		}
 		#endregion
-
-		void updateVisibleLines(){
-			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
-			MaxScrollY = Math.Max (0, buffer.LineCount - visibleLines);
-
-			System.Diagnostics.Debug.WriteLine ("update visible lines: " + visibleLines);
-			System.Diagnostics.Debug.WriteLine ("update MaxScrollY: " + MaxScrollY);
-		}
-		void updateVisibleColumns(){
-			visibleColumns = (int)Math.Floor ((double)(ClientRectangle.Width - leftMargin)/ fe.MaxXAdvance);
-			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
-
-			System.Diagnostics.Debug.WriteLine ("update visible columns: {0} leftMargin:{1}",visibleColumns, leftMargin);
-			System.Diagnostics.Debug.WriteLine ("update MaxScrollX: " + MaxScrollX);
-		}
 	}
 }

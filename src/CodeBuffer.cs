@@ -31,7 +31,7 @@ namespace Crow.Coding
 	/// </summary>
 	public class CodeBuffer
 	{
-		//those events are handled in SourceEditor to help keeping sync between textbuffer and parser.
+		//those events are handled in SourceEditor to help keeping sync between textbuffer,parser and editor.
 		//modified lines are marked for reparse
 		#region Events
 		public event EventHandler<CodeBufferEventArgs> LineUpadateEvent;
@@ -41,7 +41,9 @@ namespace Crow.Coding
 		#endregion
 
 		#region CTOR
-		public CodeBuffer () : base() {}
+		public CodeBuffer () {
+			this.Add ("");
+		}
 		#endregion
 
 		string lineBreak = Interface.LineBreak;
@@ -81,6 +83,10 @@ namespace Crow.Coding
 		public void Insert(int i, string item){
 			lines.Insert (i, item);
 			LineAdditionEvent.Raise (this, new CodeBufferEventArgs (i));
+		}
+		public void Add(string item){
+			lines.Add (item);
+			LineAdditionEvent.Raise (this, new CodeBufferEventArgs (lines.Count - 1));
 		}
 		public void AddRange (string[] items){
 			int start = lines.Count;
@@ -184,7 +190,7 @@ namespace Crow.Coding
 
 		#region Editing and moving cursor
 		public string SelectedText {
-			get { 
+			get {
 				if (selectionIsEmpty)
 					return "";
 				if (selectionStart.Y == selectionEnd.Y)
@@ -195,7 +201,7 @@ namespace Crow.Coding
 					tmp += Interface.LineBreak + this [l];
 				}
 				tmp += Interface.LineBreak + this [selectionEnd.Y].Substring (0, selectionEnd.X);
-				return tmp; 
+				return tmp;
 			}
 		}
 		Point selectionStart = -1;
@@ -374,8 +380,12 @@ namespace Crow.Coding
 		/// </summary>
 		public void InsertLineBreak()
 		{
-			Insert(CurrentLine + 1, this[CurrentLine].Substring(CurrentColumn));
-			this [CurrentLine] = this [CurrentLine].Substring (0, CurrentColumn);
+			if (CurrentColumn > 0) {
+				Insert (CurrentLine + 1, this [CurrentLine].Substring (CurrentColumn));
+				this [CurrentLine] = this [CurrentLine].Substring (0, CurrentColumn);
+			} else
+				Insert(CurrentLine, "");
+
 			CurrentLine++;
 			CurrentColumn = 0;
 		}
