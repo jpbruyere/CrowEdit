@@ -3,6 +3,7 @@ using Crow;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Crow.Coding
 {
@@ -196,7 +197,7 @@ namespace Crow.Coding
 					readToCurrTok (true);
 					if (Peek () != '>')
 						throw new ParsingException (this, "Expecting '>'");
-					readAndResetCurrentTok (TokenType.ElementClosing);
+					readAndResetCurrentTok (TokenType.ElementEnd);
 
 					curState = States.XML;
 					break;
@@ -251,6 +252,47 @@ namespace Crow.Coding
 
 			if (previousEndingState != curState && line < Tokens.Count - 1)
 				Tokens [line + 1].Dirty = true;
+		}
+
+		public override void SyntaxAnalysis ()
+		{
+			RootNode = new Node () { Name = "RootNode", Type="Root" };
+
+			Node currentNode = RootNode;
+
+			for (int i = 0; i < Tokens.Count; i++) {
+				TokenList curTL = Tokens [i];
+				curTL.SyntacticNode = null;
+
+				int tokPtr = 0;
+				while (tokPtr < curTL.Count) {
+					switch ((XMLParser.TokenType)curTL [tokPtr].Type) {
+					case TokenType.ElementStart:
+						tokPtr++;
+						Node newElt = new Node () { Name = curTL [tokPtr].Content, StartLine = i };
+						currentNode.AddChild (newElt);
+						currentNode = newElt;
+						if (curTL.SyntacticNode == null)
+							curTL.SyntacticNode = newElt;
+						break;
+					case TokenType.ElementEnd:
+						tokPtr++;
+						if (tokPtr < curTL.Count) {
+							if ((XMLParser.TokenType)curTL [tokPtr].Type == TokenType.ElementName && curTL [tokPtr].Content != currentNode.Name)
+								throw new ParsingException (this, "Closing tag mismatch");
+						}
+						currentNode.EndLine = i;
+						currentNode = currentNode.Parent;
+						break;
+					case TokenType.ElementClosing:
+						//currentNode = currentNode.Parent;
+						break;
+					default:
+						break;
+					}
+					tokPtr++;
+				}
+			}
 		}
 	}
 }

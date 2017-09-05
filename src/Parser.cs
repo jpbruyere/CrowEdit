@@ -68,14 +68,12 @@ namespace Crow.Coding
 			}
 			reparseSource ();
 		}
-
 		void Buffer_LineRemoveEvent (object sender, CodeBufferEventArgs e)
 		{
 			for (int i = 0; i < e.LineCount; i++)
 				Tokens.RemoveAt (e.LineStart + i);
 			reparseSource ();
 		}
-
 		void Buffer_LineUpadateEvent (object sender, CodeBufferEventArgs e)
 		{
 			for (int i = 0; i < e.LineCount; i++)
@@ -128,7 +126,12 @@ namespace Crow.Coding
 				if (Tokens[i].Dirty)
 					tryParseBufferLine (i);
 			}
-			updateFolding ();
+			try {
+				SyntaxAnalysis ();
+			} catch (ParsingException ex) {
+				Debug.WriteLine ("Syntax Error: " + ex.ToString ());
+				SetLineInError (ex);
+			}
 		}
 		void tryParseBufferLine(int lPtr) {
 			try {
@@ -149,6 +152,8 @@ namespace Crow.Coding
 		public List<TokenList> Tokens;
 		protected TokenList TokensLine;
 
+		public Node RootNode;
+
 		public Point CurrentPosition {
 			get { return new Point (currentLine, currentColumn); }
 			set {
@@ -158,6 +163,8 @@ namespace Crow.Coding
 		}
 
 		public abstract void Parse(int line);
+		public abstract void SyntaxAnalysis ();
+
 		public virtual void SetLineInError(ParsingException ex) {
 			currentTok = default(Token);
 			Tokens [ex.Line] = new TokenList (ex, buffer [ex.Line]);

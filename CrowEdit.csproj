@@ -84,6 +84,7 @@
     <Compile Include="src\TextFormatting.cs" />
     <Compile Include="ParsingException.cs" />
     <Compile Include="CodeBufferEventArgs.cs" />
+    <Compile Include="src\Node.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />

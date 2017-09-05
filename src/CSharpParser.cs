@@ -36,6 +36,10 @@ namespace Crow.Coding
 		{
 			throw new NotImplementedException ();
 		}
+		public override void SyntaxAnalysis ()
+		{
+			throw new NotImplementedException ();
+		}
 	}
 }
 

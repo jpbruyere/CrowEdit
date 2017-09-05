@@ -70,11 +70,11 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		const int leftMarginGap = 0;//gap between items in margin and text
+		const int leftMarginGap = 2;//gap between items in margin and text
 		const int foldSize = 9;//folding rectangles size
 
 		#region private and protected fields
-		bool foldingEnabled = false;
+		bool foldingEnabled = true;
 		string filePath = "unamed.txt";
 		int leftMargin = 0;	//margin used to display line numbers, folding errors,etc...
 		int visibleLines = 1;
@@ -614,17 +614,19 @@ namespace Crow.Coding
 			}
 			//draw folding
 			if (foldingEnabled){
-				if (tokens.foldingTo != null) {
-					gr.SetSourceColor (Color.Black);
-					Rectangle rFld = new Rectangle (cb.X + leftMargin - leftMarginGap - foldSize, (int)(y + fe.Height / 2.0 - foldSize / 2.0), foldSize, foldSize);
-					gr.Rectangle (rFld, 1.0);
-					if (tokens.folded) {
-						gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
-						gr.LineTo (rFld.Center.X + 0.5, rFld.Bottom - 2);
+				if (tokens.SyntacticNode != null) {
+					if (tokens.SyntacticNode.StartLine < tokens.SyntacticNode.EndLine) {
+						gr.SetSourceColor (Color.Black);
+						Rectangle rFld = new Rectangle (cb.X + leftMargin - leftMarginGap - foldSize, (int)(y + fe.Height / 2.0 - foldSize / 2.0), foldSize, foldSize);
+						gr.Rectangle (rFld, 1.0);
+						if (tokens.folded) {
+							gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
+							gr.LineTo (rFld.Center.X + 0.5, rFld.Bottom - 2);
+						}
+						gr.MoveTo (rFld.Left + 2, rFld.Center.Y + 0.5);
+						gr.LineTo (rFld.Right - 2, rFld.Center.Y + 0.5);
+						gr.Stroke ();
 					}
-					gr.MoveTo (rFld.Left + 2, rFld.Center.Y + 0.5);
-					gr.LineTo (rFld.Right - 2, rFld.Center.Y + 0.5);
-					gr.Stroke ();
 				}
 			}
 
@@ -765,7 +767,10 @@ namespace Crow.Coding
 		public override void onMouseEnter (object sender, MouseMoveEventArgs e)
 		{
 			base.onMouseEnter (sender, e);
-			currentInterface.MouseCursor = XCursor.Text;
+			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
+				currentInterface.MouseCursor = XCursor.Default;
+			else
+				currentInterface.MouseCursor = XCursor.Text;
 		}
 		public override void onMouseLeave (object sender, MouseMoveEventArgs e)
 		{
@@ -776,13 +781,15 @@ namespace Crow.Coding
 		{
 			base.onMouseMove (sender, e);
 
+			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
+				currentInterface.MouseCursor = XCursor.Default;
+			else
+				currentInterface.MouseCursor = XCursor.Text;
+
 			if (!e.Mouse.IsButtonDown (MouseButton.Left))
 				return;
 			if (!HasFocus || SelBegin < 0)
 				return;
-
-			if (e.X < leftMargin + ClientRectangle.X) {
-			}
 
 			updatemouseLocalPos (e.Position);
 			SelRelease = CurrentPosition;

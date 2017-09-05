@@ -15,7 +15,7 @@ namespace Crow.Coding
 		/// Folding state reside here because it's the highest level of abstraction line per line
 		/// </summary>
 		public bool folded = false;
-		public TokenList foldingTo = null;
+		public Node SyntacticNode = null;
 		/// <summary>
 		/// if parsing issue error, exception is not null and tokenlist should contains only one token with line content and type = unknown
 		/// </summary>
@@ -47,7 +47,7 @@ namespace Crow.Coding
 		public new void Clear() {
 			EndingState = 0;
 			folded = false;
-			foldingTo = null;
+			SyntacticNode = null;
 			exception = null;
 			Dirty = true;
 			base.Clear ();
