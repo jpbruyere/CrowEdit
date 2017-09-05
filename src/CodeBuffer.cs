@@ -110,6 +110,9 @@ namespace Crow.Coding
 			FindLongestVisualLine ();
 		}
 
+		/// <summary>
+		/// Finds the longest visual line as printed on screen with tabulation replaced with n spaces
+		/// </summary>
 		public void FindLongestVisualLine(){
 			longestLineCharCount = 0;
 			for (int i = 0; i < this.LineCount; i++) {

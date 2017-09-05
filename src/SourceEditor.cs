@@ -60,6 +60,8 @@ namespace Crow.Coding
 			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.BlueCrayola, Color.Transparent, true));
 			formatting.Add ((int)XMLParser.TokenType.BlockComment, new TextFormatting (Color.Gray, Color.Transparent, false, true));
 
+			parsing.Add (".crow", "Crow.Coding.XMLParser");
+
 			buffer = new CodeBuffer ();
 			buffer.LineUpadateEvent += Buffer_LineUpadateEvent;
 			buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
@@ -67,6 +69,9 @@ namespace Crow.Coding
 			buffer.BufferCleared += Buffer_BufferCleared;
 		}
 		#endregion
+
+		const int leftMarginGap = 0;//gap between items in margin and text
+		const int foldSize = 9;//folding rectangles size
 
 		#region private and protected fields
 		bool foldingEnabled = false;
@@ -84,6 +89,7 @@ namespace Crow.Coding
 		Point _selRelease = -1;	//selection end (row,column)
 
 		Dictionary<int, TextFormatting> formatting = new Dictionary<int, TextFormatting>();
+		Dictionary<string, string> parsing = new Dictionary<string, string>();
 
 		protected Rectangle rText;
 		protected FontExtents fe;
@@ -149,15 +155,14 @@ namespace Crow.Coding
 			}
 			RegisterForGraphicUpdate ();
 		}
-		const int leftMarginGap = 0;
-		const int foldSize = 9;
 		void measureLeftMargin () {
 			leftMargin = 0;
 			if (PrintLineNumbers)
 				leftMargin += (int)Math.Ceiling((double)buffer.LineCount.ToString().Length * fe.MaxXAdvance);
 			if (foldingEnabled)
 				leftMargin += foldSize;
-			leftMargin += leftMarginGap;
+			if (leftMargin > 0)
+				leftMargin += leftMarginGap;
 			updateVisibleColumns ();
 		}
 		void findLongestLineAndUpdateMaxScrollX() {
@@ -183,7 +188,8 @@ namespace Crow.Coding
 		#region Buffer events handlers
 		void Buffer_BufferCleared (object sender, EventArgs e)
 		{
-			parser = new XMLParser (buffer);
+			if (parser != null)
+				parser.Tokens.Clear ();
 			buffer.longestLineCharCount = 0;
 			buffer.longestLineIdx = 0;
 			measureLeftMargin ();
@@ -249,6 +255,17 @@ namespace Crow.Coding
 		}
 		#endregion
 
+		Parser getParserFromExt (string extension) {
+			if (string.IsNullOrEmpty(extension))
+				return null;
+			if (!parsing.ContainsKey(extension))
+				return null;
+			Type parserType = Type.GetType (parsing [extension]);
+			if (parserType == null)
+				return null;
+			return (Parser)Activator.CreateInstance (parserType, buffer );
+		}
+
 		#region Public Crow Properties
 		[XmlAttributeAttribute]
 		public bool PrintLineNumbers
@@ -280,6 +297,8 @@ namespace Crow.Coding
 
 				if (!File.Exists (filePath))
 					return;
+
+				parser = getParserFromExt (System.IO.Path.GetExtension (filePath));
 
 				using (StreamReader sr = new StreamReader (filePath)) {
 					string txt = sr.ReadToEnd ();

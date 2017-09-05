@@ -59,7 +59,7 @@ namespace Crow.Coding
 		protected TokenList TokensLine;
 
 		public Point CurrentPosition {
-			get { return new Point (currentLine, currentColumn); } 
+			get { return new Point (currentLine, currentColumn); }
 			set {
 				currentLine = value.Y;
 				currentColumn = value.X;
