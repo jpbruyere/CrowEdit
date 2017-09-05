@@ -41,12 +41,103 @@ namespace Crow.Coding
 		public Parser (CodeBuffer _buffer)
 		{
 			buffer = _buffer;
+
+			buffer.LineUpadateEvent += Buffer_LineUpadateEvent;
+			buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
+			buffer.LineRemoveEvent += Buffer_LineRemoveEvent;
+			buffer.BufferCleared += Buffer_BufferCleared;
+
 			Tokens = new List<TokenList> ();
 			if (buffer.LineCount > 0)
 				eof = false;
 		}
 
 		#endregion
+
+		#region Buffer events handlers
+		void Buffer_BufferCleared (object sender, EventArgs e)
+		{
+			Tokens.Clear ();
+		}
+		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e)
+		{
+			for (int i = 0; i < e.LineCount; i++) {
+				int lptr = e.LineStart + i;
+				Tokens.Insert (lptr, new TokenList ());
+				tryParseBufferLine (e.LineStart + i);
+			}
+			reparseSource ();
+		}
+
+		void Buffer_LineRemoveEvent (object sender, CodeBufferEventArgs e)
+		{
+			for (int i = 0; i < e.LineCount; i++)
+				Tokens.RemoveAt (e.LineStart + i);
+			reparseSource ();
+		}
+
+		void Buffer_LineUpadateEvent (object sender, CodeBufferEventArgs e)
+		{
+			for (int i = 0; i < e.LineCount; i++)
+				tryParseBufferLine (e.LineStart + i);
+			reparseSource ();
+		}
+		#endregion
+
+		void updateFolding () {
+			//			Stack<TokenList> foldings = new Stack<TokenList>();
+			//			bool inStartTag = false;
+			//
+			//			for (int i = 0; i < parser.Tokens.Count; i++) {
+			//				TokenList tl = parser.Tokens [i];
+			//				tl.foldingTo = null;
+			//				int fstTK = tl.FirstNonBlankTokenIndex;
+			//				if (fstTK > 0 && fstTK < tl.Count - 1) {
+			//					if (tl [fstTK + 1] != XMLParser.TokenType.ElementName)
+			//						continue;
+			//					if (tl [fstTK] == XMLParser.TokenType.ElementStart) {
+			//						//search closing tag
+			//						int tkPtr = fstTK+2;
+			//						while (tkPtr < tl.Count) {
+			//							if (tl [tkPtr] == XMLParser.TokenType.ElementClosing)
+			//
+			//							tkPtr++;
+			//						}
+			//						if (tl.EndingState == (int)XMLParser.States.Content)
+			//							foldings.Push (tl);
+			//						else if (tl.EndingState == (int)XMLParser.States.StartTag)
+			//							inStartTag = true;
+			//						continue;
+			//					}
+			//					if (tl [fstTK] == XMLParser.TokenType.ElementEnd) {
+			//						TokenList tls = foldings.Pop ();
+			//						int fstTKs = tls.FirstNonBlankTokenIndex;
+			//						if (tls [fstTK + 1].Content == tl [fstTK + 1].Content) {
+			//							tl.foldingTo = tls;
+			//							continue;
+			//						}
+			//						parser.CurrentPosition = tls [fstTK + 1].Start;
+			//						parser.SetLineInError(new ParsingException(parser, "closing tag not corresponding"));
+			//					}
+			//
+			//				}
+			//			}
+		}
+		void reparseSource () {
+			for (int i = 0; i < Tokens.Count; i++) {
+				if (Tokens[i].Dirty)
+					tryParseBufferLine (i);
+			}
+			updateFolding ();
+		}
+		void tryParseBufferLine(int lPtr) {
+			try {
+				Parse (lPtr);
+			} catch (ParsingException ex) {
+				Debug.WriteLine (ex.ToString ());
+				SetLineInError (ex);
+			}
+		}
 
 		CodeBuffer buffer;
 

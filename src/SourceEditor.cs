@@ -96,65 +96,6 @@ namespace Crow.Coding
 		protected TextExtents te;
 		#endregion
 
-		void updateFolding () {
-//			Stack<TokenList> foldings = new Stack<TokenList>();
-//			bool inStartTag = false;
-//
-//			for (int i = 0; i < parser.Tokens.Count; i++) {
-//				TokenList tl = parser.Tokens [i];
-//				tl.foldingTo = null;
-//				int fstTK = tl.FirstNonBlankTokenIndex;
-//				if (fstTK > 0 && fstTK < tl.Count - 1) {
-//					if (tl [fstTK + 1] != XMLParser.TokenType.ElementName)
-//						continue;
-//					if (tl [fstTK] == XMLParser.TokenType.ElementStart) {
-//						//search closing tag
-//						int tkPtr = fstTK+2;
-//						while (tkPtr < tl.Count) {
-//							if (tl [tkPtr] == XMLParser.TokenType.ElementClosing)
-//
-//							tkPtr++;
-//						}
-//						if (tl.EndingState == (int)XMLParser.States.Content)
-//							foldings.Push (tl);
-//						else if (tl.EndingState == (int)XMLParser.States.StartTag)
-//							inStartTag = true;
-//						continue;
-//					}
-//					if (tl [fstTK] == XMLParser.TokenType.ElementEnd) {
-//						TokenList tls = foldings.Pop ();
-//						int fstTKs = tls.FirstNonBlankTokenIndex;
-//						if (tls [fstTK + 1].Content == tl [fstTK + 1].Content) {
-//							tl.foldingTo = tls;
-//							continue;
-//						}
-//						parser.CurrentPosition = tls [fstTK + 1].Start;
-//						parser.SetLineInError(new ParsingException(parser, "closing tag not corresponding"));
-//					}
-//
-//				}
-//			}
-		}
-		void reparseSource () {
-			if (parser == null)
-				return;
-			for (int i = 0; i < parser.Tokens.Count; i++) {
-				if (parser.Tokens[i].Dirty)
-					tryParseBufferLine (i);
-			}
-			updateFolding ();
-		}
-		void tryParseBufferLine(int lPtr) {
-			if (parser == null)
-				return;
-			try {
-				parser.Parse (lPtr);
-			} catch (ParsingException ex) {
-				Debug.WriteLine (ex.ToString ());
-				parser.SetLineInError (ex);
-			}
-			RegisterForGraphicUpdate ();
-		}
 		void measureLeftMargin () {
 			leftMargin = 0;
 			if (PrintLineNumbers)
@@ -188,8 +129,6 @@ namespace Crow.Coding
 		#region Buffer events handlers
 		void Buffer_BufferCleared (object sender, EventArgs e)
 		{
-			if (parser != null)
-				parser.Tokens.Clear ();
 			buffer.longestLineCharCount = 0;
 			buffer.longestLineIdx = 0;
 			measureLeftMargin ();
@@ -206,14 +145,8 @@ namespace Crow.Coding
 					buffer.longestLineCharCount = charCount;
 				}else if (lptr <= buffer.longestLineIdx)
 					buffer.longestLineIdx++;
-				if (parser != null) {
-					parser.Tokens.Insert (lptr, new TokenList ());
-					tryParseBufferLine (e.LineStart + i);
-				}
 			}
 			measureLeftMargin ();
-			if (parser != null)
-				reparseSource ();
 			RegisterForGraphicUpdate ();
 		}
 
@@ -224,14 +157,10 @@ namespace Crow.Coding
 				int lptr = e.LineStart + i;
 				if (lptr <= buffer.longestLineIdx)
 					trigFindLongestLine = true;
-				if (parser != null)
-					parser.Tokens.RemoveAt (lptr);
 			}
 			if (trigFindLongestLine)
 				findLongestLineAndUpdateMaxScrollX ();
 			measureLeftMargin ();
-			if (parser != null)
-				reparseSource ();
 			RegisterForGraphicUpdate ();
 		}
 
@@ -246,9 +175,7 @@ namespace Crow.Coding
 					buffer.longestLineCharCount = buffer.GetPrintableLine (lptr).Length;
 					buffer.longestLineIdx = lptr;
 				}
-				tryParseBufferLine (lptr);
 			}
-			reparseSource ();
 			if (trigFindLongestLine)
 				findLongestLineAndUpdateMaxScrollX ();
 			RegisterForGraphicUpdate ();
@@ -1065,8 +992,8 @@ namespace Crow.Coding
 				this.Insert ("\t");
 				break;
 			case Key.F8:
-				if (parser != null)
-					reparseSource ();
+//				if (parser != null)
+//					reparseSource ();
 				break;
 			default:
 				break;
