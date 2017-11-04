@@ -172,17 +172,13 @@ namespace Crow.Coding
 			return new Point (buffCol, visualPos.Y);
 		}
 		/// <summary>
-		/// convert buffer postition to visual position
-		/// </summary>
-		Point getTabulatedPos (Point buffPos) {
-			int vCol = this[buffPos.Y].Substring(0, buffPos.X).Replace("\t", new String(' ', Interface.TabSize)).Length;
-			return new Point (vCol, buffPos.Y);
-		}
-		/// <summary>
 		/// Gets visual position computed from actual buffer position
 		/// </summary>
 		public Point TabulatedPosition {
-			get { return getTabulatedPos (new Point (_currentCol, _currentLine)); }
+			get { return new Point (TabulatedColumn, _currentLine); }
+		}
+		public int TabulatedColumn {
+			get { return this [_currentLine].Substring (0, _currentCol).Replace ("\t", new String (' ', Interface.TabSize)).Length; }
 		}
 		/// <summary>
 		/// set buffer current position from visual position

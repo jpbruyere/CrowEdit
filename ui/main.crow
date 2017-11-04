@@ -22,8 +22,8 @@
 			</MenuItem>
 		</Menu>
 		<HorizontalStack Height="Stretched" >
-			<SourceEditor Focusable="true" Name="editor" Font="couriernew, 14" VerticalAlignment="Top" Margin="10"
-					Foreground="Jet" Background="Ivory" Width="Stretched" Height="Stretched"
+			<SourceEditor Focusable="true" Name="editor" Font="monospace, 12" VerticalAlignment="Top" Margin="10"
+					Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
 					 FilePath="{CurFileFullPath}"  KeyDown="textView_KeyDown"/>
 			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
 				Maximum="{../editor.MaxScrollY}" Orientation="Vertical"

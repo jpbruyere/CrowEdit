@@ -55,26 +55,20 @@
     <None Include="Crow.dll.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="OpenTK">
-      <HintPath>packages\OpenTK.2.0.0\lib\net20\OpenTK.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
+    <Reference Include="OpenTK">
+      <HintPath>packages\OpenTK.2.0.0\lib\net20\OpenTK.dll</HintPath>
+    </Reference>
     <Reference Include="Crow">
-      <HintPath>packages\Crow.OpenTK.0.5.5\lib\net45\Crow.dll</HintPath>
+      <HintPath>packages\Crow.OpenTK.0.5.6\lib\net45\Crow.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\CrowEdit.cs" />
     <Compile Include="src\CrowEditExtentions.cs" />
     <Compile Include="src\Token.cs" />
-    <Compile Include="CrowWindow.cs" />
-    <Compile Include="InterfaceControler.cs" />
-    <Compile Include="OpenGL\Extensions.cs" />
-    <Compile Include="OpenGL\Shader.cs" />
-    <Compile Include="OpenGL\Texture.cs" />
-    <Compile Include="OpenGL\vaoMesh.cs" />
     <Compile Include="src\SourceEditor.cs" />
     <Compile Include="src\Parser.cs" />
     <Compile Include="src\XMLParser.cs" />
@@ -85,6 +79,12 @@
     <Compile Include="ParsingException.cs" />
     <Compile Include="CodeBufferEventArgs.cs" />
     <Compile Include="src\Node.cs" />
+    <Compile Include="CrowWindow.cs" />
+    <Compile Include="InterfaceControler.cs" />
+    <Compile Include="OpenGL\Extensions.cs" />
+    <Compile Include="OpenGL\Shader.cs" />
+    <Compile Include="OpenGL\Texture.cs" />
+    <Compile Include="OpenGL\vaoMesh.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />

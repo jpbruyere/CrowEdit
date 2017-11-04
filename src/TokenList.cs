@@ -46,7 +46,6 @@ namespace Crow.Coding
 		//override list.clear to clear additional states of tokenList
 		public new void Clear() {
 			EndingState = 0;
-			folded = false;
 			SyntacticNode = null;
 			exception = null;
 			Dirty = true;

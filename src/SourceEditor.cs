@@ -48,16 +48,16 @@ namespace Crow.Coding
 		public SourceEditor ():base()
 		{
 			formatting.Add ((int)XMLParser.TokenType.AttributeName, new TextFormatting (Color.UnitedNationsBlue, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Color.DarkBlue, Color.Transparent, true));
-			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Color.Red, Color.Transparent,true));
-			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Color.Red, Color.Transparent,true));
-			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Color.Red, Color.Transparent, true));
-			formatting.Add ((int)XMLParser.TokenType.Affectation, new TextFormatting (Color.Red, Color.Transparent, true));
+			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Color.DarkBlue, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Color.Black, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Color.Black, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Color.Black, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.Affectation, new TextFormatting (Color.Black, Color.Transparent));
 
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.DarkPink, Color.Transparent,true));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.DarkPink, Color.Transparent,true));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.DarkPink, Color.Transparent, false, true));
-			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.BlueCrayola, Color.Transparent, true));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.Carmine, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.Carmine, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.OrangeRed, Color.Transparent, false, true));
+			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.GreenCrayola, Color.Transparent));
 			formatting.Add ((int)XMLParser.TokenType.BlockComment, new TextFormatting (Color.Gray, Color.Transparent, false, true));
 
 			parsing.Add (".crow", "Crow.Coding.XMLParser");
@@ -111,10 +111,13 @@ namespace Crow.Coding
 			MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
 			Debug.WriteLine ("SourceEditor: Find Longest line and update maxscrollx: {0} visible cols:{1}", MaxScrollX, visibleColumns);
 		}
+		/// <summary>
+		/// Updates visible line in widget, adapt max scroll y and updatePrintedLines
+		/// </summary>
 		void updateVisibleLines(){
 			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
-			MaxScrollY = Math.Max (0, buffer.LineCount - visibleLines);
-
+			updateMaxScrollY ();
+			updatePrintedLines ();
 			System.Diagnostics.Debug.WriteLine ("update visible lines: " + visibleLines);
 			System.Diagnostics.Debug.WriteLine ("update MaxScrollY: " + MaxScrollY);
 		}
@@ -124,6 +127,57 @@ namespace Crow.Coding
 
 			System.Diagnostics.Debug.WriteLine ("update visible columns: {0} leftMargin:{1}",visibleColumns, leftMargin);
 			System.Diagnostics.Debug.WriteLine ("update MaxScrollX: " + MaxScrollX);
+		}
+		void updateMaxScrollY () {
+			if (parser == null || !foldingEnabled)
+				MaxScrollY = Math.Max (0, buffer.LineCount - visibleLines);
+			else
+				MaxScrollY = Math.Max (0, parser.VisibleLines - visibleLines);			
+		}
+
+		int firstPrintedLine = -1;
+		/// <summary>
+		/// list of lines visible in the Editor depending on scrolling and folding
+		/// </summary>
+		List<TokenList> PrintedLines;
+
+		void updatePrintedLines () {
+			if (parser == null)
+				return;
+			PrintedLines = new List<TokenList> ();
+			int curL = 0;
+			int i = 0;
+
+			while (curL < parser.LineCount && i < ScrollY) {
+				if (parser.Tokens [curL].folded && parser.Tokens [curL].SyntacticNode != null)
+					curL = parser.Tokens [curL].SyntacticNode.EndLine;
+				curL++;
+				i++;
+			}
+
+			firstPrintedLine = curL;
+			i = 0;
+			while (i < visibleLines && curL < parser.LineCount) {
+				PrintedLines.Add (parser.Tokens [curL]);
+
+				if (parser.Tokens [curL].folded && parser.Tokens [curL].SyntacticNode != null)
+					curL = parser.Tokens [curL].SyntacticNode.EndLine;
+
+				curL++;
+				i++;
+			}	
+			RegisterForGraphicUpdate ();
+		}
+		void toogleFolding (int line) {
+			if (parser == null || !foldingEnabled)
+				return;
+			if (parser.Tokens [line].SyntacticNode == null)
+				return;
+			parser.Tokens [line].folded = !parser.Tokens [line].folded;
+			updatePrintedLines ();
+			updateMaxScrollY ();
+
+			RegisterForGraphicUpdate ();
 		}
 
 		#region Buffer events handlers
@@ -145,8 +199,20 @@ namespace Crow.Coding
 					buffer.longestLineCharCount = charCount;
 				}else if (lptr <= buffer.longestLineIdx)
 					buffer.longestLineIdx++;
+				if (parser == null)
+					continue;
+				parser.Tokens.Insert (lptr, new TokenList ());
+				parser.tryParseBufferLine (e.LineStart + i);
 			}
 			measureLeftMargin ();
+
+			if (parser != null)
+				parser.reparseSource ();
+
+
+			updatePrintedLines ();
+			updateOnScreenPosFromBuffPos ();
+
 			RegisterForGraphicUpdate ();
 		}
 
@@ -161,6 +227,7 @@ namespace Crow.Coding
 			if (trigFindLongestLine)
 				findLongestLineAndUpdateMaxScrollX ();
 			measureLeftMargin ();
+			updatePrintedLines ();
 			RegisterForGraphicUpdate ();
 		}
 
@@ -227,13 +294,18 @@ namespace Crow.Coding
 
 				parser = getParserFromExt (System.IO.Path.GetExtension (filePath));
 
-				using (StreamReader sr = new StreamReader (filePath)) {
-					string txt = sr.ReadToEnd ();
-					buffer.Load (txt);
+				try {
+					using (StreamReader sr = new StreamReader (filePath)) {
+						string txt = sr.ReadToEnd ();
+						buffer.Load (txt);
+					}
+				} catch (Exception ex) {
+					Debug.WriteLine (ex.ToString ());
 				}
 
-				MaxScrollY = Math.Max (0, buffer.LineCount - visibleLines);
+				updateMaxScrollY ();
 				MaxScrollX = Math.Max (0, buffer.longestLineCharCount - visibleColumns);
+				updatePrintedLines ();
 
 				RegisterForGraphicUpdate ();
 			}
@@ -295,19 +367,17 @@ namespace Crow.Coding
 					_currentLine = 0;
 				else
 					_currentLine = value;
-				//force recheck of currentCol for bounding
-				int cc = _currentCol;
-				_currentCol = 0;
-				CurrentColumn = cc;
 
-				buffer.SetBufferPos (CurrentPosition);
+				if (_currentCol > buffer.GetPrintableLine(_currentLine).Length)
+					CurrentColumn = buffer.GetPrintableLine(_currentLine).Length;//buffer.setBufferPos is called inside
+				else
+					buffer.SetBufferPos (CurrentPosition);
 
-				//System.Diagnostics.Debug.WriteLine ("Scroll:{0} visibleLines:{1} CurLine:{2}", ScrollY, visibleLines, CurrentLine);
-
-				if (_currentLine < ScrollY)
-					ScrollY = _currentLine;
-				else if (_currentLine >= ScrollY + visibleLines)
-					ScrollY = _currentLine - visibleLines + 1;
+//				if (_currentLine < ScrollY)
+//					ScrollY = _currentLine;
+//				else if (_currentLine >= ScrollY + visibleLines)
+//					ScrollY = _currentLine - visibleLines + 1;
+				
 				NotifyValueChanged ("CurrentLine", _currentLine);
 			}
 		}
@@ -326,11 +396,11 @@ namespace Crow.Coding
 					ScrollX = _currentCol;
 				else if (_currentCol >= ScrollX + visibleColumns)
 					ScrollX = _currentCol - visibleColumns + 1;
-
-				if (_currentLine < ScrollY)
-					ScrollY = _currentLine;
-				else if (_currentLine >= ScrollY + visibleLines)
-					ScrollY = _currentLine - visibleLines + 1;
+//
+//				if (_currentLine < ScrollY)
+//					ScrollY = _currentLine;
+//				else if (_currentLine >= ScrollY + visibleLines)
+//					ScrollY = _currentLine - visibleLines + 1;
 
 				NotifyValueChanged ("CurrentColumn", _currentCol);
 				NotifyValueChanged ("CurrentLine", _currentLine);
@@ -370,15 +440,6 @@ namespace Crow.Coding
 			}
 		}
 		/// <summary>
-		/// return char at CurrentLine, CurrentColumn
-		/// </summary>
-		[XmlIgnore]protected Char CurrentChar
-		{
-			get {
-				return buffer [CurrentLine] [CurrentColumn];
-			}
-		}
-		/// <summary>
 		/// ordered selection start and end positions in char units
 		/// </summary>
 		[XmlIgnore]protected Point selectionStart
@@ -414,27 +475,45 @@ namespace Crow.Coding
 		/// Moves cursor one char to the left.
 		/// </summary>
 		/// <returns><c>true</c> if move succeed</returns>
-		public bool MoveLeft(){
-			bool res = buffer.MoveLeft();
-			CurrentPosition = buffer.TabulatedPosition;
-			return res;
+		public void MoveLeft(){
+			if (CurrentPosition == 0)
+				return;			
+			if (_currentCol == 0) {
+				PrintedCurrentLine--;
+				CurrentColumn = int.MaxValue;
+			} else {
+				//do move in the buffer so that tabulations are treated as single char
+				buffer.CurrentColumn --;
+				CurrentPosition = buffer.TabulatedPosition;
+			}
 		}
 		/// <summary>
 		/// Moves cursor one char to the right.
 		/// </summary>
 		/// <returns><c>true</c> if move succeed</returns>
-		public bool MoveRight(){
-			bool res = buffer.MoveRight();
-			CurrentPosition = buffer.TabulatedPosition;
-			return res;
+		public void MoveRight(){
+			if (_currentCol == buffer.GetPrintableLine(CurrentLine).Length && _currentLine < buffer.LineCount - 1) {
+				PrintedCurrentLine++;
+				CurrentColumn = 0;
+			} else {
+				//do move in the buffer so that tabulations are treated as single char
+				buffer.CurrentColumn ++;
+				CurrentPosition = buffer.TabulatedPosition;
+			}
+		}
+		public void MoveUp (){
+			PrintedCurrentLine--;
+		}
+		public void MoveDown (){
+			PrintedCurrentLine++;
 		}
 		public void GotoWordStart(){
 			buffer.GotoWordStart();
-			CurrentPosition = buffer.TabulatedPosition;
+			updateOnScreenPosFromBuffPos ();
 		}
 		public void GotoWordEnd(){
 			buffer.GotoWordEnd();
-			CurrentPosition = buffer.TabulatedPosition;
+			updateOnScreenPosFromBuffPos ();
 		}
 
 		public void DeleteChar()
@@ -442,7 +521,7 @@ namespace Crow.Coding
 			if (!selectionIsEmpty)
 				buffer.SetSelection (selectionStart, selectionEnd);
 			buffer.DeleteChar ();
-			CurrentPosition = buffer.TabulatedPosition;
+			updateOnScreenPosFromBuffPos ();
 			SelBegin = -1;
 			SelRelease = -1;
 		}
@@ -460,21 +539,60 @@ namespace Crow.Coding
 
 			RegisterForGraphicUpdate();
 		}
-		/// <summary>
-		/// Insert a line break.
-		/// </summary>
-		protected void InsertLineBreak()
-		{
-			buffer.InsertLineBreak ();
-
-			if (_currentLine == buffer.longestLineIdx)
-				findLongestLineAndUpdateMaxScrollX ();
-
-			CurrentPosition = buffer.TabulatedPosition;
-
-			RegisterForGraphicUpdate();
-		}
 		#endregion
+
+		void updateOnScreenPosFromBuffPos(){
+			if (parser.Tokens.Count == 0 || PrintedLines.Count == 0)
+				return;
+			if (!PrintedLines.Contains (parser.Tokens [buffer.CurrentLine]))
+				return;
+			printedCurrentLine = PrintedLines.IndexOf (parser.Tokens [buffer.CurrentLine]);
+			setCurrentLineFromBuffer ();
+			CurrentColumn = buffer.TabulatedColumn;
+		}
+
+		void setCurrentLineFromBuffer () {
+			_currentLine = buffer.CurrentLine;
+			NotifyValueChanged ("CurrentLine", _currentLine);
+		}
+
+		public override int ScrollY {
+			get {
+				return base.ScrollY;
+			}
+			set {
+				if (value == base.ScrollY)
+					return;
+				base.ScrollY = value;
+				updatePrintedLines ();
+			}
+		}
+
+
+		/// <summary>
+		/// Index of the currentline in the PrintedLines array
+		/// </summary>
+		int printedCurrentLine = 0;
+
+		int PrintedCurrentLine {
+			get { return printedCurrentLine;}
+			set {
+				if (value < 0) {
+					ScrollY += value;
+					printedCurrentLine = 0;
+				} else if (PrintedLines.Count < visibleLines && value >= PrintedLines.Count) {
+					printedCurrentLine = PrintedLines.Count - 1;
+				}else if (value >= visibleLines) {
+					ScrollY += value - visibleLines + 1;
+					printedCurrentLine = visibleLines - 1;
+				}else
+					printedCurrentLine = value;
+
+				//update position in buffer
+				CurrentLine = parser.Tokens.IndexOf (PrintedLines[printedCurrentLine]);
+			}
+		}
+
 
 		#region Drawing
 		/// <summary>
@@ -548,6 +666,9 @@ namespace Crow.Coding
 			}
 		}
 		void drawParsed(Context gr){
+			if (PrintedLines == null)
+				return;
+
 			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 			gr.SetFontSize (Font.Size);
 			gr.FontOptions = Interface.FontRenderingOptions;
@@ -568,23 +689,21 @@ namespace Crow.Coding
 			else if (HasFocus){
 				gr.LineWidth = 1.0;
 				double cursorX = + leftMargin + cb.X + (CurrentColumn - ScrollX) * fe.MaxXAdvance;
-				gr.MoveTo (0.5 + cursorX, cb.Y + (CurrentLine - ScrollY) * fe.Height);
-				gr.LineTo (0.5 + cursorX, cb.Y + (CurrentLine + 1 - ScrollY) * fe.Height);
+				gr.MoveTo (0.5 + cursorX, cb.Y + printedCurrentLine * fe.Height);
+				gr.LineTo (0.5 + cursorX, cb.Y + (printedCurrentLine + 1) * fe.Height);
 				gr.Stroke();
 			}
 			#endregion
 
-			for (int i = 0; i < visibleLines; i++) {
-				if (i + ScrollY >= parser.Tokens.Count)
-					break;
+			for (int i = 0; i < PrintedLines.Count; i++)
 				drawTokenLine (gr, i, selectionInProgress, cb);
-			}
 
 			gr.Restore ();
 		}
 		void drawTokenLine(Context gr, int i, bool selectionInProgress, Rectangle cb) {
-			int curL = i + ScrollY;
-			TokenList tokens = parser.Tokens[curL];
+			TokenList tokens = PrintedLines[i];
+			int lineIndex = parser.Tokens.IndexOf(tokens);
+
 			int lPtr = 0;
 			double y = cb.Y + fe.Height * i;
 
@@ -595,14 +714,14 @@ namespace Crow.Coding
 				Rectangle mgR = new Rectangle (cb.X, (int)y, leftMargin - leftMarginGap, (int)Math.Ceiling(fe.Height));
 				if (tokens.exception != null) {
 					mgBg = Color.Red;
-					if (CurrentLine == curL)
+					if (CurrentLine == lineIndex)
 						mgFg = Color.White;
 					else
 						mgFg = Color.LightGray;
-				}else if (CurrentLine == curL) {
+				}else if (CurrentLine == lineIndex) {
 					mgFg = Color.Black;
 				}
-				string strLN = curL.ToString ();
+				string strLN = lineIndex.ToString ();
 				gr.SetSourceColor (mgBg);
 				gr.Rectangle (mgR);
 				gr.Fill();
@@ -666,19 +785,19 @@ namespace Crow.Coding
 				gr.ShowText (lstr);
 				gr.Fill ();
 
-				if (selectionInProgress && curL >= selectionStart.Y && curL <= selectionEnd.Y &&
-					!(curL == selectionStart.Y && lPtr + lstr.Length <= selectionStart.X) &&
-					!(curL == selectionEnd.Y && selectionEnd.X <= lPtr)) {
+				if (selectionInProgress && lineIndex >= selectionStart.Y && lineIndex <= selectionEnd.Y &&
+					!(lineIndex == selectionStart.Y && lPtr + lstr.Length <= selectionStart.X) &&
+					!(lineIndex == selectionEnd.Y && selectionEnd.X <= lPtr)) {
 
 					double rLineX = x,
 					rLineY = cb.Y + i * fe.Height,
 					rLineW = lstr.Length * fe.MaxXAdvance;
 					double startAdjust = 0.0;
 
-					if ((curL == selectionStart.Y) && (selectionStart.X < lPtr + lstr.Length) && (selectionStart.X > lPtr))
+					if ((lineIndex == selectionStart.Y) && (selectionStart.X < lPtr + lstr.Length) && (selectionStart.X > lPtr))
 						startAdjust = (selectionStart.X - lPtr) * fe.MaxXAdvance;
 					rLineX += startAdjust;
-					if ((curL == selectionEnd.Y) && (selectionEnd.X < lPtr + lstr.Length))
+					if ((lineIndex == selectionEnd.Y) && (selectionEnd.X < lPtr + lstr.Length))
 						rLineW = (selectionEnd.X - lPtr) * fe.MaxXAdvance;
 					rLineW -= startAdjust;
 
@@ -749,18 +868,18 @@ namespace Crow.Coding
 		#endregion
 
 		#region Mouse handling
-		void updatemouseLocalPos(Point mpos){
-			Point mouseLocalPos = mpos - ScreenCoordinates(Slot).TopLeft - ClientRectangle.TopLeft;
+		Point mouseLocalPos;
 
+		void updateCurrentPos(){
 			if (mouseLocalPos.X < 0)
 				CurrentColumn--;
 			else
 				CurrentColumn = ScrollX +  (int)Math.Round ((mouseLocalPos.X - leftMargin) / fe.MaxXAdvance);
 
+			PrintedCurrentLine = (int)Math.Max (0, Math.Floor (mouseLocalPos.Y / fe.Height));
+
 			if (mouseLocalPos.Y < 0)
-				CurrentLine--;
-			else
-				CurrentLine = ScrollY + (int)Math.Floor (mouseLocalPos.Y / fe.Height);
+				ScrollY--;
 
 			CurrentPosition = buffer.TabulatedPosition; //for rounding if in middle of tabs
 		}
@@ -781,29 +900,29 @@ namespace Crow.Coding
 		{
 			base.onMouseMove (sender, e);
 
-			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
-				currentInterface.MouseCursor = XCursor.Default;
-			else
-				currentInterface.MouseCursor = XCursor.Text;
+			mouseLocalPos = e.Position - ScreenCoordinates(Slot).TopLeft - ClientRectangle.TopLeft;
 
-			if (!e.Mouse.IsButtonDown (MouseButton.Left))
+			if (!e.Mouse.IsButtonDown (MouseButton.Left)) {
+				if (mouseLocalPos.X < leftMargin)
+					currentInterface.MouseCursor = XCursor.Default;
+				else
+					currentInterface.MouseCursor = XCursor.Text;
 				return;
+			}
+
 			if (!HasFocus || SelBegin < 0)
 				return;
 
-			updatemouseLocalPos (e.Position);
+			//mouse is down
+			updateCurrentPos ();
 			SelRelease = CurrentPosition;
 
 			RegisterForRedraw();
 		}
 		public override void onMouseDown (object sender, MouseButtonEventArgs e)
 		{
-			//initialize cursor position if not yet focused
-			if (!this.HasFocus & this.Focusable){
-				updatemouseLocalPos (e.Position);
-				SelBegin = SelRelease = CurrentPosition;
-				RegisterForRedraw();
-			}
+			if (!this.Focusable)
+				return;
 
 			base.onMouseDown (sender, e);
 
@@ -811,11 +930,11 @@ namespace Crow.Coding
 				doubleClicked = false;
 				return;
 			}
-			if (this.HasFocus){
-				updatemouseLocalPos (e.Position);
-				SelBegin = SelRelease = CurrentPosition;
-				RegisterForRedraw();
-			}
+
+			updateCurrentPos ();
+			SelBegin = SelRelease = CurrentPosition;
+						
+			RegisterForRedraw();
 		}
 		public override void onMouseUp (object sender, MouseButtonEventArgs e)
 		{
@@ -825,7 +944,7 @@ namespace Crow.Coding
 			if (SelBegin == SelRelease)
 				SelBegin = SelRelease = -1;
 
-			updatemouseLocalPos (e.Position);
+			updateCurrentPos ();
 			RegisterForRedraw ();
 		}
 		bool doubleClicked = false;
@@ -861,8 +980,7 @@ namespace Crow.Coding
 				break;
 			case Key.Delete:
 				if (selectionIsEmpty) {
-					if (!MoveRight ())
-						return;
+					MoveRight ();
 				}else if (e.Shift)
 					currentInterface.Clipboard = this.SelectedText;
 				this.DeleteChar ();
@@ -871,7 +989,7 @@ namespace Crow.Coding
 			case Key.KeypadEnter:
 				if (!selectionIsEmpty)
 					this.DeleteChar ();
-				this.InsertLineBreak ();
+				buffer.InsertLineBreak ();
 				break;
 			case Key.Escape:
 				SelRelease = SelBegin = -1;
@@ -918,8 +1036,8 @@ namespace Crow.Coding
 						SelBegin = CurrentPosition;
 					if (e.Control)
 						GotoWordStart ();
-					else if (!MoveLeft ())
-						return;
+					else
+						MoveLeft ();
 					SelRelease = CurrentPosition;
 					break;
 				}
@@ -935,8 +1053,8 @@ namespace Crow.Coding
 						SelBegin = CurrentPosition;
 					if (e.Control)
 						GotoWordEnd ();
-					else if (!MoveRight ())
-						return;
+					else
+						MoveRight ();
 					SelRelease = CurrentPosition;
 					break;
 				}
@@ -950,23 +1068,23 @@ namespace Crow.Coding
 				if (e.Shift) {
 					if (selectionIsEmpty)
 						SelBegin = CurrentPosition;
-					CurrentLine--;
+					MoveUp ();
 					SelRelease = CurrentPosition;
 					break;
 				}
 				SelRelease = SelBegin = -1;
-				CurrentLine--;
+				MoveUp ();
 				break;
 			case Key.Down:
 				if (e.Shift) {
 					if (selectionIsEmpty)
 						SelBegin = CurrentPosition;
-					CurrentLine++;
+					MoveDown ();
 					SelRelease = CurrentPosition;
 					break;
 				}
 				SelRelease = SelBegin = -1;
-				CurrentLine++;
+				MoveDown ();
 				break;
 			case Key.Menu:
 				break;
@@ -999,6 +1117,7 @@ namespace Crow.Coding
 				this.Insert ("\t");
 				break;
 			case Key.F8:
+				toogleFolding (CurrentLine);
 //				if (parser != null)
 //					reparseSource ();
 				break;

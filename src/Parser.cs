@@ -43,7 +43,7 @@ namespace Crow.Coding
 			buffer = _buffer;
 
 			buffer.LineUpadateEvent += Buffer_LineUpadateEvent;
-			buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
+			//buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
 			buffer.LineRemoveEvent += Buffer_LineRemoveEvent;
 			buffer.BufferCleared += Buffer_BufferCleared;
 
@@ -61,12 +61,7 @@ namespace Crow.Coding
 		}
 		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e)
 		{
-			for (int i = 0; i < e.LineCount; i++) {
-				int lptr = e.LineStart + i;
-				Tokens.Insert (lptr, new TokenList ());
-				tryParseBufferLine (e.LineStart + i);
-			}
-			reparseSource ();
+
 		}
 		void Buffer_LineRemoveEvent (object sender, CodeBufferEventArgs e)
 		{
@@ -121,25 +116,28 @@ namespace Crow.Coding
 			//				}
 			//			}
 		}
-		void reparseSource () {
+		public void reparseSource () {
 			for (int i = 0; i < Tokens.Count; i++) {
 				if (Tokens[i].Dirty)
 					tryParseBufferLine (i);
 			}
 			try {
 				SyntaxAnalysis ();
-			} catch (ParsingException ex) {
+			} catch (Exception ex) {
 				Debug.WriteLine ("Syntax Error: " + ex.ToString ());
-				SetLineInError (ex);
+				if (ex is ParsingException)
+					SetLineInError (ex as ParsingException);
 			}
 		}
-		void tryParseBufferLine(int lPtr) {
+		public void tryParseBufferLine(int lPtr) {
 			try {
 				Parse (lPtr);
-			} catch (ParsingException ex) {
+			} catch (Exception ex) {
 				Debug.WriteLine (ex.ToString ());
-				SetLineInError (ex);
+				if (ex is ParsingException)
+					SetLineInError (ex as ParsingException);
 			}
+
 		}
 
 		CodeBuffer buffer;
@@ -161,13 +159,35 @@ namespace Crow.Coding
 				currentColumn = value.X;
 			}
 		}
+		public int LineCount {
+			get { return Tokens.Count; }
+		}
 
+		/// <summary>
+		/// unfolded and not in folds line count
+		/// </summary>
+		public int VisibleLines {
+			get {
+				int i = 0, vl = 0;
+				while (i<Tokens.Count) {
+					if (Tokens [i].folded && Tokens [i].SyntacticNode != null) {
+						i = Tokens [i].SyntacticNode.EndLine;
+					}
+					i++;
+					vl++;
+				}
+				return vl;
+			}
+		}
+			
 		public abstract void Parse(int line);
 		public abstract void SyntaxAnalysis ();
 
 		public virtual void SetLineInError(ParsingException ex) {
 			currentTok = default(Token);
-			Tokens [ex.Line] = new TokenList (ex, buffer [ex.Line]);
+			Tokens [ex.Line].Clear ();
+			Tokens [ex.Line].Add(new Token() {Content = buffer [ex.Line]});
+			Tokens [ex.Line].exception = ex; 
 		}
 
 		#region low level parsing
