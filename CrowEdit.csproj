@@ -48,7 +48,6 @@
     <None Include="ui\icons\search.svg" />
     <None Include="ui\icons\text-file.svg" />
     <None Include="ui\icons\text-label.svg" />
-    <None Include="ui\icons\tools.svg" />
     <None Include="ui\icons\zoom-in.svg" />
     <None Include="ui\icons\zoom-out.svg" />
     <None Include="ui\icons\basic_floppydisk.svg" />
@@ -108,5 +107,7 @@
     <EmbeddedResource Include="ui\icons\inbox.svg" />
     <EmbeddedResource Include="ui\icons\outbox.svg" />
     <EmbeddedResource Include="ui\saveFile.crow" />
+    <EmbeddedResource Include="ui\EditorOptions.crow" />
+    <EmbeddedResource Include="ui\icons\tools.svg" />
   </ItemGroup>
 </Project>

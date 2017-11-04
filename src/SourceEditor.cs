@@ -70,7 +70,7 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		const int leftMarginGap = 2;//gap between items in margin and text
+		const int leftMarginGap = 5;//gap between items in margin and text
 		const int foldSize = 9;//folding rectangles size
 
 		#region private and protected fields
@@ -99,7 +99,7 @@ namespace Crow.Coding
 		void measureLeftMargin () {
 			leftMargin = 0;
 			if (PrintLineNumbers)
-				leftMargin += (int)Math.Ceiling((double)buffer.LineCount.ToString().Length * fe.MaxXAdvance);
+				leftMargin += (int)Math.Ceiling((double)buffer.LineCount.ToString().Length * fe.MaxXAdvance) +6;
 			if (foldingEnabled)
 				leftMargin += foldSize;
 			if (leftMargin > 0)
@@ -272,6 +272,7 @@ namespace Crow.Coding
 					return;
 				Configuration.Set ("PrintLineNumbers", value);
 				NotifyValueChanged ("PrintLineNumbers", PrintLineNumbers);
+				measureLeftMargin ();
 				RegisterForGraphicUpdate ();
 			}
 		}
@@ -924,16 +925,20 @@ namespace Crow.Coding
 			if (!this.Focusable)
 				return;
 
-			base.onMouseDown (sender, e);
+			if (mouseLocalPos.X >= leftMargin)
+				base.onMouseDown (sender, e);
 
 			if (doubleClicked) {
 				doubleClicked = false;
 				return;
 			}
 
-			updateCurrentPos ();
-			SelBegin = SelRelease = CurrentPosition;
-						
+			if (mouseLocalPos.X < leftMargin) {
+				toogleFolding (parser.Tokens.IndexOf (PrintedLines[(int)Math.Max (0, Math.Floor (mouseLocalPos.Y / fe.Height))]));
+			} else {
+				updateCurrentPos ();
+				SelBegin = SelRelease = CurrentPosition;
+			}		
 			RegisterForRedraw();
 		}
 		public override void onMouseUp (object sender, MouseButtonEventArgs e)

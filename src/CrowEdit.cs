@@ -27,7 +27,7 @@ namespace CrowEdit
 {
 	public class CrowEdit : CrowWindow
 	{
-		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout;
+		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions;
 
 		string _curDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
 		string _curFilePath = "unamed.txt";
@@ -85,6 +85,7 @@ namespace CrowEdit
 			CMDCopy = new Command(new Action(() => Quit (null, null))) { Caption = "Copy", Icon = new SvgPicture("#CrowEdit.ui.icons.copy-file.svg"), CanExecute = false};
 			CMDPaste = new Command(new Action(() => Quit (null, null))) { Caption = "Paste", Icon = new SvgPicture("#CrowEdit.ui.icons.paste-on-document.svg"), CanExecute = false};
 			CMDHelp = new Command(new Action(() => System.Diagnostics.Debug.WriteLine("help"))) { Caption = "Help", Icon = new SvgPicture("#CrowEdit.ui.icons.question.svg")};
+			CMDOptions = new Command(new Action(() => openOptionsDialog())) { Caption = "Editor Options", Icon = new SvgPicture("#CrowEdit.ui.icons.tools.svg")};
 
 		}
 		void newFile(){
@@ -123,6 +124,10 @@ namespace CrowEdit
 
 			if (redoStack.Count == 0)
 				CMDRedo.CanExecute = false;
+		}
+		void openOptionsDialog(){
+			GraphicObject ed = this.FindByName("editor");
+			Load ("#CrowEdit.ui.EditorOptions.crow").DataSource = ed;
 		}
 		void openFileDialog(){
 			Load ("#CrowEdit.ui.openFile.crow").DataSource = this;
@@ -188,7 +193,6 @@ namespace CrowEdit
 
 			this.ValueChanged += CrowEdit_ValueChanged;
 			initCommands ();
-
 			Load ("#CrowEdit.ui.main.crow").DataSource = this;
 			NotifyValueChanged ("CurFileFullPath", CurFileFullPath);
 		}

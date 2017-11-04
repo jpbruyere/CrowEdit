@@ -9,12 +9,13 @@
 				<MenuItem Command="{CMDSaveAs}" />
 				<MenuItem Command="{CMDQuit}" />
 			</MenuItem>
-			<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="60">
+			<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100">
 				<MenuItem Command="{CMDUndo}" />
 				<MenuItem Command="{CMDRedo}" />
 				<MenuItem Command="{CMDCut}" />
 				<MenuItem Command="{CMDCopy}" />
 				<MenuItem Command="{CMDPaste}" />
+				<MenuItem Command="{CMDOptions}"/>
 			</MenuItem>
 			<MenuItem Caption="Help" Width="Fit" PopWidth="60">
 				<MenuItem Caption="About"/>
