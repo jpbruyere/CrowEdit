@@ -31,23 +31,27 @@ namespace Crow.Coding
 	/// </summary>
 	public class CodeBuffer
 	{
+		public object EditMutex = new object();
 		//those events are handled in SourceEditor to help keeping sync between textbuffer,parser and editor.
 		//modified lines are marked for reparse
 		#region Events
 		public event EventHandler<CodeBufferEventArgs> LineUpadateEvent;
 		public event EventHandler<CodeBufferEventArgs> LineRemoveEvent;
 		public event EventHandler<CodeBufferEventArgs> LineAdditionEvent;
+		public event EventHandler<CodeBufferEventArgs> FoldingEvent;
 		public event EventHandler BufferCleared;
+		public event EventHandler SelectionChanged;
+		public event EventHandler PositionChanged;
 		#endregion
 
 		#region CTOR
 		public CodeBuffer () {
-			this.Add ("");
+
 		}
 		#endregion
 
 		string lineBreak = Interface.LineBreak;
-		List<string> lines = new List<string>();
+		List<CodeLine> lines = new List<CodeLine>();
 		public int longestLineIdx = 0;
 		public int longestLineCharCount = 0;
 		/// <summary>
@@ -57,47 +61,83 @@ namespace Crow.Coding
 		int _currentCol = 0;
 
 		public int LineCount { get { return lines.Count;}}
-
-		/// <summary>
-		/// Return line with tabs replaced by spaces
-		/// </summary>
-		public string GetPrintableLine(int i){
-			return string.IsNullOrEmpty(lines[i]) ? "" : lines[i].Replace("\t", new String(' ', Interface.TabSize));
+		public int IndexOf (CodeLine cl) {
+			return lines.IndexOf (cl);
 		}
 
-		public string this[int i]
+		public CodeLine this[int i]
 		{
 			get { return lines[i]; }
 			set {
 				if (lines [i] == value)
 					return;
-				lines[i] = value;
-				LineUpadateEvent.Raise (this, new CodeBufferEventArgs (i));
+				lock (EditMutex) {
+					lines [i] = value;
+					LineUpadateEvent.Raise (this, new CodeBufferEventArgs (i));
+				}
 			}
 		}
 
 		public void RemoveAt(int i){
-			lines.RemoveAt(i);
-			LineRemoveEvent.Raise (this, new CodeBufferEventArgs (i));
+			lock (EditMutex) {
+				lines.RemoveAt (i);
+				LineRemoveEvent.Raise (this, new CodeBufferEventArgs (i));
+			}
 		}
 		public void Insert(int i, string item){
-			lines.Insert (i, item);
-			LineAdditionEvent.Raise (this, new CodeBufferEventArgs (i));
+			lock (EditMutex) {
+				lines.Insert (i, item);
+				LineAdditionEvent.Raise (this, new CodeBufferEventArgs (i));
+			}
 		}
-		public void Add(string item){
-			lines.Add (item);
-			LineAdditionEvent.Raise (this, new CodeBufferEventArgs (lines.Count - 1));
+		public void Add(CodeLine item){
+			lock (EditMutex) {
+				lines.Add (item);
+				LineAdditionEvent.Raise (this, new CodeBufferEventArgs (lines.Count - 1));
+			}
 		}
 		public void AddRange (string[] items){
 			int start = lines.Count;
-			lines.AddRange (items);
-			LineAdditionEvent.Raise (this, new CodeBufferEventArgs (start, items.Length));
+			lock (EditMutex) {
+				for (int i = 0; i < items.Length; i++)
+					lines.Add (items [i]);
+				LineAdditionEvent.Raise (this, new CodeBufferEventArgs (start, items.Length));
+			}
+		}
+		public void AddRange (CodeLine[] items){
+			int start = lines.Count;
+			lock (EditMutex) {
+				lines.AddRange (items);
+				LineAdditionEvent.Raise (this, new CodeBufferEventArgs (start, items.Length));
+			}
 		}
 		public void Clear () {
-			lines.Clear();
-			BufferCleared.Raise (this, null);
+			lock (EditMutex) {
+				longestLineCharCount = 0;
+				lines.Clear ();
+				BufferCleared.Raise (this, null);
+			}
 		}
-
+		public void UpdateLine(int i, string newContent){
+			lock (EditMutex) {
+				this [i].Content = newContent;
+				LineUpadateEvent.Raise (this, new CodeBufferEventArgs (i));
+			}
+		}
+		public void AppenedLine(int i, string newContent){
+			lock (EditMutex) {
+				this [i].Content += newContent;
+				LineUpadateEvent.Raise (this, new CodeBufferEventArgs (i));
+			}
+		}
+		public void ToogleFolding (int line) {
+			if (!this [line].IsFoldable)
+				return;
+			lock (EditMutex) {
+				this [line].IsFolded = !this [line].IsFolded;
+				FoldingEvent.Raise (this, new CodeBufferEventArgs (line));
+			}
+		}
 		public void Load(string rawSource) {
 			this.Clear();
 
@@ -107,7 +147,6 @@ namespace Crow.Coding
 			AddRange (Regex.Split (rawSource, "\r\n|\r|\n|\\\\n"));
 
 			lineBreak = detectLineBreakKind (rawSource);
-			FindLongestVisualLine ();
 		}
 
 		/// <summary>
@@ -116,8 +155,8 @@ namespace Crow.Coding
 		public void FindLongestVisualLine(){
 			longestLineCharCount = 0;
 			for (int i = 0; i < this.LineCount; i++) {
-				if (this.GetPrintableLine(i).Length > longestLineCharCount) {
-					longestLineCharCount = this.GetPrintableLine(i).Length;
+				if (lines[i].PrintableLength > longestLineCharCount) {
+					longestLineCharCount = lines[i].PrintableLength;
 					longestLineIdx = i;
 				}
 			}
@@ -152,7 +191,30 @@ namespace Crow.Coding
 		/// </summary>
 		public string FullText{
 			get {
-				return lines.Count > 0 ? lines.Aggregate((i, j) => i + this.lineBreak + j) : "";
+				if (lines.Count == 0)
+					return "";
+				string tmp = "";
+				for (int i = 0; i < lines.Count -1; i++)
+					tmp += lines [i].Content + this.lineBreak;
+				tmp += lines [lines.Count - 1].Content;
+				return tmp;
+			}
+		}
+
+		/// <summary>
+		/// unfolded and not in folds line count
+		/// </summary>
+		public int UnfoldedLines {
+			get {
+				int i = 0, vl = 0;
+				while (i < LineCount) {
+					if (this [i].IsFolded)
+						i = GetEndNodeIndex (i);
+					i++;
+					vl++;
+				}
+				//Debug.WriteLine ("unfolded lines: " + vl);
+				return vl;
 			}
 		}
 
@@ -171,56 +233,76 @@ namespace Crow.Coding
 			}
 			return new Point (buffCol, visualPos.Y);
 		}
+
+		public int GetEndNodeIndex (int line) {
+			return IndexOf (this [line].SyntacticNode.EndLine);
+		}
 		/// <summary>
 		/// Gets visual position computed from actual buffer position
 		/// </summary>
-		public Point TabulatedPosition {
-			get { return new Point (TabulatedColumn, _currentLine); }
-		}
-		public int TabulatedColumn {
-			get { return this [_currentLine].Substring (0, _currentCol).Replace ("\t", new String (' ', Interface.TabSize)).Length; }
-		}
+//		public Point TabulatedPosition {
+//			get { return new Point (TabulatedColumn, _currentLine); }
+//		}
 		/// <summary>
 		/// set buffer current position from visual position
 		/// </summary>
-		public void SetBufferPos(Point tabulatedPosition) {
-			CurrentPosition = getBuffPos(tabulatedPosition);
-		}
+//		public void SetBufferPos(Point tabulatedPosition) {
+//			CurrentPosition = getBuffPos(tabulatedPosition);
+//		}
 
 		#region Editing and moving cursor
-		public string SelectedText {
-			get {
-				if (selectionIsEmpty)
-					return "";
-				if (selectionStart.Y == selectionEnd.Y)
-					return this [selectionStart.Y].Substring (selectionStart.X, selectionEnd.X - selectionStart.X);
-				string tmp = "";
-				tmp = this [selectionStart.Y].Substring (selectionStart.X);
-				for (int l = selectionStart.Y + 1; l < selectionEnd.Y; l++) {
-					tmp += Interface.LineBreak + this [l];
-				}
-				tmp += Interface.LineBreak + this [selectionEnd.Y].Substring (0, selectionEnd.X);
-				return tmp;
-			}
+		Point selStartPos = -1;	//selection start (row,column)
+		Point selEndPos = -1;	//selection end (row,column)
+
+		public bool SelectionInProgress { get { return selStartPos >= 0; }}
+		public void SetSelStartPos () {
+			selStartPos = selEndPos = CurrentPosition;
+			SelectionChanged.Raise (this, null);
 		}
-		Point selectionStart = -1;
-		Point selectionEnd = -1;
-		/// <summary>
-		/// Set selection in buffer coords from tabulated coords
-		/// </summary>
-		public void SetSelection (Point tabulatedStart, Point tabulatedEnd) {
-			selectionStart = getBuffPos (tabulatedStart);
-			selectionEnd = getBuffPos (tabulatedEnd);
+		public void SetSelEndPos () {
+			selEndPos = CurrentPosition;
+			SelectionChanged.Raise (this, null);
 		}
 		/// <summary>
 		/// Set selection in buffer to -1, empty selection
 		/// </summary>
 		public void ResetSelection () {
-			selectionStart = selectionEnd = -1;
+			selStartPos = selEndPos = -1;
+			SelectionChanged.Raise (this, null);
 		}
-		bool selectionIsEmpty {
-			get { return selectionStart == selectionEnd; }
+
+		public string SelectedText {
+			get {
+				if (SelectionIsEmpty)
+					return "";
+				Point selStart = SelectionStart;
+				Point selEnd = SelectionEnd;
+				if (selStart.Y == selEnd.Y)
+					return this [selStart.Y].Content.Substring (selStart.X, selEnd.X - selStart.X);
+				string tmp = "";
+				tmp = this [selStart.Y].Content.Substring (selStart.X);
+				for (int l = selStart.Y + 1; l < selEnd.Y; l++) {
+					tmp += Interface.LineBreak + this [l].Content;
+				}
+				tmp += Interface.LineBreak + this [selEnd.Y].Content.Substring (0, selEnd.X);
+				return tmp;
+			}
 		}
+		/// <summary>
+		/// ordered selection start and end positions in char units
+		/// </summary>
+		public Point SelectionStart	{
+			get { return selEndPos < 0 || selStartPos.Y < selEndPos.Y ? selStartPos :
+					selStartPos.Y > selEndPos.Y ? selEndPos :
+					selStartPos.X < selEndPos.X ? selStartPos : selEndPos; }
+		}
+		public Point SelectionEnd {
+			get { return selEndPos < 0 || selStartPos.Y > selEndPos.Y ? selStartPos :
+					selStartPos.Y < selEndPos.Y ? selEndPos :
+					selStartPos.X > selEndPos.X ? selStartPos : selEndPos; }
+		}
+		public bool SelectionIsEmpty
+		{ get { return selEndPos == selStartPos; } }
 		/// <summary>
 		/// Current column in buffer coordinate, tabulation = 1 char
 		/// </summary>
@@ -235,6 +317,8 @@ namespace Crow.Coding
 					_currentCol = lines [_currentLine].Length;
 				else
 					_currentCol = value;
+
+				PositionChanged.Raise (this, null);
 			}
 		}
 		/// <summary>
@@ -251,57 +335,31 @@ namespace Crow.Coding
 					_currentLine = 0;
 				else
 					_currentLine = value;
-				//force recheck of currentCol for bounding
-				int cc = _currentCol;
-				_currentCol = 0;
-				CurrentColumn = cc;
+
+				if (_currentCol >  lines [_currentLine].Length)
+					_currentCol = lines [_currentLine].Length;
+				Debug.WriteLine ("buff cur line: " + _currentLine);
+				PositionChanged.Raise (this, null);
 			}
+		}
+		public CodeLine CurrentCodeLine {
+			get { return this [_currentLine]; }
 		}
 		/// <summary>
 		/// Current position in buffer coordinate, tabulation = 1 char
 		/// </summary>
 		public Point CurrentPosition {
 			get { return new Point(CurrentColumn, CurrentLine); }
-			set {
-				_currentCol = value.X;
-				_currentLine = value.Y;
-			}
+//			set {
+//				_currentCol = value.X;
+//				_currentLine = value.Y;
+//			}
 		}
 		/// <summary>
 		/// get char at current position in buffer
 		/// </summary>
 		protected Char CurrentChar { get { return lines [CurrentLine] [CurrentColumn]; } }
 
-		/// <summary>
-		/// Moves cursor one char to the left, move up if cursor reaches start of line
-		/// </summary>
-		/// <returns><c>true</c> if move succeed</returns>
-		public bool MoveLeft(){
-			int tmp = _currentCol - 1;
-			if (tmp < 0) {
-				if (_currentLine == 0)
-					return false;
-				_currentCol = int.MaxValue;
-				CurrentLine--;
-			} else
-				CurrentColumn = tmp;
-			return true;
-		}
-		/// <summary>
-		/// Moves cursor one char to the right, move down if cursor reaches end of line
-		/// </summary>
-		/// <returns><c>true</c> if move succeed</returns>
-		public bool MoveRight(){
-			int tmp = _currentCol + 1;
-			if (tmp > this [_currentLine].Length){
-				if (CurrentLine == this.LineCount - 1)
-					return false;
-				CurrentLine++;
-				CurrentColumn = 0;
-			} else
-				CurrentColumn = tmp;
-			return true;
-		}
 		public void GotoWordStart(){
 			if (this[CurrentLine].Length == 0)
 				return;
@@ -327,34 +385,36 @@ namespace Crow.Coding
 		}
 		public void DeleteChar()
 		{
-			if (selectionIsEmpty) {
-				if (CurrentColumn == 0) {
-					if (CurrentLine == 0 && this.LineCount == 1)
+			lock (EditMutex) {
+				if (SelectionIsEmpty) {
+					if (CurrentColumn == 0) {
+						if (CurrentLine == 0)
+							return;
+						CurrentLine--;
+						CurrentColumn = this [CurrentLine].Length;
+						AppenedLine (CurrentLine, this [CurrentLine + 1].Content);
+						RemoveAt (CurrentLine + 1);
 						return;
-					CurrentLine--;
-					CurrentColumn = this [CurrentLine].Length;
-					this [CurrentLine] += this [CurrentLine + 1];
-					RemoveAt (CurrentLine + 1);
-					return;
-				}
-				CurrentColumn--;
-				this [CurrentLine] = this [CurrentLine].Remove (CurrentColumn, 1);
-			} else {
-				int linesToRemove = selectionEnd.Y - selectionStart.Y + 1;
-				int l = selectionStart.Y;
+					}
+					CurrentColumn--;
+					UpdateLine (CurrentLine, this [CurrentLine].Content.Remove (CurrentColumn, 1));
+				} else {
+					int linesToRemove = SelectionEnd.Y - SelectionStart.Y + 1;
+					int l = SelectionStart.Y;
 
-				if (linesToRemove > 0) {
-					this [l] = this [l].Remove (selectionStart.X, this [l].Length - selectionStart.X) +
-						this [selectionEnd.Y].Substring (selectionEnd.X, this [selectionEnd.Y].Length - selectionEnd.X);
-					l++;
-					for (int c = 0; c < linesToRemove-1; c++)
-						RemoveAt (l);
-					CurrentLine = selectionStart.Y;
-					CurrentColumn = selectionStart.X;
-				} else
-					this [l] = this [l].Remove (selectionStart.X, selectionEnd.X - selectionStart.X);
-				CurrentColumn = selectionStart.X;
-				ResetSelection ();
+					if (linesToRemove > 0) {
+						UpdateLine (l, this [l].Content.Remove (SelectionStart.X, this [l].Length - SelectionStart.X) +
+						this [SelectionEnd.Y].Content.Substring (SelectionEnd.X, this [SelectionEnd.Y].Length - SelectionEnd.X));
+						l++;
+						for (int c = 0; c < linesToRemove - 1; c++)
+							RemoveAt (l);
+						CurrentLine = SelectionStart.Y;
+						CurrentColumn = SelectionStart.X;
+					} else
+						UpdateLine (l, this [l].Content.Remove (SelectionStart.X, SelectionEnd.X - SelectionStart.X));
+					CurrentColumn = SelectionStart.X;
+					ResetSelection ();
+				}
 			}
 		}
 		/// <summary>
@@ -363,14 +423,14 @@ namespace Crow.Coding
 		/// <param name="str">String.</param>
 		public void Insert(string str)
 		{
-			if (!selectionIsEmpty)
+			if (!SelectionIsEmpty)
 				this.DeleteChar ();
 			string[] strLines = Regex.Split (str, "\r\n|\r|\n|" + @"\\n").ToArray();
-			this [CurrentLine] = this [CurrentLine].Insert (CurrentColumn, strLines[0]);
+			UpdateLine (CurrentLine, this [CurrentLine].Content.Insert (CurrentColumn, strLines[0]));
 			CurrentColumn += strLines[0].Length;
 			for (int i = 1; i < strLines.Length; i++) {
 				InsertLineBreak ();
-				this [CurrentLine] = this [CurrentLine].Insert (CurrentColumn, strLines[i]);
+				UpdateLine (CurrentLine, this [CurrentLine].Content.Insert (CurrentColumn, strLines[i]));
 				CurrentColumn += strLines[i].Length;
 			}
 		}
@@ -380,13 +440,13 @@ namespace Crow.Coding
 		public void InsertLineBreak()
 		{
 			if (CurrentColumn > 0) {
-				Insert (CurrentLine + 1, this [CurrentLine].Substring (CurrentColumn));
-				this [CurrentLine] = this [CurrentLine].Substring (0, CurrentColumn);
+				Insert (CurrentLine + 1, this [CurrentLine].Content.Substring (CurrentColumn));
+				UpdateLine (CurrentLine, this [CurrentLine].Content.Substring (0, CurrentColumn));
 			} else
 				Insert(CurrentLine, "");
 
-			CurrentLine++;
 			CurrentColumn = 0;
+			CurrentLine++;
 		}
 		#endregion
 	}

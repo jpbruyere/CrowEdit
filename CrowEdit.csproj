@@ -72,7 +72,6 @@
     <Compile Include="src\Parser.cs" />
     <Compile Include="src\XMLParser.cs" />
     <Compile Include="src\CSharpParser.cs" />
-    <Compile Include="src\TokenList.cs" />
     <Compile Include="src\CodeBuffer.cs" />
     <Compile Include="src\TextFormatting.cs" />
     <Compile Include="ParsingException.cs" />
@@ -84,6 +83,7 @@
     <Compile Include="OpenGL\Shader.cs" />
     <Compile Include="OpenGL\Texture.cs" />
     <Compile Include="OpenGL\vaoMesh.cs" />
+    <Compile Include="src\CodeLine.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />

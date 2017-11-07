@@ -20,7 +20,9 @@ namespace Crow.Coding
 			WhiteSpace,
 			NewLine,
 			LineComment,
+			BlockCommentStart,
 			BlockComment,
+			BlockCommentEnd,
 			Type,
 			Identifier,
 			Indexer,
@@ -46,10 +48,6 @@ namespace Crow.Coding
 			//buffer.LineAdditionEvent += Buffer_LineAdditionEvent;;
 			buffer.LineRemoveEvent += Buffer_LineRemoveEvent;
 			buffer.BufferCleared += Buffer_BufferCleared;
-
-			Tokens = new List<TokenList> ();
-			if (buffer.LineCount > 0)
-				eof = false;
 		}
 
 		#endregion
@@ -57,7 +55,7 @@ namespace Crow.Coding
 		#region Buffer events handlers
 		void Buffer_BufferCleared (object sender, EventArgs e)
 		{
-			Tokens.Clear ();
+
 		}
 		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e)
 		{
@@ -65,8 +63,6 @@ namespace Crow.Coding
 		}
 		void Buffer_LineRemoveEvent (object sender, CodeBufferEventArgs e)
 		{
-			for (int i = 0; i < e.LineCount; i++)
-				Tokens.RemoveAt (e.LineStart + i);
 			reparseSource ();
 		}
 		void Buffer_LineUpadateEvent (object sender, CodeBufferEventArgs e)
@@ -117,8 +113,8 @@ namespace Crow.Coding
 			//			}
 		}
 		public void reparseSource () {
-			for (int i = 0; i < Tokens.Count; i++) {
-				if (Tokens[i].Dirty)
+			for (int i = 0; i < buffer.LineCount; i++) {
+				if (!buffer[i].IsParsed)
 					tryParseBufferLine (i);
 			}
 			try {
@@ -130,8 +126,13 @@ namespace Crow.Coding
 			}
 		}
 		public void tryParseBufferLine(int lPtr) {
+			buffer [lPtr].exception = null;
+			currentLine = lPtr;
+			currentColumn = 0;
+			eol = false;
+
 			try {
-				Parse (lPtr);
+				ParseCurrentLine ();
 			} catch (Exception ex) {
 				Debug.WriteLine (ex.ToString ());
 				if (ex is ParsingException)
@@ -140,54 +141,33 @@ namespace Crow.Coding
 
 		}
 
-		CodeBuffer buffer;
+		protected CodeBuffer buffer;
 
 		internal int currentLine = 0;
 		internal int currentColumn = 0;
 		protected Token currentTok;
-		protected bool eof = true;
-
-		public List<TokenList> Tokens;
-		protected TokenList TokensLine;
+		protected bool eol = true;
 
 		public Node RootNode;
 
-		public Point CurrentPosition {
+		protected Point CurrentPosition {
 			get { return new Point (currentLine, currentColumn); }
 			set {
 				currentLine = value.Y;
 				currentColumn = value.X;
 			}
 		}
-		public int LineCount {
-			get { return Tokens.Count; }
-		}
 
-		/// <summary>
-		/// unfolded and not in folds line count
-		/// </summary>
-		public int VisibleLines {
-			get {
-				int i = 0, vl = 0;
-				while (i<Tokens.Count) {
-					if (Tokens [i].folded && Tokens [i].SyntacticNode != null) {
-						i = Tokens [i].SyntacticNode.EndLine;
-					}
-					i++;
-					vl++;
-				}
-				return vl;
-			}
-		}
-			
-		public abstract void Parse(int line);
+		public abstract void ParseCurrentLine();
 		public abstract void SyntaxAnalysis ();
 
 		public virtual void SetLineInError(ParsingException ex) {
 			currentTok = default(Token);
-			Tokens [ex.Line].Clear ();
-			Tokens [ex.Line].Add(new Token() {Content = buffer [ex.Line]});
-			Tokens [ex.Line].exception = ex; 
+			if (ex.Line >= buffer.LineCount)
+				ex.Line = buffer.LineCount - 1;
+			if (buffer [ex.Line].IsFolded)
+				buffer.ToogleFolding (ex.Line);
+			buffer [ex.Line].SetLineInError (ex);
 		}
 
 		#region low level parsing
@@ -212,7 +192,7 @@ namespace Crow.Coding
 		/// </summary>
 		protected void saveAndResetCurrentTok() {
 			currentTok.End = CurrentPosition;
-			TokensLine.Add (currentTok);
+			buffer[currentLine].Tokens.Add (currentTok);
 			currentTok = default(Token);
 		}
 		/// <summary>
@@ -237,8 +217,8 @@ namespace Crow.Coding
 		/// Throw error if eof is true
 		/// </summary>
 		protected virtual char Peek() {
-			if (eof)
-				throw new ParsingException (this, "Unexpected End of File");
+			if (eol)
+				throw new ParsingException (this, "Unexpected End of line");
 			return currentColumn < buffer [currentLine].Length ?
 				buffer [currentLine] [currentColumn] : '\n';
 		}
@@ -250,12 +230,12 @@ namespace Crow.Coding
 		/// </summary>
 		/// <param name="length">Length.</param>
 		protected virtual string Peek(int length) {
-			if (eof)
-				throw new ParsingException (this, "Unexpected End of File");
+			if (eol)
+				throw new ParsingException (this, "Unexpected End of Line");
 			int lg = Math.Min(length, Math.Max (buffer [currentLine].Length - currentColumn, buffer [currentLine].Length - currentColumn - length));
 			if (lg == 0)
 				return "";
-			return buffer [currentLine].Substring (currentColumn, lg);
+			return buffer [currentLine].Content.Substring (currentColumn, lg);
 		}
 		/// <summary>
 		/// read one char from buffer at current position, if '\n' is read, current line is incremented
@@ -263,14 +243,9 @@ namespace Crow.Coding
 		/// </summary>
 		protected virtual char Read() {
 			char c = Peek ();
-			//TODO: the parsing is done line by line, we should be able to remove the next line handling from read
-			if (c == '\n') {
-				currentLine++;
-				if (currentLine >= buffer.LineCount)
-					eof = true;
-				currentColumn = 0;
-			} else
-				currentColumn++;
+			if (c == '\n')
+				eol = true;
+			currentColumn++;
 			return c;
 		}
 		/// <summary>
@@ -279,11 +254,8 @@ namespace Crow.Coding
 		/// <returns>string read</returns>
 		protected virtual string ReadLine () {
 			string tmp = "";
-			while (!eof) {
-				if (Peek () == '\n')
-					return tmp;
+			while (!eol)
 				tmp += Read ();
-			}
 			return tmp;
 		}
 		/// <summary>
@@ -294,7 +266,7 @@ namespace Crow.Coding
 		protected virtual string ReadLineUntil (string endExp){
 			string tmp = "";
 
-			while (!eof) {
+			while (!eol) {
 				if (buffer [currentLine].Length - currentColumn - endExp.Length < 0) {
 					tmp += ReadLine();
 					break;
@@ -311,7 +283,7 @@ namespace Crow.Coding
 		protected void SkipWhiteSpaces () {
 			if (currentTok.Type != TokenType.Unknown)
 				throw new ParsingException (this, "current token should be reset to unknown (0) before skiping white spaces");
-			while (!eof) {
+			while (!eol) {
 				if (!char.IsWhiteSpace (Peek ())||Peek()=='\n')
 					break;
 				readToCurrTok (currentTok.Type == TokenType.Unknown);

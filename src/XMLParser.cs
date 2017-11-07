@@ -14,7 +14,9 @@ namespace Crow.Coding
 			WhiteSpace = Parser.TokenType.WhiteSpace,
 			NewLine = Parser.TokenType.NewLine,
 			LineComment = Parser.TokenType.LineComment,
+			BlockCommentStart = Parser.TokenType.BlockCommentStart,
 			BlockComment = Parser.TokenType.BlockComment,
+			BlockCommentEnd = Parser.TokenType.BlockCommentEnd,
 			Affectation = Parser.TokenType.Affectation,
 			XMLDecl = Parser.TokenType.Preprocessor,
 			ElementStart,
@@ -83,32 +85,28 @@ namespace Crow.Coding
 		public override void SetLineInError (ParsingException ex)
 		{
 			base.SetLineInError (ex);
-			Tokens[ex.Line].EndingState = (int)States.init;
+			//buffer[ex.Line].Tokens.EndingState = (int)States.init;
 		}
 
-		public override void Parse (int line)
+		public override void ParseCurrentLine ()
 		{
-			Debug.WriteLine (string.Format("parsing line:{0}", line));
-
-			currentLine = line;
-			currentColumn = 0;
-			eof = false;
-			bool eol = false;
-			TokensLine = Tokens [line];
+			Debug.WriteLine (string.Format("parsing line:{0}", currentLine));
+			CodeLine cl = buffer [currentLine];
+			cl.Tokens = new List<Token> ();
 
 			//retrieve current parser state from previous line
-			if (line > 0)
-				curState = (States)Tokens [line - 1].EndingState;
+			if (currentLine > 0)
+				curState = (States)buffer[currentLine - 1].EndingState;
 			else
 				curState = States.init;
 
-			States previousEndingState = (States)TokensLine.EndingState;
-			TokensLine.Clear ();
+			States previousEndingState = (States)cl.EndingState;
 
-			while (! (eof||eol)) {
+
+			while (! eol) {
 				SkipWhiteSpaces ();
 
-				if (eof)
+				if (eol)
 					break;
 
 				if (Peek () == '\n') {
@@ -247,11 +245,10 @@ namespace Crow.Coding
 				}
 			}
 
-			TokensLine.EndingState = (int)curState;
-			TokensLine.Dirty = false;
+			if (cl.EndingState != (int)curState && currentLine < buffer.LineCount - 1)
+				buffer [currentLine + 1].Tokens = null;
 
-			if (previousEndingState != curState && line < Tokens.Count - 1)
-				Tokens [line + 1].Dirty = true;
+			cl.EndingState = (int)curState;
 		}
 
 		public override void SyntaxAnalysis ()
@@ -260,28 +257,31 @@ namespace Crow.Coding
 
 			Node currentNode = RootNode;
 
-			for (int i = 0; i < Tokens.Count; i++) {
-				TokenList curTL = Tokens [i];
-				curTL.SyntacticNode = null;
+			for (int i = 0; i < buffer.LineCount; i++) {
+				CodeLine cl = buffer[i];
+				if (cl.Tokens == null)
+					continue;
+				cl.SyntacticNode = null;
 
 				int tokPtr = 0;
-				while (tokPtr < curTL.Count) {
-					switch ((XMLParser.TokenType)curTL [tokPtr].Type) {
+				while (tokPtr < cl.Tokens.Count) {
+					switch ((XMLParser.TokenType)cl.Tokens [tokPtr].Type) {
 					case TokenType.ElementStart:
 						tokPtr++;
-						Node newElt = new Node () { Name = curTL [tokPtr].Content, StartLine = i };
+						Node newElt = new Node () { Name = cl.Tokens [tokPtr].Content, StartLine = cl };
 						currentNode.AddChild (newElt);
 						currentNode = newElt;
-						if (curTL.SyntacticNode == null)
-							curTL.SyntacticNode = newElt;
+						if (cl.SyntacticNode == null)
+							cl.SyntacticNode = newElt;
 						break;
 					case TokenType.ElementEnd:
 						tokPtr++;
-						if (tokPtr < curTL.Count) {
-							if ((XMLParser.TokenType)curTL [tokPtr].Type == TokenType.ElementName && curTL [tokPtr].Content != currentNode.Name)
+						if (tokPtr < cl.Tokens.Count) {
+							if ((XMLParser.TokenType)cl.Tokens [tokPtr].Type == TokenType.ElementName &&
+								cl.Tokens [tokPtr].Content != currentNode.Name)
 								throw new ParsingException (this, "Closing tag mismatch");
 						}
-						currentNode.EndLine = i;
+						currentNode.EndLine = cl;
 						currentNode = currentNode.Parent;
 						break;
 					case TokenType.ElementClosing:

@@ -32,7 +32,7 @@ namespace Crow.Coding
 		{
 		}
 
-		public override void Parse (int line)
+		public override void ParseCurrentLine ()
 		{
 			throw new NotImplementedException ();
 		}

@@ -8,8 +8,8 @@ namespace Crow.Coding
 		public Node Parent;
 		public string Name;
 		public string Type;
-		public int StartLine;
-		public int EndLine;
+		public CodeLine StartLine;
+		public CodeLine EndLine;
 		public Dictionary<string,string> Attributes = new Dictionary<string, string> ();
 
 		public List<Node> Children = new List<Node>();
