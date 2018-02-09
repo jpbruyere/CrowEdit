@@ -25,17 +25,26 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <IntermediateOutputPath>$(SolutionDir)build\obj\$(Configuration)</IntermediateOutputPath>
+    <OutputPath>$(SolutionDir)build\$(Configuration)</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <WarningLevel>0</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <IntermediateOutputPath>$(SolutionDir)build\obj\$(Configuration)</IntermediateOutputPath>
+    <OutputPath>$(SolutionDir)build\$(Configuration)</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Default' ">
+    <StartAction>Program</StartAction>
+    <StartProgram>%24{TargetName}</StartProgram>
+    <StartWorkingDirectory>%24{SolutionDir}\build\%24{ProjectConfigName}</StartWorkingDirectory>
+    <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <None Include="OpenTK.dll.config" />
-    <None Include="packages.config" />
     <None Include="ui\icons\center-align.svg" />
     <None Include="ui\icons\cogwheel.svg" />
     <None Include="ui\icons\edit.svg" />
@@ -51,7 +60,10 @@
     <None Include="ui\icons\zoom-in.svg" />
     <None Include="ui\icons\zoom-out.svg" />
     <None Include="ui\icons\basic_floppydisk.svg" />
-    <None Include="Crow.dll.config" />
+    <None Include="packages.config" />
+    <None Include="Crow.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -61,7 +73,7 @@
       <HintPath>packages\OpenTK.2.0.0\lib\net20\OpenTK.dll</HintPath>
     </Reference>
     <Reference Include="Crow">
-      <HintPath>packages\Crow.OpenTK.0.5.6\lib\net45\Crow.dll</HintPath>
+      <HintPath>packages\Crow.OpenTK.0.6.0\lib\net45\Crow.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -78,12 +90,12 @@
     <Compile Include="CodeBufferEventArgs.cs" />
     <Compile Include="src\Node.cs" />
     <Compile Include="CrowWindow.cs" />
-    <Compile Include="InterfaceControler.cs" />
-    <Compile Include="OpenGL\Extensions.cs" />
-    <Compile Include="OpenGL\Shader.cs" />
-    <Compile Include="OpenGL\Texture.cs" />
-    <Compile Include="OpenGL\vaoMesh.cs" />
     <Compile Include="src\CodeLine.cs" />
+    <Compile Include="OpenGL\vaoMesh.cs" />
+    <Compile Include="OpenGL\Texture.cs" />
+    <Compile Include="OpenGL\Shader.cs" />
+    <Compile Include="OpenGL\Extensions.cs" />
+    <Compile Include="InterfaceControler.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ui\" />

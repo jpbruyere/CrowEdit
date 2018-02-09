@@ -63,7 +63,7 @@ namespace Crow
 					ValueChanged.Raise(this, new ValueChangeEventArgs ("fpsMin", fpsMin));
 				}
 				#endif
-				if (frameCpt % 20 == 0) {
+				if (frameCpt % 3 == 0) {
 					ValueChanged.Raise (this, new ValueChangeEventArgs ("fps", _fps));
 					#if MEASURE_TIME
 					foreach (PerformanceMeasure m in ifaceControl[0].PerfMeasures)
@@ -109,12 +109,29 @@ namespace Crow
 		public List<InterfaceControler> ifaceControl = new List<InterfaceControler>();
 		int focusedIdx = -1, activeIdx = -2;
 
+		// TODO:We should be able to set the current interface programmaticaly
+		/// <summary>
+		/// Gets the currently focused interface, focus could have been given by creation of new iface controler and
+		/// not only by the mouse
+		/// </summary>
+		public Interface CurrentInterface {
+			get {
+				if (ifaceControl.Count == 0) {//create default orthogonal interface
+					addInterfaceControler (new InterfaceControler (
+						new Rectangle (0, 0, this.ClientRectangle.Width, this.ClientRectangle.Height)));
+					focusedIdx = 0;
+				}
+				return ifaceControl [focusedIdx].CrowInterface;
+			}
+		}
+			
 		void addInterfaceControler(InterfaceControler ifaceControler)
 		{
 			ifaceControler.CrowInterface.Quit += Quit;
 			ifaceControler.CrowInterface.MouseCursorChanged += CrowInterface_MouseCursorChanged;
 
 			ifaceControl.Add (ifaceControler);
+			focusedIdx = ifaceControl.Count - 1;
 		}
 		void openGLDraw(){
 			//save GL states
@@ -168,13 +185,13 @@ namespace Crow
 
 		#region Events
 		//those events are raised only if mouse isn't in a graphic object
-		public event EventHandler<OpenTK.Input.MouseWheelEventArgs> MouseWheelChanged;
-		public event EventHandler<OpenTK.Input.MouseButtonEventArgs> MouseButtonUp;
-		public event EventHandler<OpenTK.Input.MouseButtonEventArgs> MouseButtonDown;
-		public event EventHandler<OpenTK.Input.MouseButtonEventArgs> MouseClick;
-		public event EventHandler<OpenTK.Input.MouseMoveEventArgs> MouseMove;
-		public event EventHandler<OpenTK.Input.KeyboardKeyEventArgs> KeyboardKeyDown;
-		public event EventHandler<OpenTK.Input.KeyboardKeyEventArgs> KeyboardKeyUp;
+		public event EventHandler<OpenTK.Input.MouseWheelEventArgs> CrowMouseWheel;
+		public event EventHandler<OpenTK.Input.MouseButtonEventArgs> CrowMouseUp;
+		public event EventHandler<OpenTK.Input.MouseButtonEventArgs> CrowMouseDown;
+		public event EventHandler<OpenTK.Input.MouseButtonEventArgs> CrowMouseClick;
+		public event EventHandler<OpenTK.Input.MouseMoveEventArgs> CrowMouseMove;
+		public event EventHandler<OpenTK.Input.KeyboardKeyEventArgs> CrowKeyDown;
+		public event EventHandler<OpenTK.Input.KeyboardKeyEventArgs> CrowKeyUp;
 
 		#endregion
 
@@ -190,15 +207,39 @@ namespace Crow
 			ifaceControl [interfaceIdx].CrowInterface.AddWidget (g);
 			return g;
 		}
+
 		public void DeleteWidget (GraphicObject g, int interfaceIdx = 0){
 			ifaceControl [interfaceIdx].CrowInterface.DeleteWidget (g);
 		}
-		public GraphicObject Load (string path, int interfaceIdx = 0){
+		/// <summary>
+		/// check if a default interface exists, create one if not
+		/// </summary>
+		void checkDefaultIFace (){
 			if (ifaceControl.Count == 0)//create default orthogonal interface
 				addInterfaceControler (new InterfaceControler (
-							new Rectangle (0, 0, this.ClientRectangle.Width, this.ClientRectangle.Height)));
-			return ifaceControl [interfaceIdx].CrowInterface.LoadInterface (path);
+					new Rectangle (0, 0, this.ClientRectangle.Width, this.ClientRectangle.Height)));			
 		}
+		/// <summary>
+		/// Load the content of the IML file pointed by path and add it to the current interface
+		/// graphic tree.
+		/// </summary>
+		/// <param name="path">the path of the IML file to load</param>
+		/// <param name="interfaceIdx">interface index to bind to, a default one is created if none exists</param>
+		public GraphicObject Load (string path, int interfaceIdx = 0){
+			checkDefaultIFace();
+			return ifaceControl [interfaceIdx].CrowInterface.AddWidget (path);
+		}
+		/// <summary>
+		/// Load the content of the IML string passed as first argument and add it to the current interface
+		/// graphic tree.
+		/// </summary>
+		/// <param name="path">a valid IML string</param>
+		/// <param name="interfaceIdx">interface index to bind to, a default one is created if none exists</param>
+		public void LoadIMLFragment (string imlFragment, int interfaceIdx = 0){
+			checkDefaultIFace();
+			ifaceControl [interfaceIdx].CrowInterface.LoadIMLFragment (imlFragment);
+		}
+
 		public GraphicObject FindByName (string nameToFind){
 			for (int i = 0; i < ifaceControl.Count; i++) {
 				GraphicObject tmp = ifaceControl [i].CrowInterface.FindByName (nameToFind);
@@ -226,12 +267,13 @@ namespace Crow
 			base.OnLoad(e);
 
 			this.KeyPress += new EventHandler<OpenTK.KeyPressEventArgs>(OpenTKGameWindow_KeyPress);
-			Keyboard.KeyDown += new EventHandler<OpenTK.Input.KeyboardKeyEventArgs>(Keyboard_KeyDown);
-			Keyboard.KeyUp += new EventHandler<OpenTK.Input.KeyboardKeyEventArgs>(Keyboard_KeyUp);
-			Mouse.WheelChanged += new EventHandler<OpenTK.Input.MouseWheelEventArgs>(GL_Mouse_WheelChanged);
-			Mouse.ButtonDown += new EventHandler<OpenTK.Input.MouseButtonEventArgs>(GL_Mouse_ButtonDown);
-			Mouse.ButtonUp += new EventHandler<OpenTK.Input.MouseButtonEventArgs>(GL_Mouse_ButtonUp);
-			Mouse.Move += new EventHandler<OpenTK.Input.MouseMoveEventArgs>(GL_Mouse_Move);
+			KeyDown += new EventHandler<OpenTK.Input.KeyboardKeyEventArgs>(Keyboard_KeyDown);
+			KeyUp += new EventHandler<OpenTK.Input.KeyboardKeyEventArgs>(Keyboard_KeyUp);
+
+			MouseWheel += new EventHandler<OpenTK.Input.MouseWheelEventArgs>(GL_Mouse_WheelChanged);
+			MouseDown += new EventHandler<OpenTK.Input.MouseButtonEventArgs>(GL_Mouse_ButtonDown);
+			MouseUp += new EventHandler<OpenTK.Input.MouseButtonEventArgs>(GL_Mouse_ButtonUp);
+			MouseMove += new EventHandler<OpenTK.Input.MouseMoveEventArgs>(GL_Mouse_Move);
 
 			#if DEBUG
 			Console.WriteLine("\n\n*************************************");
@@ -313,7 +355,7 @@ namespace Crow
 				return;
 			}
 			if (focusedIdx < 0)
-				MouseMove.Raise (sender, otk_e);
+				CrowMouseMove.Raise (sender, otk_e);
         }
 		protected virtual void GL_Mouse_ButtonUp(object sender, OpenTK.Input.MouseButtonEventArgs otk_e)
         {
@@ -322,7 +364,7 @@ namespace Crow
 				if (ifaceControl [focusedIdx].ProcessMouseButtonUp ((int)otk_e.Button))
 					return;
 			}
-			MouseButtonUp.Raise (sender, otk_e);
+			CrowMouseUp.Raise (sender, otk_e);
         }
 		protected virtual void GL_Mouse_ButtonDown(object sender, OpenTK.Input.MouseButtonEventArgs otk_e)
 		{
@@ -331,7 +373,7 @@ namespace Crow
 				if (ifaceControl [focusedIdx].ProcessMouseButtonDown ((int)otk_e.Button))
 					return;
 			}
-			MouseButtonDown.Raise (sender, otk_e);
+			CrowMouseDown.Raise (sender, otk_e);
         }
 		protected virtual void GL_Mouse_WheelChanged(object sender, OpenTK.Input.MouseWheelEventArgs otk_e)
         {
@@ -339,7 +381,7 @@ namespace Crow
 				if (ifaceControl [focusedIdx].ProcessMouseWheelChanged (otk_e.DeltaPrecise))
 					return;
 			}
-			MouseWheelChanged.Raise (sender, otk_e);
+			CrowMouseWheel.Raise (sender, otk_e);
         }
 
 		protected virtual void Keyboard_KeyDown(object sender, OpenTK.Input.KeyboardKeyEventArgs otk_e)
@@ -348,7 +390,7 @@ namespace Crow
 				if (ifaceControl [focusedIdx].ProcessKeyDown((int)otk_e.Key))
 					return;
 			}
-			KeyboardKeyDown.Raise (this, otk_e);
+			CrowKeyDown.Raise (this, otk_e);
         }
 		protected virtual void Keyboard_KeyUp(object sender, OpenTK.Input.KeyboardKeyEventArgs otk_e)
 		{
@@ -356,7 +398,7 @@ namespace Crow
 				if (ifaceControl [focusedIdx].ProcessKeyUp((int)otk_e.Key))
 					return;
 			}
-			KeyboardKeyUp.Raise (this, otk_e);
+			CrowKeyUp.Raise (this, otk_e);
 		}
 		protected virtual void OpenTKGameWindow_KeyPress (object sender, OpenTK.KeyPressEventArgs e)
 		{
