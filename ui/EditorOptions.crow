@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Window AlwaysOnTop="true" Caption="Editor Options" Width="60%" Height="80%">
+<Window AlwaysOnTop="true" Caption="Editor Options" Width="60%" Height="80%" Background="Jet">
 	<VerticalStack>
 		<CheckBox Caption="Print line number" IsChecked="{²PrintLineNumbers}"/>
 	</VerticalStack>

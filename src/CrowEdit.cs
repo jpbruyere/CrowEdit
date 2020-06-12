@@ -1,23 +1,7 @@
-﻿//
-//  Main.cs
+﻿// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
-//  Author:
-//       Jean-Philippe Bruyère <jp.bruyere@hotmail.com>
-//
-//  Copyright (c) 2017 jp
-//
-//  This program is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  This program is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+
 using System;
 using Crow;
 using System.IO;
@@ -25,11 +9,11 @@ using System.Collections.Generic;
 
 namespace CrowEdit
 {
-	public class CrowEdit : CrowWindow
+	public class CrowEdit : Interface
 	{
-		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions;
+		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDShowLeftPane,
+			CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions;
 
-		string _curDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
 		string _curFilePath = "unamed.txt";
 		string _text = "", _origText="";
 
@@ -46,7 +30,7 @@ namespace CrowEdit
 				redoStack.Clear ();
 				CMDRedo.CanExecute = false;
 				_text = value;
-				NotifyValueChanged ("Text", _text);
+				NotifyValueChanged (_text);
 				NotifyValueChanged ("IsDirty", IsDirty);
 			}
 		}
@@ -54,12 +38,12 @@ namespace CrowEdit
 		public bool IsDirty { get { return _text != _origText; }}
 
 		public string CurrentDir {
-			get { return Configuration.Get<string>("CurrentDir"); }
+			get { return Configuration.Global.Get<string>("CurrentDir"); }
 			set {
 				if (CurrentDir == value)
 					return;
-				Configuration.Set ("CurrentDir", value);
-				NotifyValueChanged ("CurrentDir", _curDir);
+				Configuration.Global.Set ("CurrentDir", value);
+				NotifyValueChanged (CurrentDir);
 			}
 		}
 		public string CurFilePath {
@@ -68,36 +52,43 @@ namespace CrowEdit
 				if (_curFilePath == value)
 					return;
 				_curFilePath = value;
-				NotifyValueChanged ("CurFilePath", _curFilePath);
+				NotifyValueChanged (_curFilePath);
 			}
 		}
+		bool showLeftPane;
+		public bool ShowLeftPane {
+			get { return Configuration.Global.Get<bool> ("ShowLeftPane"); }
+			set {
+				if (ShowLeftPane == value)
+					return;
+				Configuration.Global.Set ("ShowLeftPane", value);
+				NotifyValueChanged (ShowLeftPane);
+			}
+		}
+
 		public string CurFileFullPath { get { return Path.Combine(CurrentDir,CurFilePath); }}
 
 		void initCommands(){
-			CMDNew = new Command(new Action(() => newFile())) { Caption = "New", Icon = new SvgPicture("#CrowEdit.ui.icons.blank-file.svg")};
+			CMDNew = new Command(new Action(() => onNewFile())) { Caption = "New", Icon = new SvgPicture("#CrowEdit.ui.icons.blank-file.svg")};
 			CMDOpen = new Command(new Action(() => openFileDialog())) { Caption = "Open...", Icon = new SvgPicture("#CrowEdit.ui.icons.outbox.svg")};
 			CMDSave = new Command(new Action(() => saveFileDialog())) { Caption = "Save", Icon = new SvgPicture("#CrowEdit.ui.icons.inbox.svg"), CanExecute = false};
 			CMDSaveAs = new Command(new Action(() => saveFileDialog())) { Caption = "Save As...", Icon = new SvgPicture("#CrowEdit.ui.icons.inbox.svg"), CanExecute = false};
-			CMDQuit = new Command(new Action(() => Quit (null, null))) { Caption = "Quit", Icon = new SvgPicture("#CrowEdit.ui.icons.sign-out.svg")};
+			CMDQuit = new Command(new Action(() => base.Quit())) { Caption = "Quit", Icon = new SvgPicture("#CrowEdit.ui.icons.sign-out.svg")};
 			CMDUndo = new Command(new Action(() => undo())) { Caption = "Undo", Icon = new SvgPicture("#CrowEdit.ui.icons.reply.svg"), CanExecute = false};
 			CMDRedo = new Command(new Action(() => redo())) { Caption = "Redo", Icon = new SvgPicture("#CrowEdit.ui.icons.share-arrow.svg"), CanExecute = false};
-			CMDCut = new Command(new Action(() => Quit (null, null))) { Caption = "Cut", Icon = new SvgPicture("#CrowEdit.ui.icons.scissors.svg"), CanExecute = false};
-			CMDCopy = new Command(new Action(() => Quit (null, null))) { Caption = "Copy", Icon = new SvgPicture("#CrowEdit.ui.icons.copy-file.svg"), CanExecute = false};
-			CMDPaste = new Command(new Action(() => Quit (null, null))) { Caption = "Paste", Icon = new SvgPicture("#CrowEdit.ui.icons.paste-on-document.svg"), CanExecute = false};
+			CMDCut = new Command(new Action(() => Quit ())) { Caption = "Cut", Icon = new SvgPicture("#CrowEdit.ui.icons.scissors.svg"), CanExecute = false};
+			CMDCopy = new Command(new Action(() => Quit ())) { Caption = "Copy", Icon = new SvgPicture("#CrowEdit.ui.icons.copy-file.svg"), CanExecute = false};
+			CMDPaste = new Command(new Action(() => Quit ())) { Caption = "Paste", Icon = new SvgPicture("#CrowEdit.ui.icons.paste-on-document.svg"), CanExecute = false};
 			CMDHelp = new Command(new Action(() => System.Diagnostics.Debug.WriteLine("help"))) { Caption = "Help", Icon = new SvgPicture("#CrowEdit.ui.icons.question.svg")};
 			CMDOptions = new Command(new Action(() => openOptionsDialog())) { Caption = "Editor Options", Icon = new SvgPicture("#CrowEdit.ui.icons.tools.svg")};
-
+			CMDShowLeftPane = new Command (new Action (() => ShowLeftPane = !ShowLeftPane)) { Caption = "Show Left Pane" };
 		}
-		void newFile(){
-			CurFilePath = "unamed.txt";
-			_origText = _text = "";
-			NotifyValueChanged ("Text", _text);
-			NotifyValueChanged ("IsDirty", false);
-			redoStack.Clear ();
-			undoStack.Clear ();
-			CMDRedo.CanExecute = false;
-			CMDUndo.CanExecute = false;
-			NotifyValueChanged ("CurFileFullPath", CurFileFullPath);
+		void onNewFile(){
+			if (IsDirty) {
+				MessageBox mb = MessageBox.ShowModal (this, MessageBox.Type.YesNo, "Current file has unsaved changes, are you sure?");
+				mb.Yes += (sender, e) => newFile();
+			} else
+				newFile ();
 		}
 		void undo(){
 			string step = undoStack [undoStack.Count -1];
@@ -107,7 +98,7 @@ namespace CrowEdit
 
 			_text = step;
 
-			NotifyValueChanged ("Text", _text);
+			NotifyValueChanged ("Text", (object)_text);
 			NotifyValueChanged ("IsDirty", IsDirty);
 
 			if (undoStack.Count == 0)
@@ -119,14 +110,14 @@ namespace CrowEdit
 			CMDUndo.CanExecute = true;
 			redoStack.RemoveAt(redoStack.Count -1);
 			_text = step;
-			NotifyValueChanged ("Text", _text);
+			NotifyValueChanged ("Text", (object)_text);
 			NotifyValueChanged ("IsDirty", IsDirty);
 
 			if (redoStack.Count == 0)
 				CMDRedo.CanExecute = false;
 		}
 		void openOptionsDialog(){
-			GraphicObject ed = this.FindByName("editor");
+			Widget ed = this.FindByName("editor");
 			Load ("#CrowEdit.ui.EditorOptions.crow").DataSource = ed;
 		}
 		void openFileDialog(){
@@ -140,15 +131,7 @@ namespace CrowEdit
 			FileDialog fd = sender as FileDialog;
 			if (string.IsNullOrEmpty (fd.SelectedFile))
 				return;
-			CurFilePath = fd.SelectedFile;
-			CurrentDir = fd.SelectedDirectory;
-
-//			redoStack.Clear ();
-//			undoStack.Clear ();
-//			CMDRedo.CanExecute = false;
-//			CMDUndo.CanExecute = false;
-//
-			NotifyValueChanged ("CurFileFullPath", CurFileFullPath);
+			openFile (fd.SelectedFile, fd.SelectedDirectory);
 		}
 		void saveFileDialog_OkClicked (object sender, EventArgs e)
 		{
@@ -165,28 +148,73 @@ namespace CrowEdit
 			_origText = _text;
 
 			NotifyValueChanged ("IsDirty", false);
-			NotifyValueChanged ("CurFileFullPath", CurFileFullPath);
+			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
 		}
 		void onTextChanged (object sender, TextChangeEventArgs e)
 		{
-			System.Diagnostics.Debug.WriteLine ("text changed");
+			//System.Diagnostics.Debug.WriteLine ("text changed");
 			NotifyValueChanged ("IsDirty", IsDirty);
+		}
+
+		void goUpDirClick (object sender, MouseButtonEventArgs e) {
+			string root = Directory.GetDirectoryRoot (CurrentDir);
+			if (CurrentDir == root)
+				return;
+			CurrentDir = Directory.GetParent (CurrentDir).FullName;
+		}
+
+		void Dv_SelectedItemChanged (object sender, SelectionChangeEventArgs e) {
+			FileSystemInfo fi = e.NewValue as FileSystemInfo;
+			if (fi == null)
+				return;
+			if (fi is DirectoryInfo)
+				return;
+
+			OnOpenFile (Path.GetFileName (fi.FullName), Path.GetDirectoryName (fi.FullName));
+		}
+
+		void OnOpenFile (string filePath, string directory) {
+			if (IsDirty) {
+				MessageBox mb = MessageBox.ShowModal (this, MessageBox.Type.YesNo, "Current file has unsaved changes, are you sure?");
+				mb.Yes += (sender, e) => openFile (filePath, directory);
+			} else
+				openFile (filePath, directory);
+		}
+		void newFile () {
+			CurFilePath = "unamed.txt";
+			_origText = _text = "";
+			NotifyValueChanged ("Text", (object)_text);
+			NotifyValueChanged ("IsDirty", false);
+			redoStack.Clear ();
+			undoStack.Clear ();
+			CMDRedo.CanExecute = false;
+			CMDUndo.CanExecute = false;
+			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
+		}
+		void openFile (string filePath, string directory) {
+			CurFilePath = filePath;
+			CurrentDir = directory;
+
+			redoStack.Clear ();
+			undoStack.Clear ();
+			CMDRedo.CanExecute = false;
+			CMDUndo.CanExecute = false;
+
+			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
 		}
 
 		[STAThread]
 		static void Main ()
 		{
-			using (CrowEdit win = new CrowEdit ()) {
-				win.Run	(30);
-			}
+			using (CrowEdit win = new CrowEdit ()) 
+				win.Run	();
 		}
 		public CrowEdit ()
-			: base(800, 600,"Crow Simple Editor")
+			: base(800, 600)
 		{}
 
-		protected override void OnLoad (EventArgs e)
-		{
-			base.OnLoad (e);
+		protected override void OnInitialized () {
+			base.OnInitialized ();
 
 			if (CurrentDir == null)
 				CurrentDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
@@ -194,10 +222,10 @@ namespace CrowEdit
 			this.ValueChanged += CrowEdit_ValueChanged;
 			initCommands ();
 			Load ("#CrowEdit.ui.main.crow").DataSource = this;
-			NotifyValueChanged ("CurFileFullPath", CurFileFullPath);
+			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
 		}
 
-		void textView_KeyDown (object sender, Crow.KeyboardKeyEventArgs e)
+		/*void textView_KeyDown (object sender, Crow.KeyEventArgs e)
 		{
 			if (e.Control) {
 				if (e.Key == Key.W) {
@@ -207,7 +235,7 @@ namespace CrowEdit
 						CMDUndo.Execute ();
 				}
 			}
-		}
+		}*/
 
 		void CrowEdit_ValueChanged (object sender, ValueChangeEventArgs e)
 		{

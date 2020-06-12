@@ -1,47 +1,61 @@
 ﻿<?xml version="1.0"?>
-<Window Height="90%" Width="90%" Caption="{CurFileFullPath}">
-	<VerticalStack Spacing="0">
-		<Menu>
-			<MenuItem Caption="File" Width="Fit" PopWidth="80">
-				<MenuItem Command="{CMDNew}" />
-				<MenuItem Command="{CMDOpen}" />
-				<MenuItem Command="{CMDSave}" />
-				<MenuItem Command="{CMDSaveAs}" />
-				<MenuItem Command="{CMDQuit}" />
-			</MenuItem>
-			<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100">
-				<MenuItem Command="{CMDUndo}" />
-				<MenuItem Command="{CMDRedo}" />
-				<MenuItem Command="{CMDCut}" />
-				<MenuItem Command="{CMDCopy}" />
-				<MenuItem Command="{CMDPaste}" />
-				<MenuItem Command="{CMDOptions}"/>
-			</MenuItem>
-			<MenuItem Caption="Help" Width="Fit" PopWidth="60">
-				<MenuItem Caption="About"/>
-				<MenuItem Command="{CMDHelp}"/>
-			</MenuItem>
-		</Menu>
-		<HorizontalStack Height="Stretched" >
-			<SourceEditor Focusable="true" Name="editor" Font="monospace, 12" VerticalAlignment="Top" Margin="10"
-					Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
-					 FilePath="{CurFileFullPath}"  KeyDown="textView_KeyDown"/>
-			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
-				Maximum="{../editor.MaxScrollY}" Orientation="Vertical"
-				Width="14" />
-		</HorizontalStack>
-		<ScrollBar Name="scrollbarX" Value="{²../editor.ScrollX}"
-				Maximum="{../editor.MaxScrollX}" Orientation="Horizontal"
-				Height="14" />
-		<HorizontalStack Height="Fit">
-			<GraphicObject Height="5" Width="Stretched"/>
-			<GraphicObject Background="Red" Width="10" Height="10" Visible="{IsDirty}"/>
-			<Label Text="column:"/>
-			<Label Text="{../../editor.CurrentColumn}"/>
-			<Label Text="Line:"/>
-			<Label Text="{../../editor.CurrentLine}"/>
-			<Label Text="ScrollX:"/>
-			<Label Text="{../../editor.ScrollX}"/>
-		</HorizontalStack>
-	</VerticalStack>
-</Window>
+<VerticalStack Spacing="0" Background="DimGrey">
+	<Menu>
+		<MenuItem Caption="File" Width="Fit" PopWidth="80">
+			<MenuItem Command="{CMDNew}" />
+			<MenuItem Command="{CMDOpen}" />
+			<MenuItem Command="{CMDSave}" />
+			<MenuItem Command="{CMDSaveAs}" />
+			<MenuItem Command="{CMDQuit}" />
+		</MenuItem>
+		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100">
+			<MenuItem Command="{CMDUndo}" />
+			<MenuItem Command="{CMDRedo}" />
+			<MenuItem Command="{CMDCut}" />
+			<MenuItem Command="{CMDCopy}" />
+			<MenuItem Command="{CMDPaste}" />
+			<MenuItem Command="{CMDOptions}"/>
+			<MenuItem Command="{CMDShowLeftPane}"/>
+		</MenuItem>
+		<MenuItem Caption="Help" Width="Fit" PopWidth="60">
+			<MenuItem Caption="About"/>
+			<MenuItem Command="{CMDHelp}"/>
+		</MenuItem>
+	</Menu>
+	<HorizontalStack Background="DarkGrey" >
+		<VerticalStack  Width="25%" Visible="{ShowLeftPane}">
+			<HorizontalStack Height="Fit" Margin="2" Background="Onyx">
+				<Image Margin="2" Width="16" Height="16" Path="#Crow.Icons.level-up.svg" MouseClick="./goUpDirClick"
+							 Background="Jet" MouseEnter="{Background=Grey}" MouseLeave="{Background=Jet}" />			
+				<TextBox Text="{²CurrentDir}" Margin="2"/>
+			</HorizontalStack>		
+			<DirectoryView Margin="1" Name="dv" CurrentDirectory="{CurrentDir}" SelectedItemChanged="Dv_SelectedItemChanged"/>
+		</VerticalStack>
+		<Splitter Width="6" Visible="{ShowLeftPane}"/>
+		<VerticalStack>
+			<HorizontalStack Height="Stretched" >
+				<SourceEditor Focusable="true" Name="editor" Font="monospace, 12" VerticalAlignment="Top" FilePath="{CurFileFullPath}"
+						Foreground="Jet" Background="White" Width="Stretched" Height="Stretched" KeyDown="textView_KeyDown"/>
+				<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
+					Maximum="{../editor.MaxScrollY}" Orientation="Vertical" Width="14" />
+			</HorizontalStack>
+			<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}"
+					Maximum="{../editor.MaxScrollX}" Height="14" />
+			<HorizontalStack Height="Fit">
+				<Label Text="{../../editor.HoverError}" Width="Stretched"/>
+				<Widget Background="Red" Width="5" Height="5" Visible="{../../editor.IsDirty}"/>
+				<Label Text="Hover Line:" Foreground="Black"/>
+				<Label Text="{../../editor.HoverLine}"/>
+				<Widget Height="5" Width="10"/>
+				<Label Text="Line:" Foreground="Black"/>
+				<Label Text="{../../editor.CurrentLine}"/>
+				<Widget Height="5" Width="10"/>
+				<Label Text="column:" Foreground="Black"/>
+				<Label Text="{../../editor.CurrentColumn}"/>
+				<Widget Height="5" Width="10"/>
+				<Label Text="ScrollX:" Foreground="Black"/>
+				<Label Text="{../../editor.ScrollX}"/>
+			</HorizontalStack>
+		</VerticalStack>
+	</HorizontalStack>
+</VerticalStack>

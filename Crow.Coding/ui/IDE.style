@@ -1,0 +1,29 @@
+﻿icon {
+	Width="14";
+	Height="14";
+}
+MemberViewLabel {
+	Margin="1";
+	Height="Fit";
+	Width="50%";
+	Background="White";
+}
+MemberViewHStack {
+	Focusable="true";
+	Height="Fit";
+	Spacing="1";
+	MouseEnter="{Background=SteelBlue}";
+	MouseLeave="{Background=Transparent}";
+}
+
+IcoBut {
+	Template = "#Crow.Coding.ui.IcoBut.template";
+	MinimumSize = "10,10";
+	Width = "8";
+	Height = "14";
+	Background = "White";
+}
+
+MenuItem {
+	Template = "#Crow.Coding.ui.MenuItem.template";
+}
