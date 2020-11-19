@@ -54,9 +54,12 @@ namespace Crow.Coding
 			buffer.SelectionChanged += Buffer_SelectionChanged;
 			buffer.PositionChanged += Buffer_PositionChanged;
 			buffer.FoldingEvent += Buffer_FoldingEvent;
-			buffer.Add (new CodeLine(""));
 		}
 		#endregion
+		protected override void onInitialized (object sender, EventArgs e) {
+			buffer.Add (new CodeLine (""));
+			base.onInitialized (sender, e);
+		}
 
 		ReaderWriterLockSlim editorMutex = new ReaderWriterLockSlim (LockRecursionPolicy.SupportsRecursion);
 
@@ -71,7 +74,7 @@ namespace Crow.Coding
 
 		#region private and protected fields
 		bool foldingEnabled = true;
-		int leftMargin = 0;	//margin used to display line numbers, folding errors,etc...
+		int leftMargin;	//margin used to display line numbers, folding errors,etc...
 		int visibleLines = 1;
 		int visibleColumns = 1;
 		int firstPrintedLine = -1;
@@ -432,7 +435,12 @@ namespace Crow.Coding
 				filePath = value;
 				if (!string.IsNullOrEmpty (filePath)) {
 					parser = getParserFromExt (System.IO.Path.GetExtension (filePath));
-					loadSource();
+					if (File.Exists (filePath))
+						loadSource ();
+					else {
+						buffer.Clear ();
+						buffer.Add (new CodeLine (""));
+					}
 				}
 			}
 		}
@@ -449,16 +457,11 @@ namespace Crow.Coding
 			return (BufferParser)Activator.CreateInstance (parserType, buffer );
 		}
 		void loadSource () {
-
-			try {
-				using (StreamReader sr = new StreamReader (filePath)) {
-					if (parser == null)
-						buffer.Load (sr.ReadToEnd());
-					else//parser may have special linebrk rules
-						buffer.Load (sr.ReadToEnd (), parser.LineBrkRegex);
-				}
-			} catch (Exception ex) {
-				Debug.WriteLine (ex.ToString ());
+			using (StreamReader sr = new StreamReader (filePath)) {
+				if (parser == null)
+					buffer.Load (sr.ReadToEnd());
+				else//parser may have special linebrk rules
+					buffer.Load (sr.ReadToEnd (), parser.LineBrkRegex);
 			}
 
 			updateMaxScrollY ();
@@ -543,8 +546,8 @@ namespace Crow.Coding
 					else
 						mgFg = Colors.LightGrey;
 				}else if (buffer.CurrentLine == lineIndex && HasFocus) {
-					mgFg = Colors.Black;
-					mgBg = Colors.DarkGrey;
+					mgFg = Colors.White;
+					mgBg = Colors.RoyalBlue;
 				}
 				string strLN = (lineIndex+1).ToString ();
 				gr.SetSource (mgBg);
@@ -816,6 +819,7 @@ namespace Crow.Coding
 
 			Rectangle cb = ClientRectangle;
 
+
 			Foreground.SetAsSource (gr);
 
 			buffer.editMutex.EnterReadLock ();
@@ -849,11 +853,19 @@ namespace Crow.Coding
 					}
 					li--;
 				}
-
-				for (int i = 0; i < visibleLines; i++) {
+				int i;
+				for (i = 0; i < visibleLines; i++) {
 					if (i + ScrollY >= unfoldedLines)//TODO:need optimize
 						break;
 					drawLine (gr, cb, i);
+				}
+				double y = cb.Y + (fe.Ascent + fe.Descent) * i, x = cb.X;
+				if (y < cb.Bottom) {
+					//draw end of margin
+					Rectangle mgR = new Rectangle ((int)x, (int)y, leftMargin - leftMarginGap, (int)(cb.Bottom - y));
+					gr.SetSource (Colors.Grey);
+					gr.Rectangle (mgR);
+					gr.Fill ();
 				}
 			}
 

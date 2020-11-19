@@ -23,7 +23,3 @@ IcoBut {
 	Height = "14";
 	Background = "White";
 }
-
-MenuItem {
-	Template = "#Crow.Coding.ui.MenuItem.template";
-}

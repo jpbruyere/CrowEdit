@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<VerticalStack Spacing="0" Background="DimGrey">
+<VerticalStack Spacing="0" >
 	<Menu>
 		<MenuItem Caption="File" Width="Fit" PopWidth="80">
 			<MenuItem Command="{CMDNew}" />
@@ -8,7 +8,7 @@
 			<MenuItem Command="{CMDSaveAs}" />
 			<MenuItem Command="{CMDQuit}" />
 		</MenuItem>
-		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100">
+		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="130">
 			<MenuItem Command="{CMDUndo}" />
 			<MenuItem Command="{CMDRedo}" />
 			<MenuItem Command="{CMDCut}" />
@@ -27,20 +27,24 @@
 			<HorizontalStack Height="Fit" Margin="2" Background="Onyx">
 				<Image Margin="2" Width="16" Height="16" Path="#Crow.Icons.level-up.svg" MouseClick="./goUpDirClick"
 							 Background="Jet" MouseEnter="{Background=Grey}" MouseLeave="{Background=Jet}" />			
-				<TextBox Text="{²CurrentDir}" Margin="2"/>
+				<TextBox Text="{²CurrentDir}" Margin="1"/>
 			</HorizontalStack>		
-			<DirectoryView Margin="1" Name="dv" CurrentDirectory="{CurrentDir}" SelectedItemChanged="Dv_SelectedItemChanged"/>
+			<DirectoryView Margin="0" Name="dv" CurrentDirectory="{CurrentDir}" SelectedItemChanged="Dv_SelectedItemChanged" Background="Jet"/>
 		</VerticalStack>
 		<Splitter Width="6" Visible="{ShowLeftPane}"/>
 		<VerticalStack>
 			<HorizontalStack Height="Stretched" >
-				<SourceEditor Focusable="true" Name="editor" Font="monospace, 12" VerticalAlignment="Top" FilePath="{CurFileFullPath}"
+				<SourceEditor Focusable="true" Name="editor" Font="monospace, 12" VerticalAlignment="Top" FilePath="{CurrentFilePath}"
 						Foreground="Jet" Background="White" Width="Stretched" Height="Stretched" KeyDown="textView_KeyDown"/>
 				<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
-					Maximum="{../editor.MaxScrollY}" Orientation="Vertical" Width="14" />
+					Maximum="{../editor.MaxScrollY}" Orientation="Vertical" Width="14"
+					LargeIncrement="{../editor.VisibleLines}"
+				  CursorSize="{../editor.ChildHeightRatio}"/>
 			</HorizontalStack>
 			<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}"
-					Maximum="{../editor.MaxScrollX}" Height="14" />
+					Maximum="{../editor.MaxScrollX}" Height="14"
+					LargeIncrement="{../editor.VisibleColumns}"
+					CursorSize="{../editor.ChildWidthRatio}"/>
 			<HorizontalStack Height="Fit">
 				<Label Text="{../../editor.HoverError}" Width="Stretched"/>
 				<Widget Background="Red" Width="5" Height="5" Visible="{../../editor.IsDirty}"/>

@@ -1,0 +1,11 @@
+﻿MenuIconSize = "14";
+
+MenuItem {
+	Template = "#CrowEdit.ui.MenuItem.template";
+}
+
+MenuIcon {
+	Margin = "2";
+	Width = "${MenuIconSize}";
+	Height = "${MenuIconSize}";
+}

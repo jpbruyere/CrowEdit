@@ -14,8 +14,10 @@ namespace CrowEdit
 		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDShowLeftPane,
 			CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions;
 
-		string _curFilePath = "unamed.txt";
+		const string _defaultFileName = "unnamed.txt";
 		string _text = "", _origText="";
+		bool isDirty = false;
+		public new bool IsDirty { get { return _text != _origText; } }
 
 		List<string> undoStack = new List<string>();
 		List<string> redoStack = new List<string>();
@@ -34,8 +36,6 @@ namespace CrowEdit
 				NotifyValueChanged ("IsDirty", IsDirty);
 			}
 		}
-		bool isDirty = false;
-		public bool IsDirty { get { return _text != _origText; }}
 
 		public string CurrentDir {
 			get { return Configuration.Global.Get<string>("CurrentDir"); }
@@ -46,16 +46,23 @@ namespace CrowEdit
 				NotifyValueChanged (CurrentDir);
 			}
 		}
-		public string CurFilePath {
-			get { return _curFilePath; }
+		public string CurrentFilePath {
+			get { return Configuration.Global.Get<string> ("CurrentFilePath"); }
 			set {
-				if (_curFilePath == value)
+				if (CurrentFilePath == value)
 					return;
-				_curFilePath = value;
-				NotifyValueChanged (_curFilePath);
+				Configuration.Global.Set ("CurrentFilePath", value);
+				NotifyValueChanged (CurrentFilePath);
+
 			}
 		}
-		bool showLeftPane;
+		public string CurFileName {
+			get => string.IsNullOrEmpty (CurrentFilePath) ? _defaultFileName : Path.GetFileName (CurrentFilePath);
+		}
+		public string CurFileDir {
+			get => string.IsNullOrEmpty (CurrentFilePath) ? CurrentDir : Path.GetDirectoryName (CurrentFilePath);
+		}
+
 		public bool ShowLeftPane {
 			get { return Configuration.Global.Get<bool> ("ShowLeftPane"); }
 			set {
@@ -65,8 +72,6 @@ namespace CrowEdit
 				NotifyValueChanged (ShowLeftPane);
 			}
 		}
-
-		public string CurFileFullPath { get { return Path.Combine(CurrentDir,CurFilePath); }}
 
 		void initCommands(){
 			CMDNew = new Command(new Action(() => onNewFile())) { Caption = "New", Icon = new SvgPicture("#CrowEdit.ui.icons.blank-file.svg")};
@@ -137,18 +142,16 @@ namespace CrowEdit
 		{
 			FileDialog fd = sender as FileDialog;
 
-			if (!string.IsNullOrEmpty (fd.SelectedFile))
-				CurFilePath = fd.SelectedFile;
-			CurrentDir = fd.SelectedDirectory;
+			if (string.IsNullOrEmpty (fd.SelectedFile))
+				return;
+			CurrentFilePath = Path.Combine (fd.SelectedDirectory, fd.SelectedFile);
 
-			System.Diagnostics.Debug.WriteLine (CurFileFullPath);
 //			using (StreamWriter sr = new StreamWriter (fd.SelectedFile)) {
 //				sr.Write(_text);
 //			}
 			_origText = _text;
 
 			NotifyValueChanged ("IsDirty", false);
-			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
 		}
 		void onTextChanged (object sender, TextChangeEventArgs e)
 		{
@@ -181,7 +184,7 @@ namespace CrowEdit
 				openFile (filePath, directory);
 		}
 		void newFile () {
-			CurFilePath = "unamed.txt";
+			CurrentFilePath = Path.Combine (CurFileDir, _defaultFileName);
 			_origText = _text = "";
 			NotifyValueChanged ("Text", (object)_text);
 			NotifyValueChanged ("IsDirty", false);
@@ -189,18 +192,13 @@ namespace CrowEdit
 			undoStack.Clear ();
 			CMDRedo.CanExecute = false;
 			CMDUndo.CanExecute = false;
-			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
 		}
 		void openFile (string filePath, string directory) {
-			CurFilePath = filePath;
-			CurrentDir = directory;
-
+			CurrentFilePath = Path.Combine(directory, filePath);
 			redoStack.Clear ();
 			undoStack.Clear ();
 			CMDRedo.CanExecute = false;
 			CMDUndo.CanExecute = false;
-
-			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
 		}
 
 		[STAThread]
@@ -222,7 +220,6 @@ namespace CrowEdit
 			this.ValueChanged += CrowEdit_ValueChanged;
 			initCommands ();
 			Load ("#CrowEdit.ui.main.crow").DataSource = this;
-			NotifyValueChanged ("CurFileFullPath", (object)CurFileFullPath);
 		}
 
 		/*void textView_KeyDown (object sender, Crow.KeyEventArgs e)
