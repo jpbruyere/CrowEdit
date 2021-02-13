@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net472</TargetFramework>
-		<OutputType>Exe</OutputType>
+		<TargetFramework>netcoreapp3.1</TargetFramework>		
+		<OutputType>WinExe</OutputType>
 		<EnableDefaultItems>false</EnableDefaultItems>
 		
 	</PropertyGroup>

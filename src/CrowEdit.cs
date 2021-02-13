@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -195,12 +195,33 @@ namespace CrowEdit
 		}
 		void openFile (string filePath, string directory) {
 			CurrentFilePath = Path.Combine(directory, filePath);
+			//reloadFromFile ();
+			
 			redoStack.Clear ();
 			undoStack.Clear ();
 			CMDRedo.CanExecute = false;
 			CMDUndo.CanExecute = false;
 		}
-
+		/***temp***/
+		string source;
+		public string Source {
+			get => source;
+			set {
+				if (source == value)
+					return;
+				source = value;
+				NotifyValueChanged (source);
+			}
+		}
+		void reloadFromFile () {
+			if (File.Exists (CurrentFilePath)) {
+				using (Stream s = new FileStream (CurrentFilePath, FileMode.Open)) {
+					using (StreamReader sr = new StreamReader (s))
+						Source = sr.ReadToEnd ();
+				}
+			}
+		}
+		/********************************/
 		[STAThread]
 		static void Main ()
 		{

@@ -382,7 +382,7 @@ namespace Crow.Text
 
 			Rectangle cb = ClientRectangle;
 
-			Foreground.SetAsSource (gr);
+			Foreground.SetAsSource (IFace, gr);
 
 			buffer.editMutex.EnterReadLock ();
 			//editorMutex.EnterReadLock ();

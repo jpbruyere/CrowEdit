@@ -582,11 +582,11 @@ namespace Crow.Coding
 						level = currentNode.Level - 1;
 				}
 
-				/*for (int l = 0; l < level; l++) {					
-					gr.MoveTo (rFld.Center.X + 0.5, y);
-					gr.LineTo (rFld.Center.X + 0.5, y + fe.Ascent + fe.Descent);
-					rFld.Left += foldHSpace;
-				}*/
+				//for (int l = 0; l < level; l++) {					
+				//	gr.MoveTo (rFld.Center.X + 0.5, y);
+				//	gr.LineTo (rFld.Center.X + 0.5, y + fe.Ascent + fe.Descent);
+				//	rFld.Left += foldHSpace;
+				//}
 				if (level > 0) {
 					gr.MoveTo (rFld.Center.X + 0.5, y);
 					gr.LineTo (rFld.Center.X + 0.5, y + fe.Ascent + fe.Descent);
@@ -786,6 +786,8 @@ namespace Crow.Coding
 					gr.SetFontSize (Font.Size);
 
 					fe = gr.FontExtents;
+					//trick to solve win32 maxXAdvance inconsistance
+					fe.MaxXAdvance = gr.TextExtents ("A").XAdvance;
 				}				
 				MaxScrollY = 0;
 				RegisterForGraphicUpdate ();
@@ -819,12 +821,10 @@ namespace Crow.Coding
 
 			Rectangle cb = ClientRectangle;
 
-
-			Foreground.SetAsSource (gr);
+			Foreground.SetAsSource (IFace, gr);
 
 			buffer.editMutex.EnterReadLock ();
-			editorMutex.EnterReadLock ();
-
+			editorMutex.EnterReadLock ();			
 			#region draw text cursor
 			if (buffer.SelectionInProgress){
 				selStartCol = getTabulatedColumn (buffer.SelectionStart);
@@ -859,14 +859,14 @@ namespace Crow.Coding
 						break;
 					drawLine (gr, cb, i);
 				}
-				double y = cb.Y + (fe.Ascent + fe.Descent) * i, x = cb.X;
+				/*double y = cb.Y + (fe.Ascent + fe.Descent) * i, x = cb.X;
 				if (y < cb.Bottom) {
 					//draw end of margin
 					Rectangle mgR = new Rectangle ((int)x, (int)y, leftMargin - leftMarginGap, (int)(cb.Bottom - y));
 					gr.SetSource (Colors.Grey);
 					gr.Rectangle (mgR);
 					gr.Fill ();
-				}
+				}*/
 			}
 
 			editorMutex.ExitReadLock ();

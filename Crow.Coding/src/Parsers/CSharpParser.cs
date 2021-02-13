@@ -320,7 +320,6 @@ namespace Crow.Coding
 					continue;
 				}
 				cl.SyntacticNode = null;
-
 				int tokPtr = 0;
 				bool onlyWhiteSpace = true;
 				while (tokPtr < cl.Tokens.Count) {

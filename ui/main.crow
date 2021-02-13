@@ -34,7 +34,10 @@
 		<Splitter Width="6" Visible="{ShowLeftPane}"/>
 		<VerticalStack>
 			<HorizontalStack Height="Stretched" >
-				<SourceEditor Focusable="true" Name="editor" Font="monospace, 12" VerticalAlignment="Top" FilePath="{CurrentFilePath}"
+				<!--<TextBox VerticalAlignment="Top" Height="Stretched" Width="Stretched"
+						Text="{Source}" Multiline="true" TextAlignment="TopLeft"
+						Font="mono 10"/>-->
+				<SourceEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" FilePath="{CurrentFilePath}"
 						Foreground="Jet" Background="White" Width="Stretched" Height="Stretched" KeyDown="textView_KeyDown"/>
 				<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
 					Maximum="{../editor.MaxScrollY}" Orientation="Vertical" Width="14"
