@@ -33,10 +33,7 @@
 		</VerticalStack>
 		<Splitter Width="6" Visible="{ShowLeftPane}"/>
 		<VerticalStack>
-			<HorizontalStack Height="Stretched" >
-				<!--<TextBox VerticalAlignment="Top" Height="Stretched" Width="Stretched"
-						Text="{Source}" Multiline="true" TextAlignment="TopLeft"
-						Font="mono 10"/>-->
+			<!--<HorizontalStack Height="Stretched" >
 				<SourceEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" FilePath="{CurrentFilePath}"
 						Foreground="Jet" Background="White" Width="Stretched" Height="Stretched" KeyDown="textView_KeyDown"/>
 				<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
@@ -47,21 +44,25 @@
 			<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}"
 					Maximum="{../editor.MaxScrollX}" Height="14"
 					LargeIncrement="{../editor.VisibleColumns}"
-					CursorSize="{../editor.ChildWidthRatio}"/>
+					CursorSize="{../editor.ChildWidthRatio}"/>-->
+			<HorizontalStack>
+				<TextBox Name="tb" Text="{Source}" Multiline="true" Font="consolas, 12" Focusable="true" Height="Stretched" Width="Stretched"
+						 ContextCommands="{EditorCommands}"
+						 TextChanged="onTextChanged" KeyDown="textView_KeyDown"/>
+				<ScrollBar Value="{²../tb.ScrollY}"
+						LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"
+						CursorRatio="{../tb.ChildHeightRatio}" Maximum="{../tb.MaxScrollY}" />
+			</HorizontalStack>
+			<ScrollBar Style="HScrollBar" Value="{²../tb.ScrollX}"
+					LargeIncrement="{../tb.PageWidth}" SmallIncrement="1"
+					CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />			
 			<HorizontalStack Height="Fit">
-				<Label Text="{../../editor.HoverError}" Width="Stretched"/>
-				<Widget Background="Red" Width="5" Height="5" Visible="{../../editor.IsDirty}"/>
-				<Label Text="Hover Line:" Foreground="Black"/>
-				<Label Text="{../../editor.HoverLine}"/>
+				<Widget Width="Stretched"/>
 				<Widget Height="5" Width="10"/>
-				<Label Text="Line:" Foreground="Black"/>
-				<Label Text="{../../editor.CurrentLine}"/>
-				<Widget Height="5" Width="10"/>
-				<Label Text="column:" Foreground="Black"/>
-				<Label Text="{../../editor.CurrentColumn}"/>
-				<Widget Height="5" Width="10"/>
-				<Label Text="ScrollX:" Foreground="Black"/>
-				<Label Text="{../../editor.ScrollX}"/>
+				<Label Text="Line:" Foreground="Grey"/>
+				<Label Text="{../../tb.CurrentLine}" Margin="3"/>				
+				<Label Text="col:" Foreground="Grey"/>
+				<Label Text="{../../tb.CurrentColumn}" Margin="3"/>				
 			</HorizontalStack>
 		</VerticalStack>
 	</HorizontalStack>

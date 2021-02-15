@@ -1,21 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>		
+		<TargetFramework>netcoreapp3.1</TargetFramework>
 		<OutputType>WinExe</OutputType>
 		<EnableDefaultItems>false</EnableDefaultItems>
-		
+
 	</PropertyGroup>
-	
+
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
 		<EmbeddedResource Include="ui\**\*.*" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="Crow.Coding\Crow.Coding.csproj" />
-	  <ProjectReference Include="..\crow\Crow\Crow.csproj" />
+		<ProjectReference Include="Crow.Coding\Crow.Coding.csproj" />
+		<PackageReference Include="Crow" Version="0.9.4-beta" />
 	</ItemGroup>
-	
+
+
 	<ItemGroup>
-	  <Compile Remove="Properties\AssemblyInfo.cs" />
+		<Compile Remove="Properties\AssemblyInfo.cs" />
 	</ItemGroup>
 </Project>

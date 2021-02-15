@@ -6,6 +6,7 @@ using System;
 using Crow;
 using System.IO;
 using System.Collections.Generic;
+using Crow.Text;
 
 namespace CrowEdit
 {
@@ -15,30 +16,59 @@ namespace CrowEdit
 			CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions;
 
 		const string _defaultFileName = "unnamed.txt";
-		string _text = "", _origText="";
-		bool isDirty = false;
-		public new bool IsDirty { get { return _text != _origText; } }
-
-		List<string> undoStack = new List<string>();
-		List<string> redoStack = new List<string>();
-
-		public string Text {
-			get { return _text; }
+		string source = "";
+		int dirtyUndoLevel;//
+		public new bool IsDirty { get { return undoStack.Count != dirtyUndoLevel; } }
+		public string Source {
+			get => source;
 			set {
-				if (_text == value)
+				if (source == value)
 					return;
-				undoStack.Add (_text);
-				CMDUndo.CanExecute = true;
-				redoStack.Clear ();
-				CMDRedo.CanExecute = false;
-				_text = value;
-				NotifyValueChanged (_text);
-				NotifyValueChanged ("IsDirty", IsDirty);
+				source = value;
+				NotifyValueChanged (source);
 			}
+		}
+		public CommandGroup EditorCommands => new CommandGroup (CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDSave, CMDSaveAs);
+
+		Stack<TextChange> undoStack = new Stack<TextChange> ();
+		Stack<TextChange> redoStack = new Stack<TextChange> ();
+		
+		void undo () {
+			if (undoStack.TryPop (out TextChange tch)) {
+				redoStack.Push (tch.Inverse (source));
+				CMDRedo.CanExecute = true;
+				apply (tch);
+				editor.SetCursorPosition (tch.End + tch.ChangedText.Length);
+			}
+			if (undoStack.Count == 0)
+				CMDUndo.CanExecute = false;
+		}
+		void redo () {
+			if (redoStack.TryPop (out TextChange tch)) {
+				undoStack.Push (tch.Inverse (source));
+				CMDUndo.CanExecute = true;
+				apply (tch);
+				editor.SetCursorPosition (tch.End + tch.ChangedText.Length);
+			}
+			if (redoStack.Count == 0)
+				CMDRedo.CanExecute = false;
+		}
+		bool disableTextChangedEvent = false;
+		void apply (TextChange change) {
+			Span<char> tmp = stackalloc char[source.Length + (change.ChangedText.Length - change.Length)];
+			ReadOnlySpan<char> src = source.AsSpan ();
+			src.Slice (0, change.Start).CopyTo (tmp);
+			if (!string.IsNullOrEmpty(change.ChangedText))
+				change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
+			src.Slice (change.End).CopyTo (tmp.Slice (change.Start + change.ChangedText.Length));
+			disableTextChangedEvent = true;
+			Source = tmp.ToString ();
+			disableTextChangedEvent = false;
+			NotifyValueChanged ("IsDirty", IsDirty);
 		}
 
 		public string CurrentDir {
-			get { return Configuration.Global.Get<string>("CurrentDir"); }
+			get => Configuration.Global.Get<string>("CurrentDir");
 			set {
 				if (CurrentDir == value)
 					return;
@@ -47,13 +77,12 @@ namespace CrowEdit
 			}
 		}
 		public string CurrentFilePath {
-			get { return Configuration.Global.Get<string> ("CurrentFilePath"); }
+			get => Configuration.Global.Get<string> ("CurrentFilePath");
 			set {
 				if (CurrentFilePath == value)
 					return;
 				Configuration.Global.Set ("CurrentFilePath", value);
 				NotifyValueChanged (CurrentFilePath);
-
 			}
 		}
 		public string CurFileName {
@@ -62,9 +91,8 @@ namespace CrowEdit
 		public string CurFileDir {
 			get => string.IsNullOrEmpty (CurrentFilePath) ? CurrentDir : Path.GetDirectoryName (CurrentFilePath);
 		}
-
 		public bool ShowLeftPane {
-			get { return Configuration.Global.Get<bool> ("ShowLeftPane"); }
+			get => Configuration.Global.Get<bool> ("ShowLeftPane");
 			set {
 				if (ShowLeftPane == value)
 					return;
@@ -72,8 +100,17 @@ namespace CrowEdit
 				NotifyValueChanged (ShowLeftPane);
 			}
 		}
+		public bool ReopenLastFile {
+			get => Configuration.Global.Get<bool> ("ReopenLastFile");
+			set {
+				if (ReopenLastFile == value)
+					return;
+				Configuration.Global.Set ("ReopenLastFile", value);
+				NotifyValueChanged (ReopenLastFile);
+			}
+		}
 
-		void initCommands(){
+		void initCommands (){
 			CMDNew = new Command(new Action(() => onNewFile())) { Caption = "New", Icon = new SvgPicture("#CrowEdit.ui.icons.blank-file.svg")};
 			CMDOpen = new Command(new Action(() => openFileDialog())) { Caption = "Open...", Icon = new SvgPicture("#CrowEdit.ui.icons.outbox.svg")};
 			CMDSave = new Command(new Action(() => saveFileDialog())) { Caption = "Save", Icon = new SvgPicture("#CrowEdit.ui.icons.inbox.svg"), CanExecute = false};
@@ -94,43 +131,10 @@ namespace CrowEdit
 				mb.Yes += (sender, e) => newFile();
 			} else
 				newFile ();
-		}
-		void undo(){
-			string step = undoStack [undoStack.Count -1];
-			redoStack.Add (_text);
-			CMDRedo.CanExecute = true;
-			undoStack.RemoveAt(undoStack.Count -1);
-
-			_text = step;
-
-			NotifyValueChanged ("Text", (object)_text);
-			NotifyValueChanged ("IsDirty", IsDirty);
-
-			if (undoStack.Count == 0)
-				CMDUndo.CanExecute = false;
-		}
-		void redo(){
-			string step = redoStack [redoStack.Count -1];
-			undoStack.Add (_text);
-			CMDUndo.CanExecute = true;
-			redoStack.RemoveAt(redoStack.Count -1);
-			_text = step;
-			NotifyValueChanged ("Text", (object)_text);
-			NotifyValueChanged ("IsDirty", IsDirty);
-
-			if (redoStack.Count == 0)
-				CMDRedo.CanExecute = false;
-		}
-		void openOptionsDialog(){
-			Widget ed = this.FindByName("editor");
-			Load ("#CrowEdit.ui.EditorOptions.crow").DataSource = ed;
-		}
-		void openFileDialog(){
-			Load ("#CrowEdit.ui.openFile.crow").DataSource = this;
-		}
-		void saveFileDialog(){
-			Load ("#CrowEdit.ui.saveFile.crow").DataSource = this;
-		}
+		}		
+		void openOptionsDialog() =>	Load ("#CrowEdit.ui.EditorOptions.crow").DataSource = this;
+		void openFileDialog() => Load ("#CrowEdit.ui.openFile.crow").DataSource = this;
+		void saveFileDialog() => Load ("#CrowEdit.ui.saveFile.crow").DataSource = this;
 		void openFileDialog_OkClicked (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
@@ -141,22 +145,19 @@ namespace CrowEdit
 		void saveFileDialog_OkClicked (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
-
 			if (string.IsNullOrEmpty (fd.SelectedFile))
-				return;
-			CurrentFilePath = Path.Combine (fd.SelectedDirectory, fd.SelectedFile);
-
-//			using (StreamWriter sr = new StreamWriter (fd.SelectedFile)) {
-//				sr.Write(_text);
-//			}
-			_origText = _text;
-
-			NotifyValueChanged ("IsDirty", false);
-		}
+				return;			
+			save (fd.SelectedFile, fd.SelectedDirectory);
+		}		
 		void onTextChanged (object sender, TextChangeEventArgs e)
 		{
-			//System.Diagnostics.Debug.WriteLine ("text changed");
-			NotifyValueChanged ("IsDirty", IsDirty);
+			if (disableTextChangedEvent)
+				return;
+			undoStack.Push (e.Change.Inverse(source));
+			redoStack.Clear ();
+			CMDUndo.CanExecute = true;
+			CMDRedo.CanExecute = false;
+			apply (e.Change);
 		}
 
 		void goUpDirClick (object sender, MouseButtonEventArgs e) {
@@ -185,90 +186,74 @@ namespace CrowEdit
 		}
 		void newFile () {
 			CurrentFilePath = Path.Combine (CurFileDir, _defaultFileName);
-			_origText = _text = "";
-			NotifyValueChanged ("Text", (object)_text);
-			NotifyValueChanged ("IsDirty", false);
-			redoStack.Clear ();
-			undoStack.Clear ();
-			CMDRedo.CanExecute = false;
-			CMDUndo.CanExecute = false;
+			disableTextChangedEvent = true;
+			Source = "";
+			disableTextChangedEvent = false;
+			resetUndoRedo ();
 		}
 		void openFile (string filePath, string directory) {
 			CurrentFilePath = Path.Combine(directory, filePath);
-			//reloadFromFile ();
-			
-			redoStack.Clear ();
-			undoStack.Clear ();
-			CMDRedo.CanExecute = false;
-			CMDUndo.CanExecute = false;
+			reloadFromFile ();
+			resetUndoRedo ();
 		}
-		/***temp***/
-		string source;
-		public string Source {
-			get => source;
-			set {
-				if (source == value)
-					return;
-				source = value;
-				NotifyValueChanged (source);
+		void save (string filePath, string directory) {
+			CurrentFilePath = Path.Combine (directory, filePath);
+			using (StreamWriter sr = new StreamWriter (CurrentFilePath)) {
+				sr.Write (source);
 			}
+			dirtyUndoLevel = undoStack.Count;
+
+			NotifyValueChanged ("IsDirty", IsDirty);
 		}
+
 		void reloadFromFile () {
+			disableTextChangedEvent = true;
 			if (File.Exists (CurrentFilePath)) {
 				using (Stream s = new FileStream (CurrentFilePath, FileMode.Open)) {
 					using (StreamReader sr = new StreamReader (s))
 						Source = sr.ReadToEnd ();
 				}
 			}
+			disableTextChangedEvent = false;
+			resetUndoRedo ();
 		}
-		/********************************/
-		[STAThread]
+		void resetUndoRedo () {
+			undoStack.Clear ();
+			redoStack.Clear ();
+			CMDUndo.CanExecute = false;
+			CMDRedo.CanExecute = false;
+			dirtyUndoLevel = 0;
+		}				
 		static void Main ()
 		{
 			using (CrowEdit win = new CrowEdit ()) 
 				win.Run	();
 		}
-		public CrowEdit ()
-			: base(800, 600)
-		{}
+		public CrowEdit () : base(800, 600)	{}
 
 		protected override void OnInitialized () {
 			base.OnInitialized ();
 
 			if (CurrentDir == null)
 				CurrentDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
-
-			this.ValueChanged += CrowEdit_ValueChanged;
+			
 			initCommands ();
 			Load ("#CrowEdit.ui.main.crow").DataSource = this;
+			editor = FindByName ("tb") as TextBox;
+
+			if (ReopenLastFile)
+				reloadFromFile ();
 		}
+		TextBox editor;
+		void textView_KeyDown (object sender, Crow.KeyEventArgs e) {
+			if (Ctrl && e.Key == Glfw.Key.W) {
+				if (Shift)
+					CMDRedo.Execute ();
+				else
+					CMDUndo.Execute ();
 
-		/*void textView_KeyDown (object sender, Crow.KeyEventArgs e)
-		{
-			if (e.Control) {
-				if (e.Key == Key.W) {
-					if (e.Shift)
-						CMDRedo.Execute ();
-					else
-						CMDUndo.Execute ();
-				}
-			}
-		}*/
-
-		void CrowEdit_ValueChanged (object sender, ValueChangeEventArgs e)
-		{
-			if (e.MemberName == "IsDirty" && isDirty != (bool)e.NewValue) {
-				isDirty = (bool)e.NewValue;
-				if (isDirty) {
-					CMDSave.CanExecute = true;
-					CMDSaveAs.CanExecute = true;
-				}else{
-					CMDSave.CanExecute = false;
-					CMDSaveAs.CanExecute = false;
-				}
 			}
 		}
-
 	}
 }
 
