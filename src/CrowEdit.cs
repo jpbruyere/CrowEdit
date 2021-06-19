@@ -1,4 +1,4 @@
-﻿//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.//this is a test of a comment.// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -7,11 +7,33 @@ using Crow;
 using System.IO;
 using System.Collections.Generic;
 using Crow.Text;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace CrowEdit
 {
 	public class CrowEdit : Interface
 	{
+#if NETCOREAPP
+		static IntPtr resolveUnmanaged(Assembly assembly, String libraryName)
+		{
+
+			switch (libraryName)
+			{
+				case "glfw3":
+					return NativeLibrary.Load("glfw", assembly, null);
+				case "rsvg-2.40":
+					return NativeLibrary.Load("rsvg-2", assembly, null);
+			}
+			Console.WriteLine($"[UNRESOLVE] {assembly} {libraryName}");
+			return IntPtr.Zero;
+		}
+
+		static CrowEdit()
+		{
+			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).ResolvingUnmanagedDll += resolveUnmanaged;
+		}
+#endif		
 		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDShowLeftPane,
 			CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions;
 
