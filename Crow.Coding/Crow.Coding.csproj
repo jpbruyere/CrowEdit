@@ -11,6 +11,6 @@
 		<Compile Include="Properties\AssemblyInfo.cs" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Include="Crow" Version="0.9.3-beta" />
+	  <PackageReference Include="Crow" Version="0.9.7-beta" />	  
 	</ItemGroup>
 </Project>

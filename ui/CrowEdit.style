@@ -1,4 +1,6 @@
-﻿MenuIconSize = "14";
+﻿DocTabViewBackground = "DarkGrey";
+SelectedTabBackground = "Onyx";
+MenuIconSize = "14";
 
 MenuItem {
 	Template = "#CrowEdit.ui.MenuItem.template";
@@ -9,3 +11,20 @@ MenuIcon {
 	Width = "${MenuIconSize}";
 	Height = "${MenuIconSize}";
 }
+
+suggestionsListBox {
+	Template = "#CrowEdit.ui.Suggestions.template";
+	Width = "Fit";
+	Height = "Fit";
+	MaximumSize = "300, 120";
+	Background = "Jet";
+	UseLoadingThread = "false";
+}
+
+Editor {
+	Background="White";
+	Foreground="Black";
+	Text="";
+	Multiline="true";
+}
+

@@ -1,19 +1,19 @@
 ﻿<?xml version="1.0"?>
 <VerticalStack Spacing="0" >
 	<Menu>
-		<MenuItem Caption="File" Width="Fit" PopWidth="80">
+		<MenuItem RootDataLevel="true" Caption="File" Width="Fit" PopWidth="80">
 			<MenuItem Command="{CMDNew}" />
 			<MenuItem Command="{CMDOpen}" />
-			<MenuItem Command="{CMDSave}" />
-			<MenuItem Command="{CMDSaveAs}" />
+			<MenuItem DataSource="{CurrentDocument}" Command="{CMDSave}" />
+			<MenuItem DataSource="{CurrentDocument}" Command="{CMDSaveAs}" />
 			<MenuItem Command="{CMDQuit}" />
 		</MenuItem>
-		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="130">
-			<MenuItem Command="{CMDUndo}" />
-			<MenuItem Command="{CMDRedo}" />
-			<MenuItem Command="{CMDCut}" />
-			<MenuItem Command="{CMDCopy}" />
-			<MenuItem Command="{CMDPaste}" />
+		<MenuItem RootDataLevel="true" Caption="Edit" Name="edit" Width="Fit" PopWidth="130">
+			<MenuItem DataSource="{CurrentDocument}" Command="{CMDUndo}" />
+			<MenuItem DataSource="{CurrentDocument}" Command="{CMDRedo}" />
+			<MenuItem DataSource="{CurrentEditor}" Command="{CMDCut}" />
+			<MenuItem DataSource="{CurrentEditor}" Command="{CMDCopy}" />
+			<MenuItem DataSource="{CurrentEditor}" Command="{CMDPaste}" />
 			<MenuItem Command="{CMDOptions}"/>
 			<MenuItem Command="{CMDShowLeftPane}"/>
 		</MenuItem>
@@ -23,7 +23,7 @@
 		</MenuItem>
 	</Menu>
 	<HorizontalStack Background="DarkGrey" >
-		<VerticalStack  Width="25%" Visible="{ShowLeftPane}">
+		<VerticalStack  Width="25%" Visible="{ShowLeftPane}" Spacing="0">
 			<HorizontalStack Height="Fit" Margin="2" Background="Onyx">
 				<Image Margin="2" Width="16" Height="16" Path="#Crow.Icons.level-up.svg" MouseClick="./goUpDirClick"
 							 Background="Jet" MouseEnter="{Background=Grey}" MouseLeave="{Background=Jet}" />			
@@ -32,38 +32,59 @@
 			<DirectoryView Margin="0" Name="dv" CurrentDirectory="{CurrentDir}" SelectedItemChanged="Dv_SelectedItemChanged" Background="Jet"/>
 		</VerticalStack>
 		<Splitter Width="6" Visible="{ShowLeftPane}"/>
-		<VerticalStack>
-			<!--<HorizontalStack Height="Stretched" >
-				<SourceEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" FilePath="{CurrentFilePath}"
-						Foreground="Jet" Background="White" Width="Stretched" Height="Stretched" KeyDown="textView_KeyDown"/>
-				<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
-					Maximum="{../editor.MaxScrollY}" Orientation="Vertical" Width="14"
-					LargeIncrement="{../editor.VisibleLines}"
-				  CursorSize="{../editor.ChildHeightRatio}"/>
-			</HorizontalStack>
-			<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}"
-					Maximum="{../editor.MaxScrollX}" Height="14"
-					LargeIncrement="{../editor.VisibleColumns}"
-					CursorSize="{../editor.ChildWidthRatio}"/>-->
-			<HorizontalStack>
-				<TextBox Name="tb" Text="{Source}" Multiline="true" Font="consolas, 12" Focusable="true" Height="Stretched" Width="Stretched"
-						 ContextCommands="{EditorCommands}"
-						 TextChanged="onTextChanged" KeyDown="textView_KeyDown"/>
-				<ScrollBar Value="{²../tb.ScrollY}"
-						LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"
-						CursorRatio="{../tb.ChildHeightRatio}" Maximum="{../tb.MaxScrollY}" />
-			</HorizontalStack>
-			<ScrollBar Style="HScrollBar" Value="{²../tb.ScrollX}"
-					LargeIncrement="{../tb.PageWidth}" SmallIncrement="1"
-					CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />			
-			<HorizontalStack Height="Fit">
-				<Widget Width="Stretched"/>
-				<Widget Height="5" Width="10"/>
-				<Label Text="Line:" Foreground="Grey"/>
-				<Label Text="{../../tb.CurrentLine}" Margin="3"/>				
-				<Label Text="col:" Foreground="Grey"/>
-				<Label Text="{../../tb.CurrentColumn}" Margin="3"/>				
-			</HorizontalStack>
-		</VerticalStack>
+		<TabView Data="{OpenedDocuments}" SelectedItem="{²CurrentDocument}"
+				DataTest="Extension">
+			<Template>
+				<VerticalStack Spacing="0" >
+					<ListBox Data="{./Items}" Fit="true" HorizontalAlignment="Left" VerticalAlignment="Top"> 
+						<Template>
+							<HorizontalStack Name="ItemsContainer" />
+						</Template>
+						<ItemTemplate>
+							<ListItem RootDataLevel="true" Fit="true" Background="Transparent" IsSelected="{IsVisible}"								
+									Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}}"
+									Unselected="{.DataSource.IsVisible='false'};{Background=Transparent}">
+								<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
+									<!--<Image Style="TreeIcon" Picture="{Icon}"/>-->
+									<Widget Width="10" Height="10" Background="RoyalBlue" IsVisible="{IsDirty}"/>
+									<Label Text="{FileName}" Tooltip="{FullPath}" ContextCommands="{Commands}" />
+									<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
+												MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
+										<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
+											 MouseClick="OnQueryClose"/>
+									</Border>								
+								</HorizontalStack>
+							</ListItem>
+						</ItemTemplate>
+					</ListBox>
+					<Group Name="ItemsContainer" />
+				</VerticalStack>		
+			</Template>		
+			<ItemTemplate>
+				<ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}">
+					<VerticalStack Spacing="0">
+						<HorizontalStack Spacing="0">
+							<Editor Name="tb" Multiline="true" Font="consolas, 12" Focusable="true" Height="Stretched" Width="Stretched"
+									Document="{}" TextChanged="onTextChanged"/>
+							<ScrollBar Value="{²../tb.ScrollY}"
+									LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"
+									CursorRatio="{../tb.ChildHeightRatio}" Maximum="{../tb.MaxScrollY}" />
+						</HorizontalStack>
+						<ScrollBar Style="HScrollBar" Value="{²../tb.ScrollX}"
+								LargeIncrement="{../tb.PageWidth}" SmallIncrement="1"
+								CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />			
+						<HorizontalStack Height="Fit">
+							<Widget Width="Stretched"/>
+							<Widget Height="5" Width="10"/>
+							<Label Text="Line:" Foreground="Grey"/>
+							<Label Text="{../../tb.CurrentLine}" Margin="3"/>				
+							<Label Text="col:" Foreground="Grey"/>
+							<Label Text="{../../tb.CurrentColumn}" Margin="3"/>				
+						</HorizontalStack>		
+					</VerticalStack>
+				</ListItem>
+			</ItemTemplate>
+			<ItemTemplate Path="#CrowEdit.ui.sourceEditor.itmp" DataType=".crow"/>
+		</TabView>
 	</HorizontalStack>
 </VerticalStack>

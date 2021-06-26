@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.1</TargetFrameworks>
+		<EnableDefaultItems>false</EnableDefaultItems>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<Compile Include="src\**\*.cs" />
+		<EmbeddedResource Include="ui\**\*.*" />
+		<Compile Include="Properties\AssemblyInfo.cs" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="/mnt/devel/CrowIDE/Crow/Crow/Crow.csproj" />
+	  <!--<PackageReference Include="Crow" Version="0.9.7-beta" />	  -->
+	</ItemGroup>
+</Project>

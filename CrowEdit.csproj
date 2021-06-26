@@ -11,8 +11,11 @@
 		<EmbeddedResource Include="ui\**\*.*" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="Crow.Coding\Crow.Coding.csproj" />
-		<PackageReference Include="Crow" Version="0.9.4-beta" />
+		<!--<ProjectReference Include="Crow.Coding\Crow.Coding.csproj" />-->
+		<ProjectReference Include="CrowEditBase\CrowEditBase.csproj" />
+		<ProjectReference Include="/mnt/devel/CrowIDE/Crow/Crow/Crow.csproj" />
+
+		<!--<PackageReference Include="Crow" Version="0.9.6-beta" />-->
 	</ItemGroup>
 
 

@@ -1,6 +1,0 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
-<FileDialog Width="60%" Height="50%" Caption="Open File" AlwaysOnTop="true"
-	CurrentDirectory="{CurFileDir}"
-	SelectedFile="{CurFileName}"
-	OkClicked="openFileDialog_OkClicked"/>
-
