@@ -40,16 +40,24 @@ namespace CrowEdit
 			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).ResolvingUnmanagedDll += resolveUnmanaged;
 			Interface.CrowAssemblyNames = new string[] {"CrowEditBase"};
 		}
-		public CrowEdit () : base(800, 600)	{ }
+		public CrowEdit () : base(800, 600)	{ 
+			initPlugins ();
+		}
 
 #endif		
 		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDShowLeftPane,
 			CMDHelp, CMDAbout, CMDOptions;
 
-		
 		PluginsLoadContext pluginsCtx;
 		void initPlugins () {
-			pluginsCtx = new PluginsLoadContext ();
+			/**** test ******/
+			Document.AddFileAssociation (".crow", "CrowEdit.Xml.XmlDocument, CEXmlPlugin, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+			/**** test ******/
+			if (string.IsNullOrEmpty (PluginsDirecory))			
+				PluginsDirecory = Path.Combine (
+					Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "Plugins");
+
+			pluginsCtx = new PluginsLoadContext (PluginsDirecory);
 		}
 		public ObservableList<TextDocument> OpenedDocuments = new ObservableList<TextDocument> ();
 
@@ -76,6 +84,16 @@ namespace CrowEdit
 				currentDocument?.SelectDocument ();
 			}
 		}
+		public string PluginsDirecory {
+			get => Configuration.Global.Get<string>("PluginsDirecory");
+			set {
+				if (PluginsDirecory == value)
+					return;
+				Configuration.Global.Set ("PluginsDirecory", value);
+				NotifyValueChanged (PluginsDirecory);
+			}
+		}
+
 		public string CurrentDir {
 			get => Configuration.Global.Get<string>("CurrentDir");
 			set {
@@ -158,13 +176,14 @@ namespace CrowEdit
 			TextDocument doc = null;
 			CurrentFilePath = filePath;
 			string ext = Path.GetExtension (CurrentFilePath);
-			switch (ext) {
-				case ".crow":
-					doc = new Xml.XmlDocument (this, CurrentFilePath);
-					break;
-				default:
-					doc = new TextDocument (this, CurrentFilePath);
-					break;
+
+			using (System.Runtime.Loader.AssemblyLoadContext.ContextualReflectionScope ctx = pluginsCtx.EnterContextualReflection ()) {				
+
+				Type docType = Type.GetType (Document.GetDocumentClass (ext));
+
+				doc = docType == null ? new TextDocument (this, CurrentFilePath)
+					: (TextDocument)Activator.CreateInstance (docType, new object[] {this, CurrentFilePath});
+
 			}
 			
 			doc.CloseEvent += onQueryCloseDocument;
@@ -183,6 +202,8 @@ namespace CrowEdit
 		}
 
 		void goUpDirClick (object sender, MouseButtonEventArgs e) {
+			if (string.IsNullOrEmpty (CurrentDir))
+				return;
 			string root = Directory.GetDirectoryRoot (CurrentDir);
 			if (CurrentDir == root)
 				return;

@@ -12,7 +12,7 @@ namespace CrowEditBase
 		List<SyntaxNode> children = new List<SyntaxNode> ();
 		
 		public readonly Token StartToken;
-		public Token? EndToken { get; internal set; }
+		public Token? EndToken { get; set; }
 		public SyntaxNode (Token tokStart, Token? tokEnd = null) {			
 			StartToken = tokStart;
 			EndToken = tokEnd;
@@ -20,12 +20,12 @@ namespace CrowEditBase
 
 		public virtual bool IsComplete => EndToken.HasValue;
 
-		internal SyntaxNode AddChild (SyntaxNode child) {
+		public SyntaxNode AddChild (SyntaxNode child) {
 			children.Add (child);
 			child.Parent = this;
 			return child;
 		}
-		internal void RemoveChild (SyntaxNode child) {
+		public void RemoveChild (SyntaxNode child) {
 			children.Remove (child);
 			child.Parent = null;
 		}

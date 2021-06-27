@@ -11,6 +11,7 @@
 		<Compile Include="Properties\AssemblyInfo.cs" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Include="Crow" Version="0.9.7-beta" />	  
+		<ProjectReference Include="..\..\CrowEditBase\CrowEditBase.csproj" />
+	  <!--<PackageReference Include="Crow" Version="0.9.7-beta" />	  -->
 	</ItemGroup>
 </Project>

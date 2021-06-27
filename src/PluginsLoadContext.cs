@@ -4,22 +4,26 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 
 namespace CrowEdit
 {
 	public class PluginsLoadContext : AssemblyLoadContext {
-		List<string> loadedPlugins = new List<string> ();
-		public PluginsLoadContext ()
+		string pluginsDirectory;		
+		public PluginsLoadContext (string pluginsDirectory)
 			: base ("CrowEditPluginsContext", true) {
+			this.pluginsDirectory = pluginsDirectory;
 
+			loadPlugins ();			
 		}
-		protected override Assembly Load(AssemblyName assemblyName)
-		{
-			return loadedPlugins.Contains (assemblyName.Name) ?
-				base.Load(assemblyName) : AssemblyLoadContext.Default.LoadFromAssemblyName (assemblyName);
+		void loadPlugins () {
+			foreach (string f in Directory.GetFiles (pluginsDirectory)) {
+				this.LoadFromAssemblyPath (f);
+			}
 		}
-
+		protected override Assembly Load(AssemblyName assemblyName) => null;
 	}
 }

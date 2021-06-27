@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading;
 using Crow;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace CrowEditBase
 {
@@ -27,6 +28,14 @@ namespace CrowEditBase
 		#region ISelectable implementation
 		public event EventHandler Selected;
 		public event EventHandler Unselected;
+		static Dictionary<string, string> fileAssociations = new Dictionary<string, string> ();
+		public static void AddFileAssociation (string extension, string fullDocumentClassName) {
+			fileAssociations.Add (extension, fullDocumentClassName);
+		}
+		public static string GetDocumentClass (string extension) =>
+			fileAssociations.ContainsKey (extension) ?
+				fileAssociations[extension] : "CrowEditBase.TextDocument, CrowEditBase, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
+
 		public virtual bool IsSelected {
 			get { return isSelected; }
 			set {
