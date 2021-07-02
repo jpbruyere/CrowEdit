@@ -1,21 +1,13 @@
 ﻿<?xml version="1.0"?>
-<Popper Font="{./Font}" Caption="{./Caption}"  Background="{./Background}" PopDirection="{./PopDirection}"
-	Foreground = "{./Foreground}" CanPop="{./HasChildren}" BubbleMouseEvent="true"
-	IsPopped="{²./IsOpened}" PopWidth="{./PopWidth}" PopHeight="{./PopHeight}">
+<Popper PopDirection="{./PopDirection}" Caption="{Caption}" IsEnabled="{CanExecute}" Width="Stretched"
+		MouseEnter="{Background=${ControlHighlight}}"
+		MouseLeave="{Background=Transparent}">
 	<Template>
-		<Border Name="border1"
-				MinimumSize = "60,0"
-				Foreground="Transparent"
-				Background="{./Background}">
-			<HorizontalStack HorizontalAlignment="Left" Margin="1">
-				<Image Style="MenuIcon" Picture="{../../../../Icon}"/>
-				<Label Text="{./Caption}"
-					Foreground="{./Foreground}"
-					Font="{./Font}"	/>
-			</HorizontalStack>					
-		</Border>		
-	</Template>
-	<Border Foreground="DimGrey" Width="{../PopWidth}" Height="{../PopHeight}" Background="${MenuBackground}">
-		<VerticalStack Name="ItemsContainer"/>
-	</Border>
+		<HorizontalStack Background="{./Background}" Width="Stretched" Height="Stretched" Margin="3">
+			<Image Style="MenuIcon" Picture="{../../../../Icon}"/>
+			<Label Text="{./Caption}"   Width="Fit" Height="Stretched"/>
+			<Label Text="..."/>
+		</HorizontalStack>
+	</Template>		
+	<VerticalStack Margin="0" Name="ItemsContainer" Fit="true" Background="${MenuBackground}"/>
 </Popper>

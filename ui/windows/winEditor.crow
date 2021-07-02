@@ -1,0 +1,58 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Editor"  Width="60%">
+	<TabView Data="{OpenedDocuments}" SelectedItem="{²CurrentDocument}"	DataTest="Extension">
+		<Template>
+			<VerticalStack Spacing="0" >
+				<ListBox Data="{./Items}" Fit="true" HorizontalAlignment="Left" VerticalAlignment="Top"> 
+					<Template>
+						<HorizontalStack Name="ItemsContainer" />
+					</Template>
+					<ItemTemplate>
+						<ListItem RootDataLevel="true" Fit="true" Background="Transparent" IsSelected="{IsVisible}"								
+								Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}}"
+								Unselected="{.DataSource.IsVisible='false'};{Background=Transparent}">
+							<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
+								
+								<Widget Width="10" Height="10" Background="RoyalBlue" IsVisible="{IsDirty}"/>
+								<Label Text="{FileName}" Tooltip="{FullPath}" ContextCommands="{Commands}" />
+								<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
+											MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
+									<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
+										 MouseClick="OnQueryClose"/>
+								</Border>								
+							</HorizontalStack>
+						</ListItem>
+					</ItemTemplate>
+				</ListBox>
+				<Group Name="ItemsContainer" />
+			</VerticalStack>		
+		</Template>		
+		<ItemTemplate>
+			<ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}" Selected="{/tb.HasFocus='true'}">
+				<VerticalStack Spacing="0">
+					<HorizontalStack Spacing="0">
+						<Editor Name="tb" Multiline="true" Font="consolas, 12" Focusable="true" Height="Stretched" Width="Stretched"
+								Document="{}" TextChanged="onTextChanged"/>
+						<ScrollBar Value="{²../tb.ScrollY}"
+								LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"
+								CursorRatio="{../tb.ChildHeightRatio}" Maximum="{../tb.MaxScrollY}" />
+					</HorizontalStack>
+					<ScrollBar Style="HScrollBar" Value="{²../tb.ScrollX}"
+							LargeIncrement="{../tb.PageWidth}" SmallIncrement="1"
+							CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />			
+					<HorizontalStack Height="Fit">
+						<Widget Width="Stretched"/>
+						<Widget Height="5" Width="10"/>
+						<Label Text="Line:" Foreground="Grey"/>
+						<Label Text="{../../tb.CurrentLine}" Margin="3"/>				
+						<Label Text="col:" Foreground="Grey"/>
+						<Label Text="{../../tb.CurrentColumn}" Margin="3"/>				
+					</HorizontalStack>		
+				</VerticalStack>
+			</ListItem>
+		</ItemTemplate>
+		<ItemTemplate Path="#CrowEdit.ui.sourceEditor.itmp" DataType=".crow"/>
+	</TabView>
+</DockWindow>
+
+

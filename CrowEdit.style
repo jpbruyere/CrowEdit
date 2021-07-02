@@ -1,0 +1,37 @@
+﻿SmallUIFont = "sans, 10";
+DocTabViewBackground = "DarkGrey";
+SelectedTabBackground = "Onyx";
+MenuIconSize = "14";
+
+DockWindow {
+	Template = "#CrowEdit.ui.DockWindow.template";
+}
+DockingTabView {
+	Template = "#CrowEdit.ui.DockingTabView.template";
+}
+MenuItem {
+	Template = "#ui.MenuItem.template";
+}
+
+MenuIcon {
+	Margin = "2";
+	Width = "${MenuIconSize}";
+	Height = "${MenuIconSize}";
+}
+
+suggestionsListBox {
+	Template = "#ui.Suggestions.template";
+	Width = "Fit";
+	Height = "Fit";
+	MaximumSize = "300, 120";
+	Background = "Jet";
+	UseLoadingThread = "false";
+}
+
+Editor {
+	Background="White";
+	Foreground="Black";
+	Text="";
+	Multiline="true";
+}
+

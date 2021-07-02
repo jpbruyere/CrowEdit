@@ -27,6 +27,8 @@ namespace CrowEditBase
 					return;
 				source = value;
 				NotifyValueChanged (source);
+				NotifyValueChanged ("IsDirty", IsDirty);
+				CMDSave.CanExecute = IsDirty;
 			}
 		}
 
@@ -109,26 +111,8 @@ namespace CrowEditBase
 		protected Stack<TextChange> undoStack = new Stack<TextChange> ();
 		protected Stack<TextChange> redoStack = new Stack<TextChange> ();
 
-		public Command CMDUndo, CMDRedo, CMDSave, CMDSaveAs;
 
-		protected override void initCommands () {
-			CMDUndo = new Command ("Undo", undo, "#CrowEdit.ui.icons.reply.svg",  false);
-			CMDRedo = new Command ("Redo", redo, "#CrowEdit.ui.icons.share-arrow.svg", false);
-			CMDSave = new Command ("save", Save, "#CrowEdit.ui.icons.inbox.svg");
-			CMDSaveAs = new Command ("Save As...", SaveAs, "#CrowEdit.ui.icons.inbox.svg");
-		}
-		public void SaveAs () {
-			iFace.LoadIMLFragment (
-			"<FileDialog Width='60%' Height='50%' Caption='Save File' CurrentDirectory='{FileDirectory}' OkClicked='saveFileDialog_OkClicked'/>"
-			).DataSource = this;
-		}
-		public void Save () {
-			if (File.Exists (FullPath))
-				writeToDisk ();
-			else
-				SaveAs ();				
-		}
-
+		
 		protected void saveFileDialog_OkClicked (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
@@ -149,7 +133,7 @@ namespace CrowEditBase
 		}
 
 
-		protected void undo () {
+		protected override void undo () {
 			editorRWLock.EnterWriteLock ();
 			try {
 				if (undoStack.TryPop (out TextChange tc)) {
@@ -165,7 +149,7 @@ namespace CrowEditBase
 				editorRWLock.ExitWriteLock ();
 			}
 		}
-		protected void redo () {
+		protected override void redo () {
 			editorRWLock.EnterWriteLock ();
 			try {
 				if (redoStack.TryPop (out TextChange tc)) {

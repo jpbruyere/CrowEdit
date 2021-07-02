@@ -98,11 +98,13 @@ namespace Crow
 			if (disableTextChangedEvent)
 				return;			
 			base.OnTextChanged(sender, e);
-		}
+		}		
 		protected override void onFocused(object sender, EventArgs e)
-		{
+		{			
+			if (CurrentLoc == null)
+				CurrentLoc = new CharLocation (0, 0);
 			base.onFocused(sender, e);
-			IFace.NotifyValueChanged ("CurrentEditor", this);
+			(IFace as CrowEditBase.CrowEditBase).CurrentEditor = this;
 		}		
 		protected void backgroundThreadFunc () {
 			while (true) {				

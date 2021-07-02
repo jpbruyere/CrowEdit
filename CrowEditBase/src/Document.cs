@@ -92,7 +92,28 @@ namespace CrowEditBase
 		public void OnQueryClose (object sender, EventArgs e){
 			CloseEvent.Raise (this, null);
 		}
-		protected abstract void initCommands ();
+		public void SaveAs () {
+			iFace.LoadIMLFragment (
+			"<FileDialog Width='60%' Height='50%' Caption='Save File' CurrentDirectory='{FileDirectory}' OkClicked='saveFileDialog_OkClicked'/>"
+			).DataSource = this;
+		}
+		public void Save () {
+			if (File.Exists (FullPath))
+				writeToDisk ();
+			else
+				SaveAs ();				
+		}
+
+		public Command CMDUndo, CMDRedo, CMDSave, CMDSaveAs;
+		
+		protected virtual void initCommands () {
+			CMDUndo = new Command ("Undo", undo, "#CrowEdit.ui.icons.reply.svg",  false);
+			CMDRedo = new Command ("Redo", redo, "#CrowEdit.ui.icons.share-arrow.svg", false);
+			CMDSave = new Command ("save", Save, "#CrowEdit.ui.icons.inbox.svg", false);
+			CMDSaveAs = new Command ("Save As...", SaveAs, "#CrowEdit.ui.icons.inbox.svg");
+		}
+		protected abstract void undo();
+		protected abstract void redo();
 		protected abstract void writeToDisk ();
 		protected abstract void readFromDisk ();
 		protected abstract void initNewFile ();

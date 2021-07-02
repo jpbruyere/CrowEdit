@@ -14,7 +14,7 @@ using System.Linq;
 
 namespace CrowEdit
 {
-	public class CrowEdit : Interface
+	public class CrowEdit : CrowEditBase.CrowEditBase
 	{		
 #if NETCOREAPP
 		static IntPtr resolveUnmanaged(Assembly assembly, String libraryName)
@@ -30,23 +30,120 @@ namespace CrowEdit
 			Console.WriteLine($"[UNRESOLVE] {assembly} {libraryName}");
 			return IntPtr.Zero;
 		}		
-		static void Main ()
-		{
-			using (CrowEdit win = new CrowEdit ()) 
-				win.Run	();
-		}
 		static CrowEdit()
 		{
 			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).ResolvingUnmanagedDll += resolveUnmanaged;
 			Interface.CrowAssemblyNames = new string[] {"CrowEditBase"};
 		}
-		public CrowEdit () : base(800, 600)	{ 
+#endif		
+		static void Main ()
+		{
+			using (CrowEdit app = new CrowEdit ())
+				app.Run	();
+		}
+		public CrowEdit () : base (Configuration.Global.Get<int>("MainWinWidth"), Configuration.Global.Get<int>("MainWinHeight")) {
+			
 			initPlugins ();
 		}
+		public override void ProcessResize(Rectangle bounds)
+		{
+			base.ProcessResize(bounds);
+			Configuration.Global.Set ("MainWinWidth", clientRectangle.Width);
+			Configuration.Global.Set ("MainWinHeight", clientRectangle.Height);
+		}
 
-#endif		
-		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDShowLeftPane,
-			CMDHelp, CMDAbout, CMDOptions;
+		protected override void OnInitialized () {
+			base.OnInitialized ();
+
+			//SetWindowIcon ("#CrowEdit.images.crow.png");
+		
+			if (CurrentDir == null)
+				CurrentDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
+			
+			initCommands ();
+
+			Widget w = Load ("#CrowEdit.ui.main.crow");
+			w.DataSource = this;
+
+			mainDock = w.FindByName ("mainDock") as DockStack;
+
+			reloadWinConfigs ();
+
+			reopenLastDocumentList ();
+		}
+		public override void Terminate()
+		{
+			saveOpenedDocumentList ();
+			saveWinConfigs ();	
+		}
+		DockStack mainDock;
+				public void saveWinConfigs() {
+			Configuration.Global.Set ("WinConfigs", mainDock.ExportConfig ());
+			Configuration.Global.Save ();
+		}
+		public Command CMDSave, CMDSaveAs, CMDQuit, CMDHelp, CMDAbout, CMDOptions;
+
+		public CommandGroup AllCommands => new CommandGroup (
+			FileCommands,
+			EditCommands,	
+			ViewCommands
+		);		
+		public CommandGroup ViewCommands = new CommandGroup ("View",
+ 			new Command("Explorer", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winFileExplorer.crow")),
+			new Command("Editor", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winEditor.crow"))
+		);
+		void initCommands (){
+			FileCommands = new CommandGroup ("File",
+	 			new Command("New", createNewFile, "#CrowEdit.ui.icons.blank-file.svg"),
+				new Command("Open...", openFileDialog, "#CrowEdit.ui.icons.outbox.svg"),
+				new Command ("save", default(Action), "#CrowEdit.ui.icons.inbox.svg", false),
+				new Command ("Save As...", default(Action), "#CrowEdit.ui.icons.inbox.svg", false),
+				new Command("Options", openOptionsDialog, "#CrowEdit.ui.icons.tools.svg"),
+				new Command("Quit", base.Quit, "#CrowEdit.ui.icons.sign-out.svg")
+			);
+			EditCommands = new CommandGroup ("Edit",
+				new Command ("Undo", default(Action), "#CrowEdit.ui.icons.reply.svg", false),
+				new Command ("Redo", default(Action), "#CrowEdit.ui.icons.share-arrow.svg", false),
+				new Command ("Cut", default(Action), "#CrowEditBase.ui.icons.scissors.svg", false),
+				new Command ("Copy", default(Action), "#CrowEditBase.ui.icons.copy-file.svg", false),
+				new Command ("Paste", default(Action), "#CrowEditBase.ui.icons.paste-on-document.svg", false)
+
+			);
+			
+			CMDHelp = new Command(new Action(() => System.Diagnostics.Debug.WriteLine("help"))) { Caption = "Help", Icon = new SvgPicture("#CrowEdit.ui.icons.question.svg")};
+		}
+
+		static void loadWindowWithThisDataSource(object sender, string path) {
+			Widget w = sender as Widget;
+			CrowEdit e = w.IFace as CrowEdit;
+			e.loadWindow (path, e);
+		}
+		public void reloadWinConfigs() {
+			string conf = Configuration.Global.Get<string>("WinConfigs");
+			if (string.IsNullOrEmpty (conf))
+				return;
+			mainDock.ImportConfig (conf, this);
+		}
+		public Window loadWindow (string path, object dataSource = null){
+			try {
+				Widget g = FindByName (path);
+				if (g != null)
+					return g as Window;
+				g = Load (path);
+				g.Name = path;
+				g.DataSource = dataSource;
+				return g as Window;
+			} catch (Exception ex) {
+				Console.WriteLine (ex.ToString ());
+			}
+			return null;
+		}
+		public void closeWindow (string path){
+			Widget g = FindByName (path);
+			if (g != null)
+				DeleteWidget (g);
+		}		
+
 
 		PluginsLoadContext pluginsCtx;
 		void initPlugins () {
@@ -59,120 +156,7 @@ namespace CrowEdit
 
 			pluginsCtx = new PluginsLoadContext (PluginsDirecory);
 		}
-		public ObservableList<TextDocument> OpenedDocuments = new ObservableList<TextDocument> ();
-
-		const string _defaultFileName = "unnamed.txt";
-
-		
-		void undo () {
-		}
-		void redo () {
-		}
-
-		TextDocument currentDocument;
-		public TextDocument CurrentDocument {
-			get => currentDocument;
-			set {
-				if (currentDocument == value)
-					return;
-
-				currentDocument?.UnselectDocument ();
-
-				currentDocument = value;				
-				NotifyValueChanged (currentDocument);
-
-				currentDocument?.SelectDocument ();
-			}
-		}
-		public string PluginsDirecory {
-			get => Configuration.Global.Get<string>("PluginsDirecory");
-			set {
-				if (PluginsDirecory == value)
-					return;
-				Configuration.Global.Set ("PluginsDirecory", value);
-				NotifyValueChanged (PluginsDirecory);
-			}
-		}
-
-		public string CurrentDir {
-			get => Configuration.Global.Get<string>("CurrentDir");
-			set {
-				if (CurrentDir == value)
-					return;
-				Configuration.Global.Set ("CurrentDir", value);
-				NotifyValueChanged (CurrentDir);
-			}
-		}
-		public string CurrentFilePath {
-			get => Configuration.Global.Get<string> ("CurrentFilePath");
-			set {
-				if (CurrentFilePath == value)
-					return;
-				Configuration.Global.Set ("CurrentFilePath", value);
-				NotifyValueChanged (CurrentFilePath);
-			}
-		}
-		public string CurFileName {
-			get => string.IsNullOrEmpty (CurrentFilePath) ? _defaultFileName : Path.GetFileName (CurrentFilePath);
-		}
-		public string CurFileDir {
-			get => string.IsNullOrEmpty (CurrentFilePath) ? CurrentDir : Path.GetDirectoryName (CurrentFilePath);
-		}
-		public bool ShowLeftPane {
-			get => Configuration.Global.Get<bool> ("ShowLeftPane");
-			set {
-				if (ShowLeftPane == value)
-					return;
-				Configuration.Global.Set ("ShowLeftPane", value);
-				NotifyValueChanged (ShowLeftPane);
-			}
-		}
-		public bool ReopenLastFile {
-			get => Configuration.Global.Get<bool> ("ReopenLastFile");
-			set {
-				if (ReopenLastFile == value)
-					return;
-				Configuration.Global.Set ("ReopenLastFile", value);
-				NotifyValueChanged (ReopenLastFile);
-			}
-		}
-
-		void initCommands (){
-			CMDNew = new Command("New", createNewFile, "#CrowEdit.ui.icons.blank-file.svg");
-			CMDOpen = new Command("Open...", openFileDialog, "#CrowEdit.ui.icons.outbox.svg");
-			
-
-			CMDQuit = new Command("Quit", base.Quit, "#CrowEdit.ui.icons.sign-out.svg");
-
-			CMDHelp = new Command(new Action(() => System.Diagnostics.Debug.WriteLine("help"))) { Caption = "Help", Icon = new SvgPicture("#CrowEdit.ui.icons.question.svg")};
-
-			CMDOptions = new Command("Editor Options", openOptionsDialog, new SvgPicture("#CrowEdit.ui.icons.tools.svg"));
-			CMDShowLeftPane = new Command ("Show Left Pane", () => ShowLeftPane = !ShowLeftPane);			
-		}
-		void createNewFile(){
-			openOrCreateFile (Path.Combine (CurFileDir, _defaultFileName));	
-		}		
-		void openOptionsDialog() =>	Load ("#CrowEdit.ui.EditorOptions.crow").DataSource = this;
-		void openFileDialog() =>
-			LoadIMLFragment (
-				@"<FileDialog Width='60%' Height='50%' Caption='Open File' AlwaysOnTop='true'
-					CurrentDirectory='{CurFileDir}'
-					SelectedFile='{CurFileName}'
-					OkClicked='openFileDialog_OkClicked'/>").DataSource = this;
-		
-		void openFileDialog_OkClicked (object sender, EventArgs e)
-		{
-			FileDialog fd = sender as FileDialog;
-			if (string.IsNullOrEmpty (fd.SelectedFile))
-				return;
-			TextDocument doc = OpenedDocuments.FirstOrDefault (d => d.FullPath == fd.SelectedFileFullPath);
-			if (doc != null)
-				CurrentDocument = doc;
-			else
-				openOrCreateFile (fd.SelectedFileFullPath);
-		}
-
-		void openOrCreateFile (string filePath) {
+		protected override Document openOrCreateFile (string filePath) {
 			TextDocument doc = null;
 			CurrentFilePath = filePath;
 			string ext = Path.GetExtension (CurrentFilePath);
@@ -189,16 +173,34 @@ namespace CrowEdit
 			doc.CloseEvent += onQueryCloseDocument;
 			OpenedDocuments.Add (doc);
 			CurrentDocument = doc;
+			return doc;
 		}
-		void closeDocument (TextDocument doc) {
-			int idx = OpenedDocuments.IndexOf (doc);
-			OpenedDocuments.Remove (doc);
-			if (doc == CurrentDocument) {
-				if (OpenedDocuments.Count > 0)
-					CurrentDocument = OpenedDocuments[Math.Min (idx, OpenedDocuments.Count - 1)];
-				else
-					CurrentDocument = null;
+
+		/*public TreeNode[] GetCurrentDirNodes =>
+				(string.IsNullOrEmpty(CurrentDir) || !Directory.Exists (CurrentDir)) ?
+					 null :	new DirectoryNode (new DirectoryInfo(CurrentDir)).GetFileSystemTreeNodeOrdered();*/
+		public bool ReopenLastFile {
+			get => Configuration.Global.Get<bool> ("ReopenLastFile");
+			set {
+				if (ReopenLastFile == value)
+					return;
+				Configuration.Global.Set ("ReopenLastFile", value);
+				NotifyValueChanged (ReopenLastFile);
 			}
+		}
+
+		void openOptionsDialog() =>	Load ("#CrowEdit.ui.EditorOptions.crow").DataSource = this;
+		void openFileDialog() =>
+			LoadIMLFragment (
+				@"<FileDialog Width='60%' Height='50%' Caption='Open File' AlwaysOnTop='true'
+					CurrentDirectory='{CurFileDir}'
+					SelectedFile='{CurFileName}'
+					OkClicked='openFileDialog_OkClicked'/>").DataSource = this;
+		
+		void openFileDialog_OkClicked (object sender, EventArgs e)
+		{
+			if (OpenOrSelectFile ((sender as FileDialog).SelectedFile) is TextDocument textDocument)
+				CurrentDocument = textDocument;
 		}
 
 		void goUpDirClick (object sender, MouseButtonEventArgs e) {
@@ -219,32 +221,31 @@ namespace CrowEdit
 			TextDocument doc = OpenedDocuments.FirstOrDefault (d => d.FullPath == fi.FullName);
 			if (doc != null)
 				CurrentDocument = doc;
+			/*else
+				openOrCreateFile (fi.FullName);*/
+		}
+		void saveOpenedDocumentList () {
+			if (OpenedDocuments.Count == 0)
+				Configuration.Global.Set ("OpenedItems", "");
 			else
-				openOrCreateFile (fi.FullName);
+				Configuration.Global.Set ("OpenedItems", OpenedDocuments.Select(o => o.FullPath).Aggregate((a,b)=>$"{a};{b}"));
+			Configuration.Global.Set ("CurrentDocument", CurrentDocument?.FullPath);
+		}
+		void reopenLastDocumentList () {
+			string tmp = Configuration.Global.Get<string> ("OpenedItems");
+			if (string.IsNullOrEmpty (tmp))
+				return;
+			foreach (string f in tmp.Split(';'))
+				openOrCreateFile (f);
+			string lastCurDoc = Configuration.Global.Get<string> ("CurrentDocument");
+			if (string.IsNullOrEmpty (lastCurDoc))
+				return;
+			TextDocument doc = OpenedDocuments.FirstOrDefault (d => d.FullPath == lastCurDoc);
+			if (doc != null)
+				CurrentDocument = doc;
 		}
 
 		
-		void onQueryCloseDocument (object sender, EventArgs e) {
-			TextDocument doc = sender as TextDocument;
-			if (doc.IsDirty) {
-				MessageBox mb = MessageBox.ShowModal (this,
-					                MessageBox.Type.YesNoCancel, $"{doc.FileName} has unsaved changes.\nSave it now?");
-				mb.Yes += (object _sender, EventArgs _e) => { doc.Save (); closeDocument (doc); };
-				mb.No += (object _sender, EventArgs _e) => closeDocument (doc);
-			} else
-				closeDocument (doc);
-		}
-
-		protected override void OnInitialized () {
-			base.OnInitialized ();
-
-			if (CurrentDir == null)
-				CurrentDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
-			
-			initCommands ();
-			Load ("#CrowEdit.ui.main.crow").DataSource = this;		
-
-		}		
 	}
 }
 
