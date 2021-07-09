@@ -12,7 +12,6 @@
 						SelectedItemChanged="./onSelectedItemChanged">
 					<ItemTemplate DataType="System.IO.FileInfo">
 						<ListItem CornerRadius="2" Margin="0" Height="Fit" Width="Stretched"
-								BubbleMouseEvent="false"
 								MouseDoubleClick="OpenWithCrowEdit"
 								ContextCommands="{GetCommands}" 
 								Selected="{Background=${ControlHighlight}}"
@@ -27,7 +26,7 @@
 						<ListItem ContextCommands="{GetCommands}"
 								Selected="{/exp.Background=${ControlHighlight}}"
 								Unselected="{/exp.Background=Transparent}">
-							<Expandable Name="exp" Caption="{Name}" MouseDoubleClick="/onClickForExpand" BubbleMouseEvent="true">
+							<Expandable Name="exp" Caption="{Name}" MouseDoubleClick="/onClickForExpand" BubbleMouseEvent="All">
 								<Template>
 									<VerticalStack>
 										<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"

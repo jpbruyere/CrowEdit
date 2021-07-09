@@ -8,12 +8,13 @@ using System.Collections.Generic;
 using System.IO;
 using Crow;
 using Crow.Text;
+using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
 	public class TextDocument : Document {
-		public TextDocument (Interface iFace, string fullPath)
-			: base (iFace, fullPath) {			
+		public TextDocument (string fullPath)
+			: base (fullPath) {			
 			reloadFromFile ();
 		}
 
@@ -121,7 +122,7 @@ namespace CrowEditBase
 				return;
 
 			if (File.Exists(fd.SelectedFileFullPath)) {
-				MessageBox.ShowModal (iFace, MessageBox.Type.YesNo, "File exists, overwrite?")
+				MessageBox.ShowModal (App, MessageBox.Type.YesNo, "File exists, overwrite?")
 					.Yes += (sender2, e2) => {
 						FullPath = fd.SelectedFileFullPath;
 						writeToDisk ();

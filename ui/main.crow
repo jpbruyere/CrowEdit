@@ -1,19 +1,19 @@
 ﻿<?xml version="1.0"?>
 <VerticalStack DataSourceType="CrowEdit" Spacing="0" >
 	<Menu Data="{AllCommands}" >
-		<ItemTemplate DataType="Crow.Command" Path="#Crow.MenuButton.template"/>
+		<ItemTemplate DataType="Crow.Command" Path="#CrowEdit.ui.MenuButton.template"/>
 		<ItemTemplate DataType="Crow.CommandGroup"  >
 			<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}"
-						ItemTemplate="#Crow.MenuItem.itmp">
+						ItemTemplate="#CrowEdit.ui.MenuItem.itmp">
 				<Template>
-					<Popper PopDirection="Bottom" Caption="{Caption}" Width="Fit"
+					<Popper PopDirection="Bottom" Caption="{Caption}" Width="Fit" 
 									MouseEnter="{Background=${ControlHighlight}}"
 									MouseLeave="{Background=Transparent}">
 						<Template>
-							<Label Text="{./Caption}" Width="Stretched" Height="Fit" Margin="3"
+							<Label Text="{./Caption}" Width="Stretched" Height="Fit" Margin="5"
 								Background="{./Background}"/>
 						</Template>
-						<VerticalStack Name="ItemsContainer" Fit="true" Background="Jet"/>
+						<VerticalStack Name="ItemsContainer" Height="Fit" Width="Fit" Background="Jet"/>
 					</Popper>
 				</Template>
 			</MenuItem>

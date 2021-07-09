@@ -20,7 +20,7 @@ namespace CrowEdit
 			);		
 		public static CommandGroup GetCommands (this System.IO.FileInfo fi) =>
 			new CommandGroup(
-				new Command ("Open", ()=> {CrowEdit.App.OpenOrSelectFile (fi.FullName);}),
+				new Command ("Open", ()=> {CrowEdit.App.OpenFile (fi.FullName);}),
 				new Command ("Close", ()=> {CrowEdit.App.CloseFile (fi.FullName);},null, CrowEdit.App.IsOpened (fi.FullName)),
 				new Command ("Delete", (sender0) => {
 					MessageBox.ShowModal (CrowEdit.App, MessageBox.Type.YesNo, $"Delete {fi.Name}?").Yes += (sender, e) => {
@@ -30,7 +30,7 @@ namespace CrowEdit
 					};
 				})
 			);
-		public static void OpenWithCrowEdit (this System.IO.FileInfo fi, object sender = null, EventArgs e = null) => CrowEdit.App.OpenOrSelectFile (fi.FullName);
+		public static void OpenWithCrowEdit (this System.IO.FileInfo fi, object sender = null, EventArgs e = null) => CrowEdit.App.OpenFile (fi.FullName);
 
 		public static TreeNode [] GetFileSystemTreeNodeOrdered (this DirectoryInfo di) 
 			=> di.GetFileSystemInfos ().OrderBy (f => f.Attributes).ThenBy (f => f.Name).Cast<TreeNode> ().ToArray ();

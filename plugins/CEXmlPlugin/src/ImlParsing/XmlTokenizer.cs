@@ -72,7 +72,7 @@ namespace CrowEdit.Xml
 				}
 			}
 		}
-		void addTok (ref SpanCharReader reader, XmlTokenType tokType) {
+		void addTok (ref SpanCharReader reader, Enum tokType) {
 			if (reader.CurrentPosition == startOfTok)
 				return;
 			Toks.Add (new Token((TokenType)tokType, startOfTok, reader.CurrentPosition));

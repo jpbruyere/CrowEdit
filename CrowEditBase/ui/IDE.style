@@ -23,3 +23,14 @@ IcoBut {
 	Height = "14";
 	Background = "White";
 }
+Spinner {
+	Template = "#CrowEditBase.ui.spinner.template";
+}
+TreeIcon {	
+	Width="18";
+	Height="18";	
+}
+TreeLabel {
+	Foreground="White";
+	Margin = "1";
+}

@@ -2,27 +2,41 @@
 <!--<Widget Background="{./Background}"/>-->
 <Border	Name="SizeHandle" BorderWidth="1" Foreground="Black" CornerRadius="{./CornerRadius}"
 		StickyMouse="8" StickyMouseEnabled="{./IsFloating}" Background="{./Background}">
-	<VerticalStack Spacing="0">
+	<VerticalStack Spacing="0" Name="MoveHandle">
 		<HorizontalStack Visible="{./IsDockedInStack}" Height="Fit" Margin="1" Background="Jet">
-			<Label  Text="{./Caption}" TextAlignment="Left" Width="Stretched" Foreground="White" />
-			<Border CornerRadius="6" BorderWidth="1" Foreground="Transparent"  Height="10" Width="10"
-				MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
-				<Image Focusable="true" Name="Image" Margin="0" Path="#Crow.Icons.exit2.svg"
-					 MouseClick="./onQuitPress"/>
-			</Border>
+			<Label  Text="{./Caption}" TextAlignment="Left" Width="Stretched" Foreground="DimGrey" Font="${SmallUIFont}"/>
+			<ListBox Data="{./DockCommands}" Fit="true">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" />
+				</Template>
+				<ItemTemplate Path="#Crow.WindowButton.template"/>
+			</ListBox>
+			<ListBox Data="{./Commands}" Fit="true">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" />
+				</Template>
+				<ItemTemplate Path="#Crow.WindowButton.template"/>
+			</ListBox>			
 		</HorizontalStack>
-		<HorizontalStack Background="vgradient|0:0.5,0.6,0.5,0.5|1:0.2,0.3,0.3,0.7"
+		<HorizontalStack Background="vgradient|0:0.5,0.4,0.6,0.5|1:0.2,0.3,0.3,0.7"
 				Name="hs" Margin="0" Spacing="0" Height="Fit" Visible="{./IsFloating}">
 			<Widget Width="5"/>
 			<Image Margin="1" Width="10" Height="10" Path="{./Icon}"/>
-			<Label Width="Stretched" Foreground="White" Margin="1" TextAlignment="Left" Text="{./Caption}" Font="${SmallUIFont}" />
-			<Border CornerRadius="6" BorderWidth="1" Foreground="Transparent"  Height="10" Width="10"
-				MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
-				<Image Focusable="true" Name="Image" Margin="0" Path="#Crow.Icons.exit2.svg"
-					 MouseClick="./onQuitPress"/>
-			</Border>
+			<Label Width="Stretched" Foreground="White" Margin="1" TextAlignment="Left" Text="{./Caption}"  />
+			<ListBox Data="{./DockCommands}" Fit="true">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" />
+				</Template>
+				<ItemTemplate Path="#Crow.WindowButton.template"/>
+			</ListBox>			
+			<ListBox Data="{./Commands}" Fit="true">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" />
+				</Template>
+				<ItemTemplate Path="#Crow.WindowButton.template"/>
+			</ListBox>
 			<Widget Width="5"/>
 		</HorizontalStack>
-		<Container Name="Content" MinimumSize="50,50"/>
+		<Container Name="Content" MinimumSize="50,50" />
 	</VerticalStack>
 </Border>

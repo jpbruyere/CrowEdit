@@ -1,0 +1,13 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Crow Preview"  Width="60%" Commands="{/dbgIfaceWidget.WindowCommands}">
+	<VerticalStack Background="Black" >
+		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true"
+					BubbleMouseEvent="None"
+					Document="{CurrentDocument}"/>
+		<Label DataSource="{../dbgIfaceWidget.CrowIFaceService}" Text="{CurrentException}" Background="DarkRed" Foreground="White"
+				IsVisible="{PreviewHasError}"
+				Width="Stretched" Margin="2" Multiline="true"/>
+	</VerticalStack>
+</DockWindow>
+
+

@@ -1,0 +1,12 @@
+﻿<?xml version="1.0"?>
+<HorizontalStack Height="Fit">
+	<Label Text="{}" Width="Stretched"/>
+	<ListBox Data="{Commands}" Fit="true">
+		<Template>
+			<HorizontalStack Name="ItemsContainer" />
+		</Template>
+		<ItemTemplate Path="#CrowEditBase.ui.IconCommand.itmp"/>
+	</ListBox>
+</HorizontalStack>
+
+

@@ -6,11 +6,11 @@
 			<GenericStack Orientation="{../../../Orientation}" Name="ItemsContainer" />
 		</Template>
 		<ItemTemplate>
-			<ListItem Fit="true" Background="${InactiveTabItem}" IsSelected="{IsVisible}"
-					Selected="{.DataSource.Visible='true'};{Background=.DataSource.Background}"
-					Unselected="{.DataSource.Visible='false'};{Background=${InactiveTabItem}}">
+			<ListItem Fit="true" Background="${InactiveTabBackground}" Foreground="${InactiveTabForeground}" IsSelected="{IsVisible}"
+					Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}};{Foreground=${SelectedTabForeground}}"
+					Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}">					
 				<HorizontalStack Margin="2" >  
-					<Label Text="{Caption}" Margin="1" Font="${SmallUIFont}" />
+					<Label Text="{Caption}" Margin="1" Font="${SmallUIFont}" Foreground="{../../Foreground}"/>
 					<Border CornerRadius="6" BorderWidth="1" Foreground="Transparent"  Height="10" Width="10" VerticalAlignment="Center"
 						MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
 						<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"

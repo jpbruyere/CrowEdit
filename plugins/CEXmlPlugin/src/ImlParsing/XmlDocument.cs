@@ -12,6 +12,7 @@ using IML = Crow.IML;
 using System.Collections;
 using System.Reflection;
 using CrowEditBase;
+using static CrowEditBase.CrowEditBase;
 
 namespace CrowEdit.Xml
 {
@@ -25,8 +26,7 @@ namespace CrowEdit.Xml
 	}
 	public class XmlDocument : SourceDocument {
 
-		public XmlDocument (Interface iFace, string fullPath)
-			: base (iFace, fullPath) {
+		public XmlDocument (string fullPath) : base (fullPath) {
 			
 		}
 		protected override Tokenizer CreateTokenizer() => new XmlTokenizer ();
@@ -69,7 +69,7 @@ namespace CrowEdit.Xml
 									eltTag.NameToken.Value.AsString (Source), attribNode.NameToken.Value.AsString (Source));
 								if (mi is PropertyInfo pi) {
 									if (pi.Name == "Style")
-										return iFace.Styling.Keys
+										return App.Styling.Keys
 											.Where (s => s.StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
 									if (pi.PropertyType.IsEnum)
 										return Enum.GetNames (pi.PropertyType)
@@ -81,7 +81,7 @@ namespace CrowEdit.Xml
 										return (new string[] {"Stretched", "Fit"}).
 											Where (s => s.StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
 									if (pi.PropertyType == typeof (Fill)) 
-										return  FastEnumUtility.FastEnum.GetValues<Colors> ()
+										return  EnumsNET.Enums.GetValues<Colors> ()
 											.Where (s => s.ToString().StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
 								}
 							} else if (currentToken.GetTokenType() == XmlTokenType.AttributeValueOpen) {
@@ -89,13 +89,13 @@ namespace CrowEdit.Xml
 									eltTag.NameToken.Value.AsString (Source), attribNode.NameToken.Value.AsString (Source));
 								if (mi is PropertyInfo pi) {
 									if (pi.Name == "Style")
-										return iFace.Styling.Keys.ToList ();
+										return App.Styling.Keys.ToList ();
 									if (pi.PropertyType.IsEnum)
 										return  Enum.GetNames (pi.PropertyType).ToList ();
 									if (pi.PropertyType == typeof(bool))
 										return  new List<string> (new string[] {"true", "false"});
 									if (pi.PropertyType == typeof (Fill)) 
-										return  FastEnumUtility.FastEnum.GetValues<Colors> ().ToList ();
+										return  EnumsNET.Enums.GetValues<Colors> ().ToList ();
 									if (pi.PropertyType == typeof (Measure))
 										return  new List<string> (new string[] {"Stretched", "Fit"});
 								}

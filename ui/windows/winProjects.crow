@@ -1,0 +1,24 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Project"  Width="60%" >
+	<!--<ListBox RootDataLevel="true" Data="{Projects}" SelectedItem="{²CurrentProject}">
+		<ItemTemplate>
+			<HorizontalStack Height="Fit">
+				<Label Text="{Name}" Width="Stretched"/>
+				<ListBox Data="{Commands}" Fit="true">
+					<Template>
+						<HorizontalStack Name="ItemsContainer" />
+					</Template>
+					<ItemTemplate Path="#CrowEditBase.ui.IconCommand.itmp"/>
+				</ListBox>
+			</HorizontalStack>		
+		</ItemTemplate>
+	</ListBox>-->
+
+	<TreeView Name="treeview" IsRoot="true" RootDataLevel="true" Data="{Projects}" Background="Onyx" >
+		<ItemTemplate DataType="default" Data="Childs" Path="#CrowEditBase.ui.TreeExpandable.template" />
+		<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Children" Path="#CrowEditBase.ui.TreeExpandable.template" />
+		<ItemTemplate DataType="CrowEditBase.Project" Data="SubProjects" Path="#CrowEditBase.ui.TreeExpandable.template" />
+	</TreeView>	
+</DockWindow>
+
+

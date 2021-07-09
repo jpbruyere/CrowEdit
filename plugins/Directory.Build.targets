@@ -1,0 +1,9 @@
+<Project>
+	<PropertyGroup>
+		<DestinationFolder>$(SolutionDir)build\plugins\</DestinationFolder>
+	</PropertyGroup>
+	<Target Name="AfterBuild">
+		<MakeDir Directories="$(DestinationFolder)$(ProjectName)\"/>
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DestinationFolder)$(ProjectName)\" ContinueOnError="true" />
+	</Target>
+</Project>

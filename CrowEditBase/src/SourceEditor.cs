@@ -33,7 +33,7 @@ namespace Crow
 				if (suggestions == null || suggestions.Count == 0)
 					hideOverlay ();
 				else
-					showOverlay ();				
+					showOverlay ();		
 			}
 		}
 		bool suggestionsActive => overlay != null && overlay.IsVisible;
@@ -156,7 +156,8 @@ namespace Crow
 				}
 			} else if (e.Key == Key.Tab && !selection.IsEmpty) {
 				int lineStart = lines.GetLocation (selection.Start).Line;
-				int lineEnd = lines.GetLocation (selection.End).Line;
+				CharLocation locEnd = lines.GetLocation (selection.End);
+				int lineEnd = locEnd.Column == 0 ? Math.Max (0, locEnd.Line - 1) : locEnd.Line;
 
 				disableSuggestions = true;
 

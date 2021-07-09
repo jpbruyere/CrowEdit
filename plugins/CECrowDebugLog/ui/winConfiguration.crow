@@ -1,0 +1,53 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Crow Preview Configuration"  Width="300" Height="400" Resizable="false">
+	<VerticalStack RootDataLevel="true" Margin="5">
+		<HorizontalStack Height="Fit" Margin="5">
+			<Label Text="Crow Service" Width="Stretched"/>
+			<ListBox Data="{Commands}" Fit="true">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" />
+				</Template>
+				<ItemTemplate Path="#CrowEditBase.ui.IconCommand.itmp"/>
+			</ListBox>
+		</HorizontalStack>
+		<HorizontalStack Height="Fit">
+			<Label Fit="true" Text="Crow debug assembly path:"/>
+			<Image Width="30" Height="20" Path="#Crow.Icons.IconAlerte.svg" Visible="{ServiceIsInError}"/>
+		</HorizontalStack>
+		<TextBox Height="Fit" Text="{²CrowDbgAssemblyLocation}" Margin="2"/>
+		<Label Background="Red" Foreground="White" Margin="5" Width="Stretched" Text="{ServiceErrorMessage}"
+			IsVisible="{ServiceIsInError}"/>
+		<Spinner Caption="Refresh Rate (ms)" Value="{²RefreshRate}" Maximum="1000"/>
+		<Spinner Caption="Max Layout Try" Value="{²MaxLayoutingTries}" Maximum="1000"/>
+		<Spinner Caption="Max Layout Discard" Value="{²MaxDiscardCount}" Maximum="1000"/>		
+		<GroupBox Caption="Debug Logger" IsEnabled="{DebugLogIsEnabled}">
+			<VerticalStack>
+				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowDebugLog.ui.EnumSelector.template" Width="Stretched"
+					Caption="Recorded Events" EnumValue="{²RecordedEvents}" BitFieldExcludeMask="255" />					
+				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowDebugLog.ui.EnumSelector.template" Width="Stretched"	
+					Caption="Discarded Events" EnumValue="{²DiscardedEvents}" BitFieldExcludeMask="255" />
+				<!--<HorizontalStack Height="Fit">
+					<CheckBox Caption="Recording" IsChecked="{²Recording}" Height="24" Width="30"	
+						Checked="{sh.Path='A 8,8,7.5,0,6.3 O 0.8,0,0,1 f O 0,0,0,0.5 G'}"
+						Unchecked="{sh.Path='R 0.5,0.5,15,15 f O 0,0,0,1 G'}">
+						<Template>
+							<Border Background="Onyx" Margin="2" CornerRadius="5">
+								<Shape Name="sh"  Foreground="Grey" Size="16,16" Path="R 0.5,0.5,15,15 f O 0,0,0,1 G"/> 
+							</Border>
+						</Template>
+					</CheckBox>
+					<Menu Data="{LoggerCommands}" Height="Fit" Width="Stretched">
+						<Template>
+							<Wrapper Orientation="Vertical" Name="ItemsContainer" Margin="0" Background="{./Background}"/>
+						</Template>
+						<ItemTemplate>
+							<Button Command="{}" Height="Fit" Width="Fit"/>
+						</ItemTemplate>
+					</Menu>					
+				</HorizontalStack>-->
+			</VerticalStack>
+		</GroupBox>
+	</VerticalStack>
+</DockWindow>
+
+

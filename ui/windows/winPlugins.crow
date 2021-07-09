@@ -1,0 +1,9 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Services"  Width="60%" >
+	<VerticalStack>
+		<Label Fit="true" Text="Plugins directory path:"/>
+		<TextBox Height="Fit" Text="{²PluginsDirecory}" Margin="2"/>
+	</VerticalStack>
+</DockWindow>
+
+

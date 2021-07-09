@@ -32,7 +32,7 @@ namespace CrowEditBase
 		public bool IsOpen => doc != null;
 
 		public void Open () {
-			doc = CrowEditBase.App.OpenOrSelectFile (info.FullName);
+			doc = CrowEditBase.App.OpenFile (info.FullName);
 			if (doc is TextDocument td)
 				CrowEditBase.App.CurrentDocument = td;
 			NotifyValueChanged ("IsOpen", IsOpen);

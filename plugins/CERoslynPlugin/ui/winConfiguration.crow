@@ -1,0 +1,22 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Roslyn plugin configuration"  Width="300" Height="400" Resizable="false">
+	<VerticalStack RootDataLevel="true" Margin="5">
+		<HorizontalStack Height="Fit">
+			<Label Width="200" Text="DotNet SDK folder"/>
+			<TextBox Width="Stretched" Text="{²SDKFolder}"/>
+			<Button Command="{CMDOptions_SelectSDKFolder}" MinimumSize="0,0"/>
+		</HorizontalStack>
+		<HorizontalStack Height="Fit">
+			<Label Width="200" Text="MSBuild root folder"/>
+			<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
+			<Button Command="{CMDOptions_SelectMSBuildRoot}" MinimumSize="0,0"/>
+		</HorizontalStack>
+		<HorizontalStack Height="Fit">
+			<Label Width="200" Text="Netcoredbg path"/>
+			<TextBox Width="Stretched" Text="{²NetcoredbgPath}"/>
+			<Button Command="{CMDOptions_SelectNetcoredbgPath}" MinimumSize="0,0"/>
+		</HorizontalStack>
+	</VerticalStack>
+</DockWindow>
+
+

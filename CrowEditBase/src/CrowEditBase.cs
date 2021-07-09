@@ -8,10 +8,33 @@ using System.Linq;
 using Crow;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using System.Runtime.Loader;
 
 namespace CrowEditBase
-{
+{	
 	public abstract class CrowEditBase : Interface {
+		protected class DocumentClientClassList : List<Type> {
+			string defaultClass;
+		}
+		protected Dictionary<string, DocumentClientClassList> FileAssociations = new Dictionary<string, DocumentClientClassList> ();
+
+		public void AddFileAssociation (string extension, Type clientClass) {
+			if (!FileAssociations.ContainsKey (extension))
+				FileAssociations.Add (extension, new DocumentClientClassList ());
+			if (!FileAssociations[extension].Contains (clientClass))
+				FileAssociations[extension].Add (clientClass);
+			
+		}
+		public void RemoveFileAssociationByType (Type clientClass) {
+
+			//FileAssociations.Values Where (t=>t == clientClass);
+		}
+		public bool TryGetDefaultTypeForExtension (string extension, out Type clientType) {
+			clientType = FileAssociations.ContainsKey (extension) ? FileAssociations[extension].FirstOrDefault () : null;
+			return clientType != null;
+		}
+
+
 		public static CrowEditBase App;
 		public CrowEditBase (int width, int height) : base (width, height) {
 			App = this;
@@ -19,11 +42,35 @@ namespace CrowEditBase
 
 		protected const string _defaultFileName = "unnamed.txt";
 
-		TextDocument currentDocument;
+		Document currentDocument;
 		Editor currentEditor;
+		Project currentProject;
 		public CommandGroup FileCommands, EditCommands;
-		public ObservableList<TextDocument> OpenedDocuments = new ObservableList<TextDocument> ();
-		public TextDocument CurrentDocument {
+		public ObservableList<Document> OpenedDocuments = new ObservableList<Document> ();
+		public ObservableList<Service> Services = new ObservableList<Service> ();
+		public ObservableList<Plugin> Plugins = new ObservableList<Plugin> ();
+		public ObservableList<Project> Projects = new ObservableList<Project> ();
+		public T GetService<T> () where T : Service {
+			T service = Services.OfType<T>().FirstOrDefault ();
+			if (service == null) {
+				service = Activator.CreateInstance<T> ();
+				Services.Add (service);
+			}
+			return service;
+		}
+		public Service GetService (Type serviceType) {
+			Service service = Services.FirstOrDefault (s => s.GetType() == serviceType);
+			if (service == null) {
+				service = (Service)Activator.CreateInstance (serviceType);
+				Services.Add (service);
+			}
+			return service;
+		}
+		public bool TryGetPlugin (string pluginName, out Plugin plugin) {
+			plugin = Plugins.FirstOrDefault (p=>p.Name == pluginName);
+			return plugin != null;
+		}
+		public Document CurrentDocument {
 			get => currentDocument;
 			set {
 				if (currentDocument == value)
@@ -43,6 +90,15 @@ namespace CrowEditBase
 				EditCommands[0] = currentDocument.CMDUndo;
 				EditCommands[1] = currentDocument.CMDRedo;
 				
+			}
+		}
+		public Project CurrentProject {
+			get => currentProject;
+			set {
+				if (currentProject == value)
+					return;
+				currentProject = value;
+				NotifyValueChanged (currentProject);
 			}
 		}
 		public Editor CurrentEditor {
@@ -98,21 +154,32 @@ namespace CrowEditBase
 		public bool IsOpened (string filePath) =>
 			string.IsNullOrEmpty (filePath) ? false : OpenedDocuments.Any (d => d.FullPath == filePath);
 
-		public Document OpenOrSelectFile (string filePath) {
+		public Document OpenFile (string filePath) {
 			if (string.IsNullOrEmpty (filePath))
 				return null;
-			TextDocument doc = OpenedDocuments.FirstOrDefault (d => d.FullPath == filePath);
+			Document doc = OpenedDocuments.FirstOrDefault (d => d.FullPath == filePath);
 			return doc ?? openOrCreateFile (filePath);
 		}
 		public void CloseFile (string filePath) =>
-			closeDocument (OpenedDocuments.FirstOrDefault (d => d.FullPath == filePath));
+			CloseDocument (OpenedDocuments.FirstOrDefault (d => d.FullPath == filePath));
+		public void CloseOthers (string filePath) {
+			foreach (Document doc in OpenedDocuments.Where (d => d.FullPath != filePath)) 
+				CloseDocument (doc);
+		}
+		public void CloseOthers (Document document) {
+			Document[] docs = OpenedDocuments.Where (d => d != document).ToArray();
+			lock (UpdateMutex) {
+				foreach (Document doc in docs)
+					CloseDocument (doc);
+			}
+		}
 
 		public void createNewFile(){
 			openOrCreateFile (Path.Combine (CurFileDir, _defaultFileName));	
 		}		
 
 		protected abstract Document openOrCreateFile (string filePath);
-		void closeDocument (TextDocument doc) {
+		public void CloseDocument (Document doc) {
 			if (doc == null)
 				return;
 			int idx = OpenedDocuments.IndexOf (doc);
@@ -125,17 +192,52 @@ namespace CrowEditBase
 			}
 		}
 		protected void onQueryCloseDocument (object sender, EventArgs e) {
-			TextDocument doc = sender as TextDocument;
+			Document doc = sender as Document;
 			if (doc.IsDirty) {
 				MessageBox mb = MessageBox.ShowModal (this,
 					                MessageBox.Type.YesNoCancel, $"{doc.FileName} has unsaved changes.\nSave it now?");
-				mb.Yes += (object _sender, EventArgs _e) => { doc.Save (); closeDocument (doc); };
-				mb.No += (object _sender, EventArgs _e) => closeDocument (doc);
+				mb.Yes += (object _sender, EventArgs _e) => { doc.Save (); CloseDocument (doc); };
+				mb.No += (object _sender, EventArgs _e) => CloseDocument (doc);
 			} else
-				closeDocument (doc);
+				CloseDocument (doc);
+		}
+
+		public Window LoadWindow (string path, object dataSource = null){
+			try {
+				Widget g = FindByName (path);
+				if (g != null)
+					return g as Window;
+				g = Load (path);
+				g.Name = path;
+				g.DataSource = dataSource;
+				return g as Window;
+			} catch (Exception ex) {
+				Console.WriteLine (ex.ToString ());
+			}
+			return null;
+		}
+		public bool TryGetWindow (string path, out Window window) {
+			window = FindByName (path) as Window;
+			return window != null;
+		}
+		public void CloseWindow (string path){
+			Widget g = FindByName (path);
+			if (g != null)
+				DeleteWidget (g);
 		}
 
 
+		protected void loadPlugins () {
+			if (string.IsNullOrEmpty (PluginsDirecory))			
+				PluginsDirecory = Path.Combine (
+					Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "Plugins");
+
+			foreach (string pluginDir in Directory.GetDirectories (PluginsDirecory)) {
+				Plugin plugin = new Plugin (pluginDir);
+				Plugins.Add (plugin);
+				plugin.Load ();
+			}
+		}		
 
 	}
 }

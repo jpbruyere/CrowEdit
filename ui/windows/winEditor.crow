@@ -8,13 +8,13 @@
 						<HorizontalStack Name="ItemsContainer" />
 					</Template>
 					<ItemTemplate>
-						<ListItem RootDataLevel="true" Fit="true" Background="Transparent" IsSelected="{IsVisible}"								
-								Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}}"
-								Unselected="{.DataSource.IsVisible='false'};{Background=Transparent}">
+						<ListItem RootDataLevel="true" Fit="true" Background="${InactiveTabBackground}" Foreground="${InactiveTabForeground}" IsSelected="{IsVisible}"								
+								Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}};{Foreground=${SelectedTabForeground}}"
+								Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}">
 							<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
 								
 								<Widget Width="10" Height="10" Background="RoyalBlue" IsVisible="{IsDirty}"/>
-								<Label Text="{FileName}" Tooltip="{FullPath}" ContextCommands="{Commands}" />
+								<Label Text="{FileName}" Tooltip="{FullPath}" ContextCommands="{TabCommands}" Foreground="{../../Foreground}" />
 								<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
 											MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
 									<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"

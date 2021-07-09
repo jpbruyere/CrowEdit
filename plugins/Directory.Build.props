@@ -1,0 +1,15 @@
+<Project>
+	<PropertyGroup>
+		<SolutionDir>$(MSBuildThisFileDirectory)..\</SolutionDir>
+		<License>MIT</License>
+		<Authors>Jean-Philippe Bruyère</Authors>	    
+		<LangVersion>7.2</LangVersion>
+		
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="$(SolutionDir)CrowEditBase\CrowEditBase.csproj" />
+	</ItemGroup>
+
+
+</Project>

@@ -8,55 +8,18 @@ using System.Threading;
 using Crow;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
-	public abstract class Document : IValueChange, ISelectable {		
-		#region IValueChange implementation
-		public event EventHandler<ValueChangeEventArgs> ValueChanged;
-		public void NotifyValueChanged (string MemberName, object _value)
-		{
-			//Debug.WriteLine ("Value changed: {0}->{1} = {2}", this, MemberName, _value);
-			ValueChanged.Raise (this, new ValueChangeEventArgs (MemberName, _value));
-		}
-		public void NotifyValueChanged (object _value, [CallerMemberName] string caller = null)
-		{
-			NotifyValueChanged (caller, _value);
-		}
-		#endregion
-	
-		#region ISelectable implementation
-		public event EventHandler Selected;
-		public event EventHandler Unselected;
-		static Dictionary<string, string> fileAssociations = new Dictionary<string, string> ();
-		public static void AddFileAssociation (string extension, string fullDocumentClassName) {
-			fileAssociations.Add (extension, fullDocumentClassName);
-		}
-		public static string GetDocumentClass (string extension) =>
-			fileAssociations.ContainsKey (extension) ?
-				fileAssociations[extension] : "CrowEditBase.TextDocument, CrowEditBase, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
-
-		public virtual bool IsSelected {
-			get { return isSelected; }
-			set {
-				if (value == isSelected)
-					return;
-
-				isSelected = value;
-
-				NotifyValueChanged ("IsSelected", isSelected);
-			}
-		}
-		public void SelectDocument () => IsSelected = true;
-		public void UnselectDocument () => IsSelected = true;
-		#endregion
-		public Document (Interface iFace, string fullPath) {
-			this.iFace = iFace;
+	public abstract class Document : CrowEditComponent {
+		public Document (string fullPath) {
 			initCommands ();
 			FullPath = fullPath;
 		}
-		protected Interface iFace;
 		public event EventHandler CloseEvent;
+		public void SelectDocument () => IsSelected = true;
+		public void UnselectDocument () => IsSelected = true;
 
 		protected ReaderWriterLockSlim editorRWLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 		public void EnterReadLock () => editorRWLock.EnterReadLock ();
@@ -67,8 +30,7 @@ namespace CrowEditBase
 		public abstract void UnregisterClient (object client);
 
 		DateTime accessTime;
-		string fullPath;
-		bool isSelected;
+		string fullPath;		
 
 		public string FullPath {
 			get => fullPath;
@@ -93,7 +55,7 @@ namespace CrowEditBase
 			CloseEvent.Raise (this, null);
 		}
 		public void SaveAs () {
-			iFace.LoadIMLFragment (
+			App.LoadIMLFragment (
 			"<FileDialog Width='60%' Height='50%' Caption='Save File' CurrentDirectory='{FileDirectory}' OkClicked='saveFileDialog_OkClicked'/>"
 			).DataSource = this;
 		}
@@ -105,12 +67,19 @@ namespace CrowEditBase
 		}
 
 		public Command CMDUndo, CMDRedo, CMDSave, CMDSaveAs;
+
+		Command CMDClose, CMDCloseOther;
+		public CommandGroup TabCommands => new CommandGroup (
+			CMDClose, CMDCloseOther
+		);
 		
 		protected virtual void initCommands () {
-			CMDUndo = new Command ("Undo", undo, "#CrowEdit.ui.icons.reply.svg",  false);
-			CMDRedo = new Command ("Redo", redo, "#CrowEdit.ui.icons.share-arrow.svg", false);
-			CMDSave = new Command ("save", Save, "#CrowEdit.ui.icons.inbox.svg", false);
-			CMDSaveAs = new Command ("Save As...", SaveAs, "#CrowEdit.ui.icons.inbox.svg");
+			CMDUndo = new Command ("Undo", undo, "#icons.reply.svg",  false);
+			CMDRedo = new Command ("Redo", redo, "#icons.share-arrow.svg", false);
+			CMDSave = new Command ("save", Save, "#icons.inbox.svg", false);
+			CMDSaveAs = new Command ("Save As...", SaveAs, "#icons.inbox.svg");
+			CMDClose = new Command ("Close", () => App.CloseDocument (this), "#icons.sign-out.svg");
+			CMDCloseOther = new Command ("Close Others", () => App.CloseOthers (this), "#icons.inbox.svg");
 		}
 		protected abstract void undo();
 		protected abstract void redo();

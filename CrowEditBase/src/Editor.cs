@@ -35,9 +35,9 @@ namespace Crow
 
 		public Command CMDCut, CMDCopy, CMDPaste;
 		void initCommands () {
-			CMDCut = new Command ("Cut", Cut, "#CrowEditBase.ui.icons.scissors.svg",  false);
-			CMDCopy = new Command ("Copy", Copy, "#CrowEditBase.ui.icons.copy-file.svg",  false);
-			CMDPaste = new Command ("Paste", Paste, "#CrowEditBase.ui.icons.paste-on-document.svg",  true);
+			CMDCut = new Command ("Cut", Cut, "#icons.scissors.svg",  false);
+			CMDCopy = new Command ("Copy", Copy, "#icons.copy-file.svg",  false);
+			CMDPaste = new Command ("Paste", Paste, "#icons.paste-on-document.svg",  true);
 
 			ContextCommands = new CommandGroup (CMDCut, CMDCopy, CMDPaste);
 		}

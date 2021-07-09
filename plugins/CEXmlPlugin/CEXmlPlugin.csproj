@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.1</TargetFrameworks>
+		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
 	
 	<ItemGroup>
-		<Compile Include="src\**\*.cs" />		
+		<Compile Include="src\**\*.cs" />
+		<EmbeddedResource Include="default.conf" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\..\CrowEditBase\CrowEditBase.csproj" />
-	  <!--<PackageReference Include="Crow" Version="0.9.7-beta" />	  -->
+		<PackageReference Include="Enums.NET" Version="4.0.0" >
+			<ExcludeAssets>runtime</ExcludeAssets>
+		</PackageReference>
 	</ItemGroup>
 </Project>

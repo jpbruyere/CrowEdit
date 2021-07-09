@@ -14,8 +14,8 @@ using System.Collections;
 namespace CrowEditBase
 {
 	public abstract class SourceDocument : TextDocument {
-		public SourceDocument (Interface iFace, string fullPath)
-			: base (iFace, fullPath) {			
+		public SourceDocument (string fullPath)
+			: base (fullPath) {			
 		}
 		protected Token[] tokens;
 		protected SyntaxNode RootNode;
@@ -83,11 +83,7 @@ namespace CrowEditBase
 		protected Token currentToken;
 		protected SyntaxNode currentNode;	
 		public abstract IList GetSuggestions (int pos);
-		/// <summary>
-		/// </summary>
-		/// <returns></returns>
-		/// 
-		
+	
 		/// <summary>
 		/// complete current token with selected item from the suggestion overlay.
 		/// It may set a new position or a new selection.

@@ -1,16 +1,19 @@
 ﻿SmallUIFont = "sans, 10";
-DocTabViewBackground = "DarkGrey";
+InactiveTabBackground = "DarkGrey";
 SelectedTabBackground = "Onyx";
+InactiveTabForeground = "Grey";
+SelectedTabForeground = "White";
 MenuIconSize = "14";
 
 DockWindow {
 	Template = "#CrowEdit.ui.DockWindow.template";
+	Background = "DarkGrey";
 }
 DockingTabView {
 	Template = "#CrowEdit.ui.DockingTabView.template";
 }
 MenuItem {
-	Template = "#ui.MenuItem.template";
+	Template = "#CrowEdit.ui.MenuItem.template";
 }
 
 MenuIcon {
@@ -20,7 +23,7 @@ MenuIcon {
 }
 
 suggestionsListBox {
-	Template = "#ui.Suggestions.template";
+	Template = "#CrowEdit.ui.Suggestions.template";
 	Width = "Fit";
 	Height = "Fit";
 	MaximumSize = "300, 120";
