@@ -34,8 +34,8 @@ namespace CERoslynPlugin
 
 		SolutionFile solutionFile;
 
-		public ProjectCollection projectCollection { get; private set; }
-		public BuildParameters buildParams { get; private set; }
+		internal ProjectCollection projectCollection { get; private set; }
+		internal BuildParameters buildParams { get; private set; }
 		public Configuration UserConfig { get; private set; }
 		public IEnumerable<string> Configurations => solutionFile.SolutionConfigurations.Select (sc => sc.ConfigurationName).Distinct ().ToList ();
 		public IEnumerable<string> Platforms => solutionFile.SolutionConfigurations.Select (sc => sc.PlatformName).Distinct ().ToList ();
@@ -62,8 +62,8 @@ namespace CERoslynPlugin
 
 		public override void Load () {
 			projectCollection = new ProjectCollection (
-				null,	
-				new ILogger [] { new ConsoleLogger () },
+				null,
+				new ILogger [] { new CELogger () },
 				ToolsetDefinitionLocations.Default
 			);
 
@@ -76,6 +76,11 @@ namespace CERoslynPlugin
 			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
 			ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
+			projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
+							Path.Combine (
+								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
+								"NuGet.Config"));
+
 			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (FullPath) + Path.DirectorySeparatorChar);			
 			projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 
@@ -84,9 +89,9 @@ namespace CERoslynPlugin
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (projectCollection) {
 				Loggers = projectCollection.Loggers,
-				LogInitialPropertiesAndItems = true,
-				LogTaskInputs = true,				
-				/*UseSynchronousLogging = true*/
+				LogInitialPropertiesAndItems = false,
+				LogTaskInputs = false,				
+				UseSynchronousLogging = true
 			};
 
 			//projectCollection.IsBuildEnabled = false;

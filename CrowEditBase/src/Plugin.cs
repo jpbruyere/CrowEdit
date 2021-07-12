@@ -21,6 +21,11 @@ namespace CrowEditBase
 
 		public Assembly Load (AssemblyName assemblyName)
 			=> loadContext.LoadFromAssemblyName (assemblyName);
+		
+		public bool TryGet (AssemblyName assemblyName, out Assembly assembly) {
+			assembly = loadContext.Assemblies.FirstOrDefault (a=>a.GetName().Name == assemblyName.Name);
+			return assembly != null;
+		}
 		public virtual bool IsLoaded {
 			get { return isLoaded; }
 			set {

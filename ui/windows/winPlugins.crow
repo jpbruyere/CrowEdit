@@ -1,8 +1,21 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Services"  Width="60%" >
-	<VerticalStack>
-		<Label Fit="true" Text="Plugins directory path:"/>
+<DockWindow Caption="Available Plugins"  Width="200" >
+	<VerticalStack Margin="5">
+		<Label Fit="true" Text="Plugins directory path:" HorizontalAlignment="Left"/>
 		<TextBox Height="Fit" Text="{²PluginsDirecory}" Margin="2"/>
+		<ListBox Data="{Plugins}" >
+			<ItemTemplate>
+				<HorizontalStack Height="Fit">
+					<Label Text="{Name}" Width="Stretched"/>
+					<ListBox Data="{Commands}" Fit="true">
+						<Template>
+							<HorizontalStack Name="ItemsContainer" />
+						</Template>
+						<ItemTemplate Path="#CrowEditBase.ui.IconCommand.itmp"/>
+					</ListBox>
+				</HorizontalStack>
+			</ItemTemplate>
+		</ListBox>		
 	</VerticalStack>
 </DockWindow>
 

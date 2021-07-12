@@ -28,7 +28,7 @@ namespace Crow
 			initCommands ();
 
 			//resolve other plugins dependencies
-			AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly ()).Resolving += resolvePluginRefs;
+			//AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly ()).Resolving += resolvePluginRefs;
 			
 			if (CrowEditBase.CrowEditBase.App.TryGetWindow ("#CECrowDebugLog.ui.winLogGraph.crow", out Window win))
 				win.DataSource = this;
@@ -497,8 +497,8 @@ namespace Crow
 				Events = events;
 				Widgets = widgets;
 				firstWidgetIndexToGet += widgets.Count;				
-				if (widgets.Count > 0 && firstWidgetIndexToGet != widgets.Last().InstanceIndex + 1)
-					Debugger.Break ();
+				/*if (widgets.Count > 0 && firstWidgetIndexToGet != widgets.Last().InstanceIndex + 1)
+					Debugger.Break ();*/
 			}
 		}
 		void updateWidgetEvents (IList<DbgWidgetRecord> widgets, DbgEvent evt) {

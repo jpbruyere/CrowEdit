@@ -6,11 +6,14 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using Crow;
+using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
+
+using static CrowEditBase.CrowEditBase;
 
 namespace CERoslynPlugin
 {
-	internal class ConsoleLogger : ILogger
+	internal class CELogger : ILogger
 	{
 		IEventSource eventSource;
 		LoggerVerbosity verbosity;
@@ -29,7 +32,7 @@ namespace CERoslynPlugin
 		} 
 		public string Parameters { get; set; }
 
-		public ConsoleLogger (LoggerVerbosity verbosity = LoggerVerbosity.Normal)
+		public CELogger (LoggerVerbosity verbosity = LoggerVerbosity.Detailed)
 		{			
 			this.verbosity = verbosity;
 		}
@@ -42,6 +45,8 @@ namespace CERoslynPlugin
 		void registerHandles () {
 			eventSource.WarningRaised += EventSource_WarningRaised;
 			eventSource.ErrorRaised += EventSource_ErrorRaised;
+			eventSource.BuildStarted += EventSource_Progress_BuildStarted;
+			eventSource.BuildFinished += EventSource_Progress_BuildFinished;
 
 			switch (Verbosity) {
 			case LoggerVerbosity.Minimal:
@@ -96,58 +101,76 @@ namespace CERoslynPlugin
 			}
 
 		}
+		void log (LogType type, string message) {
+			string[] lines = Regex.Split (message, "\r\n|\r|\n");//|\r|\n|\\\\n");
+			for	(int i=0; i<lines.Length;i++)
+				App.Log (type, lines[i]);
+		}
+		void EventSource_Progress_BuildStarted (object sender, BuildStartedEventArgs e)
+		{
+			App.ResetLog ();
+			log (LogType.High, "Build starting.");
+		}
+		void EventSource_Progress_BuildFinished (object sender, BuildFinishedEventArgs e)
+		{
+			log (LogType.High, "Build Finished.");
+			//ide.CurrentSolution.RaiseDiagnosticsValueChanged();
+		}		
 
         private void EventSource_TaskFinished (object sender, TaskFinishedEventArgs e) {
-			Console.WriteLine (e.Message);
+			log (LogType.Custom1, e.Message);
 		}
 
 		private void EventSource_TaskStarted (object sender, TaskStartedEventArgs e) {
-			Console.WriteLine (e.Message);
+			log (LogType.Custom1, e.Message);
 		}
 
 		private void EventSource_TargetFinished (object sender, TargetFinishedEventArgs e) {			
-			Console.WriteLine (e.Message);
+			log (LogType.Custom2, e.Message);
 		}
 
 		private void EventSource_TargetStarted (object sender, TargetStartedEventArgs e) {
-			Console.WriteLine (e.Message);
+			log (LogType.Custom2, e.Message);
 		}
 		private void EventSource_MessageRaised (object sender, BuildMessageEventArgs e) {
-			Console.WriteLine (e.Message);
+			log (LogType.Normal, e.Message);
 		}
         private void EventSource_AnyEventRaised (object sender, BuildEventArgs e) {
-			Console.WriteLine (e.Message);
+			log (LogType.Normal, e.Message);
 		}
 
         private void EventSource_MessageRaised_Minimal (object sender, BuildMessageEventArgs e) {
 			if (e.Importance == MessageImportance.High)
-				Console.WriteLine (e.Message);
+				log (LogType.High, e.Message);
 		}
 		private void EventSource_MessageRaised_Normal (object sender, BuildMessageEventArgs e) {
-			if (e.Importance != MessageImportance.Low)
-				Console.WriteLine (e.Message);
+			if (e.Importance == MessageImportance.Normal)
+				log (LogType.Normal, e.Message);
+			else if(e.Importance == MessageImportance.High)
+				log (LogType.High, e.Message);
 		}
 		private void EventSource_MessageRaised_All (object sender, BuildMessageEventArgs e) {			
-			Console.WriteLine (e.Message);
+			if (e.Importance == MessageImportance.Low)
+				log (LogType.Low, e.Message);
+			else if(e.Importance == MessageImportance.Normal)
+				log (LogType.Normal, e.Message);
+			else if(e.Importance == MessageImportance.High)
+				log (LogType.High, e.Message);
 		}
 		void EventSource_ProjectStarted (object sender, ProjectStartedEventArgs e)
 		{
-			Console.WriteLine (e.Message);
+			log (LogType.High, e.Message);
 		}
 		void EventSource_ProjectFinished (object sender, ProjectFinishedEventArgs e)
 		{
-			Console.WriteLine (e.Message);
+			log (LogType.High, e.Message);
 		}
 		void EventSource_ErrorRaised (object sender, BuildErrorEventArgs e)
 		{
-			Console.ForegroundColor = ConsoleColor.DarkRed;
-			Console.WriteLine (e.Message);
-			Console.ResetColor();
+			log (LogType.Error, e.Message);
 		}
 		private void EventSource_WarningRaised (object sender, BuildWarningEventArgs e) {
-			Console.ForegroundColor = ConsoleColor.DarkYellow;
-			Console.WriteLine (e.Message);
-			Console.ResetColor();
+			log (LogType.Warning, e.Message);
 		}
 
 		public void Shutdown ()

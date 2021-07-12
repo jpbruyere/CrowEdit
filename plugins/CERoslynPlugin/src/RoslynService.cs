@@ -18,19 +18,36 @@ using Crow;
 namespace CERoslynPlugin
 {	
 	public class RoslynService : Service {
+		
 		public RoslynService () : base () {
 			configureDefaultSDKPathes ();
 			//TODO static init to prevent rebinding on Service multiple instantiation
 			AssemblyLoadContext pluginCtx = AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly());
 			pluginCtx.Resolving += msbuildResolve;
+
+			foreach (string dll in Directory.GetFiles (MSBuildRoot, "*.dll"))
+				pluginCtx.LoadFromAssemblyPath (dll);
+			string capath = Path.Combine (MSBuildRoot, "Roslyn", "bincore");
+			foreach (string dll in Directory.GetFiles (capath, "*.dll"))
+				pluginCtx.LoadFromAssemblyPath (dll);
 		}
 		Assembly msbuildResolve (AssemblyLoadContext context, AssemblyName assemblyName) {
 			string assemblyPath = Path.Combine (MSBuildRoot, assemblyName.Name + ".dll");
-			return File.Exists (assemblyPath) ? Assembly.LoadFrom (assemblyPath) : null;
+			//return File.Exists (assemblyPath) ? context.LoadFromAssemblyPath (assemblyPath) : null;
+			if (!File.Exists (assemblyPath))
+				return null;
+			Assembly a = context.LoadFromAssemblyPath (assemblyPath);
+			Console.WriteLine ($"[MSBuildResolve]{a},{a.CodeBase}");
+			return a;
 		}
 
 		public override void Start() {
-			
+
+			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (MSBuildRoot, "MSBuild.dll"));
+			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", Path.Combine (MSBuildRoot, "Sdks"));
+
+			if (Environment.OSVersion.Platform == PlatformID.Unix)
+				Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");			
 
 			CurrentState = Status.Running;
 

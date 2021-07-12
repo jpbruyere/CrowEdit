@@ -9,6 +9,7 @@ using System.Threading;
 using Crow;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Collections.Generic;
 
 using Microsoft.Build.Construction;
@@ -20,6 +21,7 @@ using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
 
 using Project = CrowEditBase.Project;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace CERoslynPlugin
@@ -29,52 +31,63 @@ namespace CERoslynPlugin
 		SolutionProject solutionProject;
 		Microsoft.Build.Evaluation.Project project;
 		CSharpCompilationOptions compileOptions;
-		public CSharpParseOptions parseOptions;
-
-		public override string Name => projectInSolution.ProjectName;
+		CSharpParseOptions parseOptions;
+		
 		public string RootDir => project.DirectoryPath;
 
-		public MSBuildProject (SolutionProject solution, ProjectInSolution projectInSolution) : base (projectInSolution.AbsolutePath) {
+		static string[] defaultTargets = { "Restore", "Build", "Rebuild", "Pack", "Publish"};
+
+		internal MSBuildProject (SolutionProject solution, ProjectInSolution projectInSolution) : base (projectInSolution.AbsolutePath) {
 			this.projectInSolution = projectInSolution;
 			this.solutionProject = solution;
 
 			Load ();
+
+			commands = new CommandGroup (CMDLoad, CMDUnload, CMDReload);
+			foreach (string target in defaultTargets)
+				Commands.Add (new Crow.Command (target, () => Build (target)));
 		}
+
+		CommandGroup commands;
+
+		public override CommandGroup Commands => commands;
 
 		public override void Load () {
 			if (IsLoaded)
 				return;
 			try
 			{
-				ProjectRootElement projectRootElt = ProjectRootElement.Open (projectInSolution.AbsolutePath);
-				project = new Microsoft.Build.Evaluation.Project (projectInSolution.AbsolutePath, null, null, solutionProject.projectCollection);
+				using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
+					ProjectRootElement projectRootElt = ProjectRootElement.Open (projectInSolution.AbsolutePath);
+					project = new Microsoft.Build.Evaluation.Project (projectInSolution.AbsolutePath, null, null, solutionProject.projectCollection);
 
-				ProjectProperty msbuildProjExtPath = project.GetProperty ("MSBuildProjectExtensionsPath");
-				ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");			
+					ProjectProperty msbuildProjExtPath = project.GetProperty ("MSBuildProjectExtensionsPath");
+					ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");			
 
-				string[] props = { "EnableDefaultItems", "EnableDefaultCompileItems", "EnableDefaultNoneItems", "EnableDefaultEmbeddedResourceItems" };
+					string[] props = { "EnableDefaultItems", "EnableDefaultCompileItems", "EnableDefaultNoneItems", "EnableDefaultEmbeddedResourceItems" };
 
-				foreach (string pr in props) {
-					ProjectProperty pp = project.AllEvaluatedProperties.Where (ep => ep.Name == pr).FirstOrDefault ();
-					if (pp == null)
-						project.SetProperty (pr, "true");
+					foreach (string pr in props) {
+						ProjectProperty pp = project.AllEvaluatedProperties.Where (ep => ep.Name == pr).FirstOrDefault ();
+						if (pp == null)
+							project.SetProperty (pr, "true");
+					}
+
+					project.ReevaluateIfNecessary ();
+					
+					parseOptions = CSharpParseOptions.Default;
+
+					ProjectProperty langVersion = project.GetProperty ("LangVersion");
+					if (langVersion != null && Enum.TryParse<LanguageVersion> (langVersion.EvaluatedValue, out LanguageVersion lv))
+						parseOptions = parseOptions.WithLanguageVersion (lv);
+					else
+						parseOptions = parseOptions.WithLanguageVersion (LanguageVersion.Default);
+
+					ProjectProperty constants = project.GetProperty ("DefineConstants");
+					if (constants != null)
+						parseOptions = parseOptions.WithPreprocessorSymbols (constants.EvaluatedValue.Split (';'));
+
+					populateTreeNodes ();
 				}
-
-				project.ReevaluateIfNecessary ();
-				
-				parseOptions = CSharpParseOptions.Default;
-
-				ProjectProperty langVersion = project.GetProperty ("LangVersion");
-				if (langVersion != null && Enum.TryParse<LanguageVersion> (langVersion.EvaluatedValue, out LanguageVersion lv))
-					parseOptions = parseOptions.WithLanguageVersion (lv);
-				else
-					parseOptions = parseOptions.WithLanguageVersion (LanguageVersion.Default);
-
-				ProjectProperty constants = project.GetProperty ("DefineConstants");
-				if (constants != null)
-					parseOptions = parseOptions.WithPreprocessorSymbols (constants.EvaluatedValue.Split (';'));
-
-				populateTreeNodes ();
 				
 				IsLoaded = true;			
 			}
@@ -90,9 +103,11 @@ namespace CERoslynPlugin
 		public void Build () => Build ("Build");
 		public void Build (params string[] targets)
 		{
-			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);			
-			BuildRequestData request = new BuildRequestData (pi, targets,null,BuildRequestDataFlags.ProvideProjectStateAfterBuild);			
-			BuildResult result = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
+			//using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
+				ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
+				BuildRequestData request = new BuildRequestData (pi, targets,null,BuildRequestDataFlags.ProvideProjectStateAfterBuild);			
+				BuildResult result = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
+			//}
 		}
 
 		TreeNode rootNode;
@@ -106,7 +121,7 @@ namespace CERoslynPlugin
 				NotifyValueChanged ("Children", Children);
 			}
 		}
-		public IList<TreeNode> Children => rootNode.Childs;
+		public IList<TreeNode> Children => rootNode?.Childs;
 		public override string Icon {
 			get {
 				switch (Path.GetExtension (FullPath)) {
@@ -188,9 +203,9 @@ namespace CERoslynPlugin
 
 					break;
 				default:
-					Console.ForegroundColor = ConsoleColor.Red;
+					/*Console.ForegroundColor = ConsoleColor.Grey;
 					Console.WriteLine ($"Unhandled Item Type: {pn.ItemType} {pn.EvaluatedInclude}");
-					Console.ResetColor ();
+					Console.ResetColor ();*/
 					break;
 				}
 			}
@@ -202,5 +217,44 @@ namespace CERoslynPlugin
 				item.Parent = this;
 			}*/
 		}
+
+		public override string Name => project == null ? projectInSolution.ProjectName : project.GetProperty ("MSBuildProjectName").EvaluatedValue;
+		public string ToolsVersion => project.ToolsVersion;
+		public string DefaultTargets => project.Xml.DefaultTargets;		
+		public ICollection<ProjectProperty> Properties => project.Properties;
+		public ICollection<ProjectProperty> PropertiesSorted => project.Properties.OrderBy(p=>p.Name).ToList();
+		public string AssemblyName => project.GetProperty ("AssemblyName").EvaluatedValue;
+		public string OutputPath => project.GetProperty ("OutputPath").EvaluatedValue;
+		public string IntermediateOutputPath => project.GetProperty ("IntermediateOutputPath").EvaluatedValue;
+		public string OutputType => project.GetProperty ("OutputType").EvaluatedValue;
+		public string OutputAssembly =>
+			Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + AssemblyExtension);
+		public string AssemblyExtension => RuntimeInformation.IsOSPlatform (OSPlatform.Windows) ? ".exe" : "";
+		public OutputKind OutputKind {
+			get {
+                switch (OutputType) {
+				case "Library":
+					return OutputKind.DynamicallyLinkedLibrary;
+				case "Exe":
+					return OutputKind.ConsoleApplication;
+				case "WinExe":
+					return OutputKind.WindowsApplication;
+				default:
+					return OutputKind.ConsoleApplication;
+                }
+            }
+        }
+		public string RootNamespace => project.GetProperty ("RootNamespace").EvaluatedValue;
+		public bool AllowUnsafeBlocks => bool.Parse (project.GetProperty ("AllowUnsafeBlocks").EvaluatedValue);
+		public bool NoStdLib =>	bool.Parse (project.GetProperty ("NoStdLib").EvaluatedValue);
+		public bool TreatWarningsAsErrors => bool.Parse (project.GetProperty ("TreatWarningsAsErrors").EvaluatedValue);
+		public bool SignAssembly =>	bool.Parse (project.GetProperty ("SignAssembly").EvaluatedValue);
+		public string TargetFrameworkVersion => project.GetProperty ("TargetFrameworkVersion").EvaluatedValue;
+		public string Description => project.GetProperty ("Description").EvaluatedValue;
+		public string StartupObject => project.GetProperty ("StartupObject").EvaluatedValue;
+		public bool DebugSymbols => bool.Parse (project.GetProperty ("DebugSymbols").EvaluatedValue);
+		public int WarningLevel => int.Parse (project.GetProperty ("WarningLevel").EvaluatedValue);
+
+
 	}
 }

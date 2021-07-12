@@ -25,15 +25,18 @@ namespace CrowEditBase
 	}*/
 	public class PluginsLoadContext : AssemblyLoadContext {
 		public readonly Assembly MainAssembly;
-		string pluginDirectory;
-		public PluginsLoadContext (string pluginsDirectory)
-			: base ($"CrowEditPluginsContext+{pluginsDirectory}", true) {
-			this.pluginDirectory = pluginsDirectory;
-			string pluginAssembly = Path.Combine (pluginsDirectory, $"{Path.GetFileName (pluginsDirectory)}.dll");
+		public readonly string Name;
+		readonly string fullPath;
+		public PluginsLoadContext (string pluginDirectory)
+			: base (Path.GetFileName (pluginDirectory), false) {
+			fullPath = pluginDirectory;
+			Name = Path.GetFileName (pluginDirectory);
+
+			string pluginAssembly = Path.Combine (fullPath, $"{Name}.dll");
 			MainAssembly = LoadFromAssemblyPath (pluginAssembly);
 		}
 		protected override Assembly Load(AssemblyName assemblyName) {			
-			string assemblyPath = Path.Combine (pluginDirectory, assemblyName.Name + ".dll");			
+			string assemblyPath = Path.Combine (fullPath, assemblyName.Name + ".dll");			
 			return File.Exists (assemblyPath) ? LoadFromAssemblyPath (assemblyPath) : null;
 		}
 

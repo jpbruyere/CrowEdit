@@ -14,10 +14,13 @@
 		</ItemTemplate>
 	</ListBox>-->
 
-	<TreeView Name="treeview" IsRoot="true" RootDataLevel="true" Data="{Projects}" Background="Onyx" >
+	<TreeView Name="treeview" IsRoot="true" RootDataLevel="true" Data="{Projects}" Background="Onyx"
+				SelectedItemChanged="tv_projects_SelectedItemChanged" >
+
 		<ItemTemplate DataType="default" Data="Childs" Path="#CrowEditBase.ui.TreeExpandable.template" />
 		<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Children" Path="#CrowEditBase.ui.TreeExpandable.template" />
 		<ItemTemplate DataType="CrowEditBase.Project" Data="SubProjects" Path="#CrowEditBase.ui.TreeExpandable.template" />
+
 	</TreeView>	
 </DockWindow>
 

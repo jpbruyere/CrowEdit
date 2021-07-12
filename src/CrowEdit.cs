@@ -30,10 +30,23 @@ namespace CrowEdit
 			}
 			Console.WriteLine($"[UNRESOLVE] {assembly} {libraryName}");
 			return IntPtr.Zero;
+		}
+		
+		static Assembly last_chance_resolve (System.Runtime.Loader.AssemblyLoadContext context, AssemblyName assemblyName)
+		{
+			foreach (Plugin plugin in App.Plugins) {
+				if (plugin.TryGet (assemblyName, out Assembly assembly))
+					return assembly;
+			}
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine($"[UNRESOLVE] {assemblyName}");
+			Console.ResetColor();
+			return null;
 		}		
 		static CrowEdit()
 		{
-			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).ResolvingUnmanagedDll += resolveUnmanaged;			
+			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).ResolvingUnmanagedDll += resolveUnmanaged;
+			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).Resolving += last_chance_resolve;
 		}
 #endif		
 		static void Main ()
@@ -57,6 +70,7 @@ namespace CrowEdit
 			base.OnInitialized ();
 
 			loadPlugins ();			
+			reopenLastProjectList ();
 
 			SetWindowIcon ("#Crow.Icons.crow.png");
 		
@@ -73,7 +87,6 @@ namespace CrowEdit
 			reloadWinConfigs ();
 
 			reopenLastDocumentList ();
-			reopenLastProjectList ();
 		}
 		public override void Terminate()
 		{
@@ -93,6 +106,7 @@ namespace CrowEdit
  			new Command("Explorer", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winFileExplorer.crow")),
 			new Command("Editors", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winEditor.crow")),
 			new Command("Projects", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winProjects.crow")),
+			new Command("Logs", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winLogs.crow")),
 			new Command("Crow Preview", (sender) => loadWindowWithThisDataSource (sender, "#CECrowDebugLog.ui.winCrowPreview.crow")),
 			new Command("Services", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winServices.crow")),
 			new Command("Plugins", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winPlugins.crow"))
@@ -222,6 +236,24 @@ namespace CrowEdit
 			if (doc != null)
 				CurrentDocument = doc;
 		}
+		void tv_projects_SelectedItemChanged (object sender, SelectionChangeEventArgs e) {
+			if (e.NewValue is IFileNode fi) {
+				if (string.IsNullOrEmpty (fi.FullPath) || ! File.Exists (fi.FullPath))
+					return;
+				if (TryGetDefaultTypeForExtension (Path.GetExtension (fi.FullPath), out Type clientType)) {
+					if (typeof(Document).IsAssignableFrom (clientType))	{
+						if (OpenedDocuments.FirstOrDefault (d => d.FullPath == fi.FullPath) is Document doc)					
+							CurrentDocument = doc;					
+					/*} else if (typeof(Service).IsAssignableFrom (clientType))
+						doc = GetService (clientType)?.OpenDocument (CurrentFilePath);*/
+					} else if (typeof(Project).IsAssignableFrom (clientType)) {
+						if (Projects.FirstOrDefault (p=>p.FullPath == fi.FullPath) is Project prj)
+							CurrentProject = prj;
+					}
+				}
+			}			
+		}
+				
 		void saveOpenedDocumentList () {
 			if (OpenedDocuments.Count == 0)
 				Configuration.Global.Set ("OpenedItems", "");

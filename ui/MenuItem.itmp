@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <ItemTemplate DataType="Crow.Command" Path="#CrowEdit.ui.MenuButton.template"/>
 <ItemTemplate DataType="Crow.CommandGroup" Data="Commands">
-	<Popper PopDirection="Right" Caption="{Caption}" IsEnabled="{CanExecute}" Width="Stretched"
+	<Popper PopDirection="Right" Caption="{Caption}" Width="Stretched"
 			MouseEnter="{Background=${ControlHighlight}}"
 			MouseLeave="{Background=Transparent}">
 		<Template>

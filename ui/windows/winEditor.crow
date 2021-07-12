@@ -31,7 +31,7 @@
 			<ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}" Selected="{/tb.HasFocus='true'}">
 				<VerticalStack Spacing="0">
 					<HorizontalStack Spacing="0">
-						<Editor Name="tb" Multiline="true" Font="consolas, 12" Focusable="true" Height="Stretched" Width="Stretched"
+						<Editor Name="tb" Font="consolas, 12" Focusable="true" Height="Stretched" Width="Stretched"
 								Document="{}" TextChanged="onTextChanged"/>
 						<ScrollBar Value="{²../tb.ScrollY}"
 								LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"

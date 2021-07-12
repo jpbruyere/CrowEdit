@@ -17,6 +17,17 @@ namespace CrowEditBase
 			string defaultClass;
 		}
 		protected Dictionary<string, DocumentClientClassList> FileAssociations = new Dictionary<string, DocumentClientClassList> ();
+		ObservableList<LogEntry> logs = new ObservableList<LogEntry>();
+		public ObservableList<LogEntry> MainLog => logs;
+
+		public void Log(LogType type, string message) {
+			lock (logs)
+				logs.Add (new LogEntry(type, message));
+		}
+		public void ResetLog () {
+			lock (logs)
+				logs.Clear ();
+		}
 
 		public void AddFileAssociation (string extension, Type clientClass) {
 			if (!FileAssociations.ContainsKey (extension))

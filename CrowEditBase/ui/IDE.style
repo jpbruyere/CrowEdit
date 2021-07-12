@@ -1,4 +1,11 @@
-﻿icon {
+﻿Editor {
+	Background="White";
+	Foreground="Black";
+	MouseWheelSpeed = "20";
+	BubbleMouseEvent ="None";
+}
+
+icon {
 	Width="14";
 	Height="14";
 }

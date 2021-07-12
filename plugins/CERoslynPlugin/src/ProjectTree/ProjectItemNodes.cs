@@ -18,7 +18,7 @@ namespace CERoslynPlugin
 		Always,
 		PreserveNewest
 	}*/
-	public class ProjectItemNode  : TreeNode 
+	public class ProjectItemNode  : TreeNode, IFileNode 
 	{
 
 		ProjectItem projectItem;
@@ -62,6 +62,10 @@ namespace CERoslynPlugin
 				}
 			}
 		}
+		public string FullPath => 
+			NodeType == NodeType.EmbeddedResource || NodeType == NodeType.None || NodeType == NodeType.Compile ?
+				Path.Combine (GetRoot<ProjectNode>().Project.RootDir, projectItem.EvaluatedInclude) : null;
+
 		public override CommandGroup Commands {
 			get {
 				switch (NodeType) {
@@ -70,7 +74,7 @@ namespace CERoslynPlugin
 				case NodeType.Compile:
 					return new CommandGroup (
 						new Command ("Open", () => {
-							App.OpenFile (Path.Combine (GetRoot<ProjectNode>().Project.RootDir, projectItem.EvaluatedInclude));
+							App.OpenFile (FullPath);
 						})
 					);
 				default:

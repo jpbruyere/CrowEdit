@@ -163,11 +163,11 @@ namespace Crow
 
 				if (IFace.Shift) {
 					for (int l = lineStart; l <= lineEnd; l++) {				
-						if (Text[lines[l].Start] == '\t')
+						if (_text[lines[l].Start] == '\t')
 							update (new TextChange (lines[l].Start, 1, ""));
-						else if (Char.IsWhiteSpace (Text[lines[l].Start])) {
+						else if (Char.IsWhiteSpace (_text[lines[l].Start])) {
 							int i = 1;
-							while (i < lines[l].Length && i < Interface.TAB_SIZE && Char.IsWhiteSpace (Text[i]))
+							while (i < lines[l].Length && i < Interface.TAB_SIZE && Char.IsWhiteSpace (_text[i]))
 								i++;
 							update (new TextChange (lines[l].Start, i, ""));
 						}

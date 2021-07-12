@@ -1,0 +1,12 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Logs"  Width="80%" >
+	<VerticalStack RootDataLevel="true" >
+		<HorizontalStack Spacing="0">
+			<LogViewerWidget Name="log" Lines="{MainLog}" Font="${SmallFont}" MaxScrollX="1000"/>
+			<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}" CursorRatio="{../log.ChildHeightRatio}" Maximum="{../log.MaxScrollY}" />
+		</HorizontalStack>
+		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>
+	</VerticalStack>
+</DockWindow>
+
+

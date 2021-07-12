@@ -1,9 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<TargetFramework>netcoreapp5</TargetFramework>
 		<OutputType>WinExe</OutputType>
 		<EnableDefaultItems>false</EnableDefaultItems>
-
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -17,14 +16,15 @@
 		<ProjectReference Include="CrowEditBase\CrowEditBase.csproj" />
 		<ProjectReference Include="plugins\CECrowDebugLog\CECrowDebugLog.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<PrivateAssets>all</PrivateAssets>
 		</ProjectReference>
 		<ProjectReference Include="plugins\CEXmlPlugin\CEXmlPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 		</ProjectReference>
 		<ProjectReference Include="plugins\CERoslynPlugin\CERoslynPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-			<PrivateAssets>all</PrivateAssets>
+		</ProjectReference>
+		<ProjectReference Include="plugins\CENetcoreDbgPlugin\CENetcoreDbgPlugin.csproj" >
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 		</ProjectReference>
 		<ProjectReference Include="/mnt/devel/CrowIDE/Crow/Crow/Crow.csproj" />
 

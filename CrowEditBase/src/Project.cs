@@ -45,10 +45,10 @@ namespace CrowEditBase
 			FullPath = fullPath;			
 		}
 		public Command CMDLoad, CMDUnload, CMDReload;
-		public CommandGroup Commands => new CommandGroup (
+		public virtual CommandGroup Commands => new CommandGroup (
 			CMDLoad, CMDUnload, CMDReload);
 		
-		protected virtual void initCommands () {
+		void initCommands () {
 			CMDLoad = new Command ("Load", Load, "#icons.reply.svg",  false);
 			CMDUnload = new Command ("Unload", Unload, "#icons.share-arrow.svg", false);
 			CMDReload = new Command ("Reload", () => { Unload(); Load();}, "#icons.refresh.svg", false);		

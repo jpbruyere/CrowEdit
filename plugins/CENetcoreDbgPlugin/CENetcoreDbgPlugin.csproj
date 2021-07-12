@@ -12,4 +12,6 @@
 	<ItemGroup>
 		<ProjectReference Include="../CERoslynPlugin\CERoslynPlugin.csproj" />		
 	</ItemGroup>
+
+	
 </Project>
