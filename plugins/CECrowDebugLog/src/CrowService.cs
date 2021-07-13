@@ -80,6 +80,15 @@ namespace Crow
 			CMDEventHistoryForward = new Command("forw.", currentEventHistoryGoForward, "#icons.forward-arrow.svg", false);
 		}
 
+		public Command CMDOptions_SelectCrowAssemblyLocation => new Command ("...",
+			() => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
+							ShowFiles='true' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = this;
+			}
+		);
 
 		public void LoadIML (string imlSource) {
 			if (CurrentState == Status.Running)
