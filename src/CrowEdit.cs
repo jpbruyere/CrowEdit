@@ -97,20 +97,6 @@ namespace CrowEdit
 		DockStack mainDock;
 		public Command CMDSave, CMDSaveAs, CMDQuit, CMDHelp, CMDAbout, CMDOptions;
 
-		public CommandGroup AllCommands => new CommandGroup (
-			FileCommands,
-			EditCommands,	
-			ViewCommands
-		);		
-		public CommandGroup ViewCommands = new CommandGroup ("View",
- 			new Command("Explorer", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winFileExplorer.crow")),
-			new Command("Editors", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winEditor.crow")),
-			new Command("Projects", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winProjects.crow")),
-			new Command("Logs", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winLogs.crow")),
-			new Command("Crow Preview", (sender) => loadWindowWithThisDataSource (sender, "#CECrowDebugLog.ui.winCrowPreview.crow")),
-			new Command("Services", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winServices.crow")),
-			new Command("Plugins", (sender) => loadWindowWithThisDataSource (sender, "#CrowEdit.ui.windows.winPlugins.crow"))
-		);
 		void initCommands (){
 			FileCommands = new CommandGroup ("File",
 	 			new Command("New", createNewFile, "#icons.blank-file.svg"),
@@ -128,9 +114,24 @@ namespace CrowEdit
 				new Command ("Paste", default(Action), "#icons.paste-on-document.svg", false)
 
 			);
-			
-			CMDHelp = new Command(new Action(() => System.Diagnostics.Debug.WriteLine("help"))) { Caption = "Help", Icon = new SvgPicture("#CrowEdit.ui.icons.question.svg")};
+			ViewCommands = new CommandGroup ("View",
+	 			new Command("Explorer", () => LoadWindow ("#CrowEdit.ui.windows.winFileExplorer.crow", this)),
+				new Command("Editors", () => LoadWindow ("#CrowEdit.ui.windows.winEditor.crow", this)),
+				new Command("Projects", () => LoadWindow ("#CrowEdit.ui.windows.winProjects.crow", this)),
+				new Command("Logs", () => LoadWindow ("#CrowEdit.ui.windows.winLogs.crow", this), "#icons.log.svg"),
+				new Command("Services", () => LoadWindow ("#CrowEdit.ui.windows.winServices.crow", this), "#icons.services.svg"),
+				new Command("Plugins", () => LoadWindow ("#CrowEdit.ui.windows.winPlugins.crow", this), "#icons.plugins.svg")
+			);			
+			CMDHelp = new Command("Help", () => System.Diagnostics.Debug.WriteLine("help"), "#icons.question.svg");
+
+			CommandsRoot = new CommandGroup (
+				FileCommands,
+				EditCommands,	
+				ViewCommands,
+				new CommandGroup ("Help", CMDHelp)
+			);
 		}
+		
 
 		static void loadWindowWithThisDataSource(object sender, string path) {
 			Widget w = sender as Widget;
@@ -213,7 +214,7 @@ namespace CrowEdit
 		
 		void openFileDialog_OkClicked (object sender, EventArgs e)
 		{
-			if (OpenFile ((sender as FileDialog).SelectedFile) is Document doc)
+			if (OpenFile ((sender as FileDialog).SelectedFileFullPath) is Document doc)
 				CurrentDocument = doc;
 		}
 
@@ -237,21 +238,24 @@ namespace CrowEdit
 				CurrentDocument = doc;
 		}
 		void tv_projects_SelectedItemChanged (object sender, SelectionChangeEventArgs e) {
-			if (e.NewValue is IFileNode fi) {
+			if (e.NewValue is Project prj) {
+				CurrentProject = prj;
+			}
+			/*if (e.NewValue is IFileNode fi) {
 				if (string.IsNullOrEmpty (fi.FullPath) || ! File.Exists (fi.FullPath))
 					return;
 				if (TryGetDefaultTypeForExtension (Path.GetExtension (fi.FullPath), out Type clientType)) {
 					if (typeof(Document).IsAssignableFrom (clientType))	{
 						if (OpenedDocuments.FirstOrDefault (d => d.FullPath == fi.FullPath) is Document doc)					
 							CurrentDocument = doc;					
-					/*} else if (typeof(Service).IsAssignableFrom (clientType))
-						doc = GetService (clientType)?.OpenDocument (CurrentFilePath);*/
+					//} else if (typeof(Service).IsAssignableFrom (clientType))
+					//	doc = GetService (clientType)?.OpenDocument (CurrentFilePath);
 					} else if (typeof(Project).IsAssignableFrom (clientType)) {
 						if (Projects.FirstOrDefault (p=>p.FullPath == fi.FullPath) is Project prj)
 							CurrentProject = prj;
 					}
 				}
-			}			
+			}*/			
 		}
 				
 		void saveOpenedDocumentList () {

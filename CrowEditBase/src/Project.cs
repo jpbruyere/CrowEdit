@@ -21,6 +21,15 @@ namespace CrowEditBase
 
 		public Project Parent => parent;
 		public IList<Project> SubProjects => subProjects;
+		public IEnumerable<Project> Flatten {
+			get {
+				yield return this;
+				if (subProjects != null) {
+					foreach (var node in subProjects?.SelectMany (child => child.Flatten))
+						yield return node;
+				}
+			}
+		}
 		public bool HasChildren => subProjects?.Count > 0;
 
 		public string FullPath { get ; private set; }
@@ -44,18 +53,27 @@ namespace CrowEditBase
 			initCommands ();
 			FullPath = fullPath;			
 		}
-		public Command CMDLoad, CMDUnload, CMDReload;
+		public Command CMDLoad, CMDUnload, CMDReload, CMDClose;
 		public virtual CommandGroup Commands => new CommandGroup (
-			CMDLoad, CMDUnload, CMDReload);
+			CMDLoad, CMDUnload, CMDReload, CMDClose);
 		
 		void initCommands () {
 			CMDLoad = new Command ("Load", Load, "#icons.reply.svg",  false);
 			CMDUnload = new Command ("Unload", Unload, "#icons.share-arrow.svg", false);
 			CMDReload = new Command ("Reload", () => { Unload(); Load();}, "#icons.refresh.svg", false);		
+			CMDClose = new Command ("Close", Close, "#icons.share-arrow.svg", true);
 		}
 
 		public abstract void Load ();
-		public abstract void Unload ();
+		public virtual void Unload () {
+			IsLoaded = false;
+		}
+		public virtual void Close () {
+			if (App.CurrentProject == this)
+				App.CurrentProject = null;
+			App.Projects.Remove (this);
+			IsLoaded = false;
+		}
 		public virtual string Icon => "#icons.question.svg";
 	}
 }

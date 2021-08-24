@@ -35,7 +35,7 @@ namespace CERoslynPlugin
 		
 		public string RootDir => project.DirectoryPath;
 
-		static string[] defaultTargets = { "Restore", "Build", "Rebuild", "Pack", "Publish"};
+		static string[] defaultTargets = { "Clean", "Restore", "Build", "Rebuild", "Pack", "Publish"};
 
 		internal MSBuildProject (SolutionProject solution, ProjectInSolution projectInSolution) : base (projectInSolution.AbsolutePath) {
 			this.projectInSolution = projectInSolution;
@@ -130,6 +130,24 @@ namespace CERoslynPlugin
 				default:
 					return "#icons.file_type_vscode.svg";
 				}
+			}
+		}
+
+		public bool IsCrowProject {
+			get {
+				foreach (ProjectItemNode reference in rootNode.Childs[0].Flatten.OfType<ProjectItemNode>()) {
+					switch (reference.NodeType)	{
+						case NodeType.PackageReference:
+							if (reference.Caption == "Crow")
+								return true;
+							break;
+						case NodeType.ProjectReference:
+							if (App.TryGetProject<MSBuildProject> (reference.FullPath, out MSBuildProject msbp) && msbp.IsCrowProject)
+								return true;
+							break;
+					}
+				}	
+				return false;			
 			}
 		} 
 

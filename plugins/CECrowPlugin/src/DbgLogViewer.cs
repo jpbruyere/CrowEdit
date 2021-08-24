@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Crow.Cairo;
+using Crow.Drawing;
 using Crow.DebugLogger;
 using System.Diagnostics;
 
@@ -245,7 +245,7 @@ namespace Crow
 		}
 
 		DbgEvtType currentFilter;
-		protected override void onDraw (Cairo.Context gr)
+		protected override void onDraw (Context gr)
 		{
 			base.onDraw (gr);
 
@@ -329,7 +329,7 @@ namespace Crow
 
 		}
 		string ticksToMS(long ticks) => Math.Round ((double)ticks / Stopwatch.Frequency * 1000.0, 2).ToString();
-		public override void Paint (Cairo.Context ctx)
+		public override void Paint (Context ctx)
 		{
 			base.Paint (ctx);
 
@@ -369,7 +369,7 @@ namespace Crow
 			ctx.MoveTo (ctxR.X - ctx.TextExtents (str).Width / 2, ctxR.Y + fe.Height);
 			ctx.ShowText (str);
 
-			ctx.Operator = Cairo.Operator.Add;
+			ctx.Operator = Operator.Add;
 
 			if (hoverLine >= 0) {
 				double y = fe.Height * (hoverLine - ScrollY) + topMargin + cb.Top;
@@ -396,7 +396,7 @@ namespace Crow
 			}
 
 			if (selStart < 0 || selEnd < 0) {
-				ctx.Operator = Cairo.Operator.Over;
+				ctx.Operator = Operator.Over;
 				return;
 			}
 			double selStartX = (double)(selStart - ScrollX - minTicks) * xScale + leftMargin + cb.Left;
@@ -415,7 +415,7 @@ namespace Crow
 			ctx.SetSource (0.0,0.2,0.8,0.15);
 			//ctx.SetSource (Colors.Jet);
 			ctx.Fill();
-			ctx.Operator = Cairo.Operator.Over;
+			ctx.Operator = Operator.Over;
 
 			str = $"{ticksToMS(Math.Abs (selEnd - selStart))} (ms)";
 

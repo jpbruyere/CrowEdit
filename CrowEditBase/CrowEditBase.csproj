@@ -13,7 +13,7 @@
 		</EmbeddedResource>		
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\..\CrowIDE\Crow\Crow\Crow.csproj" />
-	  <!--<PackageReference Include="Crow" Version="0.9.7-beta" />	  -->
+		<ProjectReference Include="/mnt/devel/crow/Crow/Crow.csproj" />
+		<!--<PackageReference Include="Crow" Version="0.9.5-beta" />-->
 	</ItemGroup>
 </Project>

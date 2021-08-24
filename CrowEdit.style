@@ -4,7 +4,7 @@ InactiveTabBackground = "DarkGrey";
 SelectedTabBackground = "Onyx";
 InactiveTabForeground = "Grey";
 SelectedTabForeground = "White";
-MenuIconSize = "14";
+MenuIconSize = "16";
 
 ControlHighlight = "RoyalBlue";
 
@@ -31,7 +31,7 @@ MenuItem {
 }
 
 MenuIcon {
-	Margin = "2";
+	Margin = "1";
 	Width = "${MenuIconSize}";
 	Height = "${MenuIconSize}";
 }

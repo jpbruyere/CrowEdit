@@ -11,11 +11,13 @@
 			</ListBox>
 		</HorizontalStack>
 		<HorizontalStack Height="Fit">
-			<Label Width="200" Text="Crow assembly path:"/>
-			<TextBox Width="Stretched" Text="{²CrowDbgAssemblyLocation}"/>
+			<Label Fit="true" Text="Crow assembly path:"/>
 			<Image Width="30" Height="20" Path="#Crow.Icons.IconAlerte.svg" Visible="{ServiceIsInError}"/>
-			<Button Command="{CMDOptions_SelectCrowAssemblyLocation}" MinimumSize="0,0"/>
-		</HorizontalStack>			
+		</HorizontalStack>
+		<HorizontalStack Height="Fit">
+			<TextBox Height="Fit" Text="{²CrowDbgAssemblyLocation}" Margin="2"/>
+			<Button Command="{CMDOptions_SelectCrowDbgAssemblyLocation}" MinimumSize="0,0"/>
+		</HorizontalStack>		
 		<Label Background="Red" Foreground="White" Margin="5" Width="Stretched" Text="{ServiceErrorMessage}"
 			IsVisible="{ServiceIsInError}"/>
 		<Spinner Caption="Refresh Rate (ms)" Value="{²RefreshRate}" Maximum="1000"/>
@@ -23,9 +25,9 @@
 		<Spinner Caption="Max Layout Discard" Value="{²MaxDiscardCount}" Maximum="1000"/>		
 		<GroupBox Caption="Debug Logger" IsEnabled="{DebugLogIsEnabled}">
 			<VerticalStack>
-				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowDebugLog.ui.EnumSelector.template" Width="Stretched"
+				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowPlugin.ui.EnumSelector.template" Width="Stretched"
 					Caption="Recorded Events" EnumValue="{²RecordedEvents}" BitFieldExcludeMask="255" />					
-				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowDebugLog.ui.EnumSelector.template" Width="Stretched"	
+				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowPlugin.ui.EnumSelector.template" Width="Stretched"	
 					Caption="Discarded Events" EnumValue="{²DiscardedEvents}" BitFieldExcludeMask="255" />
 				<!--<HorizontalStack Height="Fit">
 					<CheckBox Caption="Recording" IsChecked="{²Recording}" Height="24" Width="30"	

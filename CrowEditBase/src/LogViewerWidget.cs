@@ -6,10 +6,14 @@ using System;
 using System.Xml.Serialization;
 using System.ComponentModel;
 using System.Collections;
-using Crow.Cairo;
+using Crow.Drawing;
 
 namespace Crow
 {
+	public enum LogLevel
+	{
+		Minimal, Normal, Full, Debug
+	}
 	public enum LogType {
 		Low,
 		Normal,
@@ -107,7 +111,7 @@ namespace Crow
 				MaxScrollY = lines == null ? 0 : lines.Count - visibleLines;
 			}
 		}
-		protected override void onDraw (Cairo.Context gr)
+		protected override void onDraw (Context gr)
 		{
 			base.onDraw (gr);
 

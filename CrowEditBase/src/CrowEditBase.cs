@@ -56,7 +56,7 @@ namespace CrowEditBase
 		Document currentDocument;
 		Editor currentEditor;
 		Project currentProject;
-		public CommandGroup FileCommands, EditCommands;
+		public CommandGroup CommandsRoot, FileCommands, EditCommands, ViewCommands;
 		public ObservableList<Document> OpenedDocuments = new ObservableList<Document> ();
 		public ObservableList<Service> Services = new ObservableList<Service> ();
 		public ObservableList<Plugin> Plugins = new ObservableList<Plugin> ();
@@ -81,6 +81,22 @@ namespace CrowEditBase
 			plugin = Plugins.FirstOrDefault (p=>p.Name == pluginName);
 			return plugin != null;
 		}
+		//TODO:flattened project
+		public IEnumerable<Project> FlattenProjects {
+			get {
+				foreach (var node in Projects.SelectMany (child => child.Flatten))
+					yield return node;
+			}
+		}
+		public bool TryGetProject<T> (string projectFullPath, out T proj) where T : Project {
+			proj = FlattenProjects.FirstOrDefault (p=>p.FullPath == projectFullPath) as T;
+			return proj != null;
+		}
+		public bool TryGetProject (string projectFullPath, out Project proj) {
+			proj = FlattenProjects.FirstOrDefault (p=>p.FullPath == projectFullPath);
+			return proj != null;
+		}
+
 		public Document CurrentDocument {
 			get => currentDocument;
 			set {

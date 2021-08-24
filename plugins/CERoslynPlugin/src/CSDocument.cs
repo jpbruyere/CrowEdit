@@ -34,7 +34,7 @@ namespace CERoslynPlugin
 		
 		public CSDocument (string fullPath)	: base (fullPath) {
 
-			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);			
+			//tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);			
 		}
 
 		/*ProjectCollection tree;

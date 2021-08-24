@@ -7,7 +7,7 @@ using Glfw;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.IO;
-using Crow.Cairo;
+using Crow.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;
 using Crow.DebugLogger;
@@ -18,6 +18,7 @@ using Crow.Text;
 using System.Runtime.InteropServices;
 
 using static CrowEditBase.CrowEditBase;
+using CECrowPlugin;
 
 namespace Crow
 {	
@@ -70,20 +71,22 @@ namespace Crow
 		}			
 		string imlSource;
 
-		TextDocument document;
+		ImlDocument document;
 		public TextDocument Document {
 			get => document;
 			set {
 				if (document == value)
 					return;
+				
+				if (value is ImlDocument imlDoc) {
+					document?.UnregisterClient (this);
+					imlSource = "";
+					document = imlDoc;
+					document?.RegisterClient (this);
 
-				document?.UnregisterClient (this);
-				imlSource = "";
-				document = value;
-				document?.RegisterClient (this);
-
-				NotifyValueChangedAuto (document);
-				RegisterForGraphicUpdate ();
+					NotifyValueChangedAuto (document);
+					RegisterForGraphicUpdate ();
+				}
 			}
 		}
 		
@@ -136,9 +139,12 @@ namespace Crow
 			
 			if (crowIFaceService != null && crowIFaceService.IsRunning) {
 				crowIFaceService.Resize (Slot.Width, Slot.Height);
-				bmp = Crow.Cairo.Surface.Lookup (crowIFaceService.SurfacePointer, false);				
-			} else
-				bmp = IFace.surf.CreateSimilar (Content.ColorAlpha, Slot.Width, Slot.Height);								
+				if (crowIFaceService.HasVkvgBackend)
+					bmp = IFace.CreateSurfaceForData (crowIFaceService.SurfacePointer, Slot.Width, Slot.Height);
+				else
+					bmp = IFace.CreateSurface (crowIFaceService.SurfacePointer);
+				bmp = Crow.Drawing.Surface.Lookup (crowIFaceService.SurfacePointer, false);				
+			}
 
 			IsDirty = false;			
 		}

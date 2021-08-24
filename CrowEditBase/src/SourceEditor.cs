@@ -6,7 +6,7 @@ using System;
 using Glfw;
 using Crow.Text;
 using System.Collections.Generic;
-using Crow.Cairo;
+using Crow.Drawing;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Diagnostics.CodeAnalysis;
@@ -65,7 +65,7 @@ namespace Crow
 			lock (IFace.UpdateMutex) {
 				if (overlay == null) {
 					overlay = IFace.LoadIMLFragment<ListBox>(@"
-						<ListBox Style='suggestionsListBox' Data='{Suggestions}' >
+						<ListBox Style='suggestionsListBox' Data='{Suggestions}' UseLoadingThread = 'false'>
 							<ItemTemplate>
 								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' 
 												Selected = '{Background=${ControlHighlight}}'
@@ -73,7 +73,7 @@ namespace Crow
 									<Label Text='{}' HorizontalAlignment='Left' />
 								</ListItem>							
 							</ItemTemplate>
-							<ItemTemplate DataType='MemberInfo'>
+							<ItemTemplate DataType='System.Reflection.MemberInfo'>
 								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' 
 												Selected = '{Background=${ControlHighlight}}'
 												Unselected = '{Background=Transparent}'>
@@ -83,7 +83,7 @@ namespace Crow
 									</HorizontalStack>
 								</ListItem>							
 							</ItemTemplate>
-							<ItemTemplate DataType='Colors'>
+							<ItemTemplate DataType='Crow.Colors'>
 								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' 
 												Selected = '{Background=${ControlHighlight}}'
 												Unselected = '{Background=Transparent}'>

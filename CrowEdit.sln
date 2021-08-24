@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CrowEditBase", "CrowEditBas
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{386C459C-4849-40C3-9D5A-4A8802A5A848}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CECrowDebugLog", "plugins\CECrowDebugLog\CECrowDebugLog.csproj", "{1095C2F1-802F-4DE1-8035-EE0AAC4A5E35}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CECrowPlugin", "plugins\CECrowPlugin\CECrowPlugin.csproj", "{1095C2F1-802F-4DE1-8035-EE0AAC4A5E35}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CENetcoreDbgPlugin", "plugins\CENetcoreDbgPlugin\CENetcoreDbgPlugin.csproj", "{14E49365-6E22-4A27-B0E5-C6BBB347A85C}"
 EndProject
@@ -23,7 +23,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CERoslynPlugin", "plugins\C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CEXmlPlugin", "plugins\CEXmlPlugin\CEXmlPlugin.csproj", "{196D847E-D051-429B-892F-C405F036B8C2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Crow", "..\CrowIDE\Crow\Crow\Crow.csproj", "{D0487872-E5A5-424A-AB18-3B2F258D51D5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crow", "..\crow\Crow\Crow.csproj", "{5D8999F6-80D8-44CA-93F2-E18C9E44640C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,10 +55,10 @@ Global
 		{196D847E-D051-429B-892F-C405F036B8C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{196D847E-D051-429B-892F-C405F036B8C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{196D847E-D051-429B-892F-C405F036B8C2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D0487872-E5A5-424A-AB18-3B2F258D51D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D0487872-E5A5-424A-AB18-3B2F258D51D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D0487872-E5A5-424A-AB18-3B2F258D51D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D0487872-E5A5-424A-AB18-3B2F258D51D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D8999F6-80D8-44CA-93F2-E18C9E44640C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D8999F6-80D8-44CA-93F2-E18C9E44640C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D8999F6-80D8-44CA-93F2-E18C9E44640C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D8999F6-80D8-44CA-93F2-E18C9E44640C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

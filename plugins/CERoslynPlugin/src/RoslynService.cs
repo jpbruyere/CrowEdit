@@ -18,6 +18,33 @@ using Crow;
 namespace CERoslynPlugin
 {	
 	public class RoslynService : Service {
+		internal CELogger Logger { get; private set; }
+		public LogLevel LogLevel {
+			get => Crow.Configuration.Global.Get<LogLevel>("LogLevel");
+			set {
+				if (LogLevel == value)
+					return;				
+				Crow.Configuration.Global.Set ("LogLevel", value);
+				updateLogLevel ();
+				NotifyValueChanged ("LogLevel", value);
+			}
+		}
+		void updateLogLevel () {
+			switch (LogLevel){
+			case LogLevel.Minimal:
+				Logger.Verbosity = Microsoft.Build.Framework.LoggerVerbosity.Minimal;
+				break;
+			case LogLevel.Normal:
+				Logger.Verbosity = Microsoft.Build.Framework.LoggerVerbosity.Normal;
+				break;
+			case LogLevel.Full:
+				Logger.Verbosity = Microsoft.Build.Framework.LoggerVerbosity.Detailed;
+				break;
+			case LogLevel.Debug:
+				Logger.Verbosity = Microsoft.Build.Framework.LoggerVerbosity.Diagnostic;
+				break;
+			}
+		}
 		
 		public RoslynService () : base () {
 			configureDefaultSDKPathes ();
@@ -28,8 +55,15 @@ namespace CERoslynPlugin
 			foreach (string dll in Directory.GetFiles (MSBuildRoot, "*.dll"))
 				pluginCtx.LoadFromAssemblyPath (dll);
 			string capath = Path.Combine (MSBuildRoot, "Roslyn", "bincore");
-			foreach (string dll in Directory.GetFiles (capath, "*.dll"))
-				pluginCtx.LoadFromAssemblyPath (dll);
+			foreach (string dll in Directory.GetFiles (capath, "*.dll")) {
+				try	{
+					pluginCtx.LoadFromAssemblyPath (dll);	
+				}
+				catch (Exception ex) {
+					Console.WriteLine ($"[RoslynService]{ex}");
+				}
+				
+			}
 		}
 		Assembly msbuildResolve (AssemblyLoadContext context, AssemblyName assemblyName) {
 			string assemblyPath = Path.Combine (MSBuildRoot, assemblyName.Name + ".dll");
@@ -42,6 +76,8 @@ namespace CERoslynPlugin
 		}
 
 		public override void Start() {
+			Logger = new CELogger ();
+			updateLogLevel ();
 
 			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (MSBuildRoot, "MSBuild.dll"));
 			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", Path.Combine (MSBuildRoot, "Sdks"));
@@ -108,17 +144,6 @@ namespace CERoslynPlugin
 				dlg.DataSource = this;
 			}
 		);
-		/*public Command CMDOptions_SelectNetcoredbgPath = new Command ("...",
-			(sender) => {
-				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-					<FileDialog Caption='Select netcoredbg executable path' CurrentDirectory='{NetcoredbgPath}'
-								ShowFiles='true' ShowHidden='true'/>
-				");
-				dlg.OkClicked += (sender, e) => ide.NetcoredbgPath = (sender as FileDialog).SelectedFileFullPath;
-				dlg.DataSource = ide;
-			}
-		);*/
-
 
 		void configureDefaultSDKPathes ()
 		{			

@@ -7,7 +7,7 @@ using Glfw;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.IO;
-using Crow.Cairo;
+using Crow.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;
 using Crow.DebugLogger;
@@ -17,9 +17,8 @@ using System.Threading;
 using Crow.Text;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-using System.Runtime.Loader;
-
 using static CrowEditBase.CrowEditBase;
+
 namespace Crow
 {	
 	public class CrowService : Service {
@@ -30,12 +29,12 @@ namespace Crow
 			//resolve other plugins dependencies
 			//AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly ()).Resolving += resolvePluginRefs;
 			
-			if (CrowEditBase.CrowEditBase.App.TryGetWindow ("#CECrowDebugLog.ui.winLogGraph.crow", out Window win))
+			if (CrowEditBase.CrowEditBase.App.TryGetWindow ("#CECrowPlugin.ui.winLogGraph.crow", out Window win))
 				win.DataSource = this;
 		}
-		Assembly resolvePluginRefs (AssemblyLoadContext ctx, AssemblyName assemblyName)
+		/*Assembly resolvePluginRefs (AssemblyLoadContext ctx, AssemblyName assemblyName)
 			=> App.TryGetPlugin ("CERoslynPlugin", out Plugin roslynPlugin) ?
-				roslynPlugin.Load (assemblyName) : null;
+				roslynPlugin.Load (assemblyName) : null;*/
 
 		static IntPtr resolveUnmanaged(Assembly assembly, String libraryName)
 		{
@@ -57,7 +56,8 @@ namespace Crow
 				Console.WriteLine (project.Name);
 			}else if (App.CurrentProject is CERoslynPlugin.MSBuildProject csprj){
 				CERoslynPlugin.MSBuildProject project = App.CurrentProject as CERoslynPlugin.MSBuildProject;
-				Console.WriteLine (project.Name);
+				Console.WriteLine ($"{project.Name}: {project.IsCrowProject}");
+				
 			}
 			
 			
@@ -71,6 +71,8 @@ namespace Crow
 				CMDGotoParentEvent, CMDEventHistoryBackward, CMDEventHistoryForward);
 		void initCommands ()
 		{
+			App.ViewCommands.Add (
+				new Command("Crow Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App)));
 			CMDRefresh = new Command ("Refresh", refresh, "#icons.refresh.svg", IsRunning);
 			CMDStartRecording = new Command ("Start Recording", () => Recording = true, "#icons.circle.svg", false);
 			CMDStopRecording = new Command ("Stop Recording", stopRecording, "#icons.circle-red.svg", false);
@@ -119,6 +121,7 @@ namespace Crow
 
 		bool recording, debugLogIsEnabled;
 		DbgEvtType recordedEvents = DbgEvtType.Widget, discardedEvents;
+		public bool HasVkvgBackend { get; private set; }
 		public int RefreshRate {
 			get => Configuration.Global.Get<int> ("RefreshRate", 10);
 			set {
@@ -129,7 +132,7 @@ namespace Crow
 			}			
 		}
 		public int MaxLayoutingTries {
-			get => Configuration.Global.Get<int> ("MaxLayoutingTries", 3);
+			get => Configuration.Global.Get<int> ("MaxLayoutingTries", 30);
 			set {
 				if (MaxLayoutingTries == value)
 					return;
@@ -167,7 +170,7 @@ namespace Crow
 				Configuration.Global.Set ("CrowDbgAssemblyLocation", value);
 				NotifyValueChanged(value);				
 			}
-		}
+		}		
 		public bool DebugLogIsEnabled {
 			get => debugLogIsEnabled;
 			set {
@@ -252,6 +255,11 @@ namespace Crow
 			
 			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
 			crowLoadCtx.ResolvingUnmanagedDll += resolveUnmanaged;
+			crowLoadCtx.Resolving += (context, assemblyName) => {
+				return crowLoadCtx.LoadFromAssemblyPath (
+					System.IO.Path.Combine (
+						System.IO.Path.GetDirectoryName(CrowDbgAssemblyLocation), assemblyName.Name + ".dll"));
+			};
 			//crowLoadCtx.Resolving += (ctx,name) => AssemblyLoadContext.Default.LoadFromAssemblyName (name);
 		
 			//using (crowLoadCtx.EnterContextualReflection()) {
@@ -261,7 +269,7 @@ namespace Crow
 				Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
 				DebugLogIsEnabled = (bool)debuggerType.GetField("IsEnabled").GetValue(null);
 
-				dbgIfaceType = thisAssembly.GetType("CECrowDebugLog.DebugInterface");
+				dbgIfaceType = thisAssembly.GetType("CECrowPlugin.DebugInterface");
 				
 				dbgIFace = Activator.CreateInstance (dbgIfaceType, new object[] {CrowEditBase.CrowEditBase.App.WindowHandle});
 
@@ -305,7 +313,7 @@ namespace Crow
 				delResetDebugger = (Action)Delegate.CreateDelegate(typeof(Action), null, debuggerType.GetMethod("Reset"));
 				/*delSaveDebugLog = (Action<object, string>)Delegate.CreateDelegate(typeof(Action<object, string>),
 											null, debuggerType.GetMethod("Save", new Type[] {dbgIfaceType, typeof(string)}));*/
-
+				HasVkvgBackend = (bool)dbgIfaceType.GetField ("HaveVkvgBackend", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).GetValue (null);
 				dbgIfaceType.GetMethod("RegisterDebugInterfaceCallback").Invoke (dbgIFace, new object[] {this} );				
 				dbgIfaceType.GetMethod("Run").Invoke (dbgIFace, null);
 
@@ -327,8 +335,16 @@ namespace Crow
 		{
 			CurrentState = Status.Paused;
 		}
-		public override string ConfigurationWindowPath => "#CECrowDebugLog.ui.winConfiguration.crow";
-
+		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
+		public Command CMDOptions_SelectCrowDbgAssemblyLocation => new Command ("...",
+			() => {				
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Crow dll' CurrentDirectory='{CrowDbgAssemblyLocation}'
+							ShowFiles='true' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = this;
+			}
+		);
 		protected override void onStateChange(Status previousState, Status newState)
 		{
 			base.onStateChange(previousState, newState);
@@ -426,8 +442,6 @@ namespace Crow
 				}				
 			}
 		}
-
-
 		public IntPtr SurfacePointer => IsRunning ? delGetSurfacePointer() : IntPtr.Zero;
 		public void Resize (int width, int height) {
 			if (IsRunning)
@@ -470,7 +484,7 @@ namespace Crow
 				return;
 			Recording = false;
 			getLog ();
-			CrowEditBase.CrowEditBase.App.LoadWindow ("#CECrowDebugLog.ui.winDebugLog.crow", this);
+			CrowEditBase.CrowEditBase.App.LoadWindow ("#CECrowPlugin.ui.winDebugLog.crow", this);
 		}
 		int firstWidgetIndexToGet = 0;
 		public object LogMutex = new object ();

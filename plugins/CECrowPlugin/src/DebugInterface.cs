@@ -6,23 +6,24 @@ using System;
 
 using System.Threading;
 using Crow;
-using Crow.Cairo;
+using Crow.Drawing;
 using IML = Crow.IML;
 
-namespace CECrowDebugLog
+namespace CECrowPlugin
 {
 	public class DebugInterface : Interface {
 		static DebugInterface() {
 			DbgLogger.IncludeEvents = DbgEvtType.None;
 			DbgLogger.DiscardEvents = DbgEvtType.None;
 			DbgLogger.ConsoleOutput = false;
-			Interface.MaxLayoutingTries = 3;
-			Interface.MaxDiscardCount = 25;
 		}
 		public DebugInterface (IntPtr hWin) : base (100, 100, hWin)
 		{
 			SolidBackground = false;
-			surf = new ImageSurface (Format.Argb32, 100, 100);			
+			initBackend (true);
+			
+			clientRectangle = new Rectangle (0, 0, 100, 100);
+			CreateMainSurface (ref clientRectangle);
 		}
 
 		public override void Run()
@@ -130,16 +131,21 @@ namespace CECrowDebugLog
 			Source = src;
 		}
 		public void Resize (int width, int height) {
-			
+			if (!HaveVkvgBackend)
+				ProcessResize (new Rectangle(0,0,width, height));
+		}
+		public override void ProcessResize(Rectangle bounds) {
 			lock (UpdateMutex) {
-				clientRectangle = new Rectangle (0, 0, width, height);
-				surf?.Dispose();
-				surf = new ImageSurface (Format.Argb32, width, height);				
+				clientRectangle = bounds.Size;
+				
+				CreateMainSurface (ref clientRectangle);
+
 				foreach (Widget g in GraphicTree)
 					g.RegisterForLayouting (LayoutingType.All);
+
 				RegisterClip (clientRectangle);
 			}				
-		}
+		}		
 		/*public override void ForceMousePosition()
 		{
 			Point p = (Point)delGetScreenCoordinate();

@@ -36,9 +36,9 @@
 			<Label Text="{NewSlot}" Foreground="White" Background="Onyx" Width="Stretched" TextAlignment="Center"/>				
 		</HorizontalStack>
 	</VerticalStack>
-	<DbgEventWidget Height="10" Width="Stretched" Event="{}" Tooltip="#CECrowDebugLog.ui.DbgEvtTooltip.crow" />
+	<DbgEventWidget Height="10" Width="Stretched" Event="{}" Tooltip="#CECrowPlugin.ui.DbgEvtTooltip.crow" />
 	<GroupBox Caption="Parent Event" Height="Fit" >
-		<DbgEventWidget Height="10" Width="Stretched" Event="{parentEvent}" Tooltip="#CECrowDebugLog.ui.DbgEvtTooltip.crow" />
+		<DbgEventWidget Height="10" Width="Stretched" Event="{parentEvent}" Tooltip="#CECrowPlugin.ui.DbgEvtTooltip.crow" />
 	</GroupBox>
 	<!--<Label Text="{}" Foreground="${TooltipForeground}"/>-->
 </VerticalStack>					

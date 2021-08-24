@@ -11,11 +11,26 @@
 			<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
 			<Button Command="{CMDOptions_SelectMSBuildRoot}" MinimumSize="0,0"/>
 		</HorizontalStack>
-		<HorizontalStack Height="Fit">
-			<Label Width="200" Text="Netcoredbg path"/>
-			<TextBox Width="Stretched" Text="{²NetcoredbgPath}"/>
-			<Button Command="{CMDOptions_SelectNetcoredbgPath}" MinimumSize="0,0"/>
-		</HorizontalStack>
+		<EnumSelector RadioButtonStyle="CheckBoxAlt" Caption="Log Level" EnumValue="{²LogLevel}" Fit="true" Background="DarkGrey">
+			<Template>
+				<Popper Caption="{./Caption}" CornerRadius="{./CornerRadius}" Foreground="{./Foreground}" Background="{./Background}">
+					<Template>
+						<Border Style="ControlBorder" Background="{./Background}" CornerRadius="{./CornerRadius}">
+							<HorizontalStack Spacing="1">
+								<Image Style="Icon"
+									MouseEnter="{Background=White}" MouseLeave="{Background=Transparent}"
+									Background="{./Background}"
+									Path="#Crow.Icons.expandable.svg" SvgSub="{./IsChecked}"/>
+								<Label Style="ControlCaption" Text="{./Caption}" Width="60" />
+								<Label Style="ControlCaption" Text="{²LogLevel}" />
+							</HorizontalStack>
+						</Border>
+					</Template>
+					<VerticalStack Name="Content" Width="200" Height="Fit" Background="DarkGrey"/>
+				</Popper>
+			</Template>
+		</EnumSelector>
+
 	</VerticalStack>
 </DockWindow>
 

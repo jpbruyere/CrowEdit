@@ -23,13 +23,17 @@ using Project = CrowEditBase.Project;
 
 namespace CERoslynPlugin
 {
-	public class SolutionProject : Project {						
+	public class SolutionProject : Project {
 		RoslynService roslynService;
 		public SolutionProject (string fullPath) : base (fullPath) {
 			roslynService = App.GetService<RoslynService> ();
 			roslynService?.Start ();
 
 			Load();
+
+			if (Flatten.OfType<MSBuildProject>().Any (msb => msb.IsCrowProject)) {
+				Console.WriteLine ("Is crow project!!");
+			}
 		}
 
 		SolutionFile solutionFile;
@@ -63,7 +67,7 @@ namespace CERoslynPlugin
 		public override void Load () {
 			projectCollection = new ProjectCollection (
 				null,
-				new ILogger [] { new CELogger () },
+				new ILogger [] { roslynService.Logger },
 				ToolsetDefinitionLocations.Default
 			);
 
@@ -138,10 +142,6 @@ namespace CERoslynPlugin
 				}
 				//IDE.ProgressNotify (10);
 			}
-
-			IsLoaded = true;
-		}
-		public override void Unload () {
 
 			IsLoaded = true;
 		}

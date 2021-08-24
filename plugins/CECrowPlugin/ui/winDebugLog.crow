@@ -3,7 +3,7 @@
 	<VerticalStack RootDataLevel="true">
 		<TabView>
 			<VerticalStack Name="LogGraph" Background="DarkGrey">
-				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowDebugLog.ui.EnumSelector.template"
+				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowPlugin.ui.EnumSelector.template"
 						Caption="Discarded Events" EnumValue="{²../dbv.Filter}" BitFieldExcludeMask="255" />					
 				<HorizontalStack>
 					<DbgLogViewer Visible="true" Name="dbv" Events="{Events}" Widgets="{Widgets}" 
@@ -33,7 +33,7 @@
 			</VerticalStack>
 			<VerticalStack Name="AllEvents" Width="Stretched" IsVisible="false" RootDataLevel="true">
 				<TreeView Height="Stretched" Name="dbgTV" Data="{Events}" SelectedItem="{²CurrentEvent}" Background="DarkGrey"							
-							ItemTemplate="#CECrowDebugLog.ui.DbgEventTreeItems.itemp"/> 
+							ItemTemplate="#CECrowPlugin.ui.DbgEventTreeItems.itemp"/> 
 			</VerticalStack>
 			<VerticalStack Name="CurWidgetEvents" Width="Stretched" IsVisible="false" RootDataLevel="true">
 				<ListBox  Data="{CurrentWidgetEvents}" Background="Black" SelectedItem="{²CurrentEvent}">
@@ -41,7 +41,7 @@
 						<ListItem Margin="0" Height="16" IsSelected="{²IsSelected}" Width="Fit"
 									Selected="{Background=${ControlHighlight}}" Template="Crow.ScrollingListBox.template"
 									Unselected="{Background=Transparent}">
-							<DbgEventWidget Height="10" Width="Fit" Event="{}" Tooltip="#CECrowDebugLog.ui.DbgEvtTooltip.crow" TicksPerPixel="1000" VerticalAlignment="Center"/>
+							<DbgEventWidget Height="10" Width="Fit" Event="{}" Tooltip="#CECrowPlugin.ui.DbgEvtTooltip.crow" TicksPerPixel="1000" VerticalAlignment="Center"/>
 						</ListItem>
 					</ItemTemplate>
 					<Template>
@@ -53,7 +53,7 @@
 		<Splitter/>
 		<HorizontalStack Height="30%">
 			<!--<ListBox Data="{Widgets}" Width="200" SelectedItem="{²CurrentWidget}"
-				ItemTemplate="#CECrowDebugLog.ui.WidgetRecord.itemp">				
+				ItemTemplate="#CECrowPlugin.ui.WidgetRecord.itemp">				
 			</ListBox>-->
 			<ListBox Data="{CurWidgetProperties}" Width="25%" >
 				<ItemTemplate>
@@ -74,17 +74,17 @@
 					<Label Text="events"/>
 				</HorizontalStack>				
 				<ListBox Height="Stretched" Data="{CurrentWidgetEvents}" SelectedItem="{²CurrentEvent}" Background="DarkGrey"
-							ItemTemplate="#CECrowDebugLog.ui.DbgWidgetEventListItems.itemp"/>
+							ItemTemplate="#CECrowPlugin.ui.DbgWidgetEventListItems.itemp"/>
 			</VerticalStack>
 			<Splitter/>
-			<DbgEventView Template="#CECrowDebugLog.ui.DbgEventView.template" Event="{../../dbv.HoverEvent}"/>
+			<DbgEventView Template="#CECrowPlugin.ui.DbgEventView.template" Event="{../../dbv.HoverEvent}"/>
 			<Splitter/>
-			<DbgEventView Template="#CECrowDebugLog.ui.DbgEventView.template" Event="{CurrentEvent}"/>
+			<DbgEventView Template="#CECrowPlugin.ui.DbgEventView.template" Event="{CurrentEvent}"/>
 		</HorizontalStack>
 		<HorizontalStack Height="Fit" Background="Onyx" Margin="1">
 			<HorizontalStack Height="Fit" DataSource="{CurrentEvent}">
 				<Label Foreground="Black" Text="Current Event:" Background="{Color}" Margin="2" />
-				<DbgEventWidget Height="14" Width="Stretched" Event="{}" Tooltip="#CECrowDebugLog.ui.DbgEvtTooltip.crow" />
+				<DbgEventWidget Height="14" Width="Stretched" Event="{}" Tooltip="#CECrowPlugin.ui.DbgEvtTooltip.crow" />
 			</HorizontalStack>
 			<ListBox Data="{EventCommands}" Fit="true">
 				<Template>

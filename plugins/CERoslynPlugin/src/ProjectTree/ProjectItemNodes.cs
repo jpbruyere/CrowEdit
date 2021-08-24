@@ -9,6 +9,7 @@ using Microsoft.Build.Evaluation;
 using CrowEditBase;
 using Crow;
 using static CrowEditBase.CrowEditBase;
+using System;
 
 namespace CERoslynPlugin
 {
@@ -82,6 +83,8 @@ namespace CERoslynPlugin
 				}
 			}
 		}
+		public void onDblClick (object sender, EventArgs e) => App.OpenFile (FullPath);
+
 		public override string IconSub {
 			get {
 				switch (NodeType) {

@@ -22,6 +22,12 @@ namespace CrowEditBase
 
 		public override string Caption => caption;
 		public override NodeType NodeType => nodeType;
+
+		public override CommandGroup Commands {
+			get {
+				return null; 
+			}
+		}
 	}
 
 }

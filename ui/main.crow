@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0"?>
 <VerticalStack DataSourceType="CrowEdit" Spacing="0" >
-	<Menu Data="{AllCommands}" >
+	<Menu Data="{CommandsRoot}" >
 		<ItemTemplate DataType="Crow.Command" Path="#CrowEdit.ui.MenuButton.template"/>
 		<ItemTemplate DataType="Crow.CommandGroup"  >
 			<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}"

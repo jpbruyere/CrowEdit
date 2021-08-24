@@ -1,9 +1,9 @@
 ﻿IcoButton {
-	Template = "#CECrowDebugLog.ui.Button.template";
+	Template = "#CECrowPlugin.ui.Button.template";
 	Background = "Onyx";
 }
 CheckBox2 {
-	Template= "#CECrowDebugLog.ui.CheckBox2.imlt";
+	Template= "#CECrowPlugin.ui.CheckBox2.imlt";
 	Background = "Jet";
 	Checked="{Background=MediumSeaGreen}";
 	Unchecked = "{Background=Jet}";	

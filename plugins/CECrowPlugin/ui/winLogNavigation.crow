@@ -6,7 +6,7 @@
 				<ListItem Margin="0" Height="16" Width="Fit"
 							Selected="{Background=Yellow}"
 							Unselected="{Background=Transparent}">
-					<DbgEventWidget CacheEnabled="true" Height="10" Width="Fit" Event="{}" Tooltip="#CECrowDebugLog.ui.DbgEvtTooltip.crow" TicksPerPixel="3000" VerticalAlignment="Center"/>
+					<DbgEventWidget CacheEnabled="true" Height="10" Width="Fit" Event="{}" Tooltip="#CECrowPlugin.ui.DbgEvtTooltip.crow" TicksPerPixel="3000" VerticalAlignment="Center"/>
 				</ListItem>
 			</ItemTemplate>
 			<Template>
@@ -25,7 +25,7 @@
 				<ListItem Margin="0" Height="16" Width="Fit"
 							Selected="{Background=Yellow}"
 							Unselected="{Background=Transparent}">
-					<DbgEventWidget CacheEnabled="true" Height="10" Width="Fit" Event="{}" Tooltip="#CECrowDebugLog.ui.DbgEvtTooltip.crow" TicksPerPixel="3000" VerticalAlignment="Center"/>
+					<DbgEventWidget CacheEnabled="true" Height="10" Width="Fit" Event="{}" Tooltip="#CECrowPlugin.ui.DbgEvtTooltip.crow" TicksPerPixel="3000" VerticalAlignment="Center"/>
 				</ListItem>
 			</ItemTemplate>
 			<Template>

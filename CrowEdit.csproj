@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>netcoreapp5</TargetFramework>
+		<TargetFramework>netcoreapp3.1</TargetFramework>
 		<OutputType>WinExe</OutputType>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
@@ -13,8 +13,11 @@
 	</ItemGroup>
 	<ItemGroup>
 		<!--<ProjectReference Include="Crow.Coding\Crow.Coding.csproj" />-->
+		<!--<PackageReference Include="Crow" Version="0.9.6-beta" />
+		<ProjectReference Include="/mnt/devel/crow/Crow/Crow.csproj" />-->
 		<ProjectReference Include="CrowEditBase\CrowEditBase.csproj" />
-		<ProjectReference Include="plugins\CECrowDebugLog\CECrowDebugLog.csproj" >
+
+		<ProjectReference Include="plugins\CECrowPlugin\CECrowPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 		</ProjectReference>
 		<ProjectReference Include="plugins\CEXmlPlugin\CEXmlPlugin.csproj" >
@@ -26,8 +29,5 @@
 		<ProjectReference Include="plugins\CENetcoreDbgPlugin\CENetcoreDbgPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 		</ProjectReference>
-		<ProjectReference Include="..\CrowIDE\Crow\Crow\Crow.csproj" />
-
-		<!--<PackageReference Include="Crow" Version="0.9.6-beta" />-->
 	</ItemGroup>
 </Project>
