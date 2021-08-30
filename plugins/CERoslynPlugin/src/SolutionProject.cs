@@ -63,7 +63,23 @@ namespace CERoslynPlugin
 		}
 		public override string Name => Path.GetFileNameWithoutExtension (FullPath);
 		public override string Icon => "#icons.file_type_sln2.svg";
+		public Project StartupProject {
+			get => Flatten.FirstOrDefault (p => p.FullPath == UserConfig.Get<string> ("StartupProject")); 
+			set {
+				if (value == StartupProject)
+					return;
 
+				StartupProject?.NotifyValueChanged ("IsStartupProject", false);
+
+				if (value == null)
+					UserConfig.Set ("StartupProject", "");
+				else {
+					UserConfig.Set ("StartupProject", value.FullPath);
+					value.NotifyValueChanged("IsStartupProject", true);
+				}
+				NotifyValueChanged ("StartupProject", StartupProject);
+			}
+		}
 		public override void Load () {
 			projectCollection = new ProjectCollection (
 				null,

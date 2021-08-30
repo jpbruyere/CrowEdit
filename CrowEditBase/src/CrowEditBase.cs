@@ -96,6 +96,11 @@ namespace CrowEditBase
 			proj = FlattenProjects.FirstOrDefault (p=>p.FullPath == projectFullPath);
 			return proj != null;
 		}
+		public bool TryGetContainingProject (string fullPath, out Project containingProject) {
+			containingProject = FlattenProjects.FirstOrDefault (p => p.ContainsFile (fullPath));
+			return containingProject != null;
+		}
+
 
 		public Document CurrentDocument {
 			get => currentDocument;
@@ -257,7 +262,7 @@ namespace CrowEditBase
 		protected void loadPlugins () {
 			if (string.IsNullOrEmpty (PluginsDirecory))			
 				PluginsDirecory = Path.Combine (
-					Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "Plugins");
+					Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "plugins");
 
 			foreach (string pluginDir in Directory.GetDirectories (PluginsDirecory)) {
 				Plugin plugin = new Plugin (pluginDir);

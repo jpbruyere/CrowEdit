@@ -81,17 +81,6 @@ namespace Crow
 			CMDEventHistoryBackward = new Command("back.", currentEventHistoryGoBack, "#icons.previous.svg", false);
 			CMDEventHistoryForward = new Command("forw.", currentEventHistoryGoForward, "#icons.forward-arrow.svg", false);
 		}
-
-		public Command CMDOptions_SelectCrowAssemblyLocation => new Command ("...",
-			() => {
-				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
-							ShowFiles='true' ShowHidden='true' />");
-				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
-				dlg.DataSource = this;
-			}
-		);
-
 		public void LoadIML (string imlSource) {
 			if (CurrentState == Status.Running)
 				delSetSource (imlSource);			
@@ -336,15 +325,16 @@ namespace Crow
 			CurrentState = Status.Paused;
 		}
 		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
-		public Command CMDOptions_SelectCrowDbgAssemblyLocation => new Command ("...",
-			() => {				
+		public Command CMDOptions_SelectCrowAssemblyLocation => new Command ("...",
+			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select Crow dll' CurrentDirectory='{CrowDbgAssemblyLocation}'
+				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
 							ShowFiles='true' ShowHidden='true' />");
 				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
 				dlg.DataSource = this;
 			}
 		);
+
 		protected override void onStateChange(Status previousState, Status newState)
 		{
 			base.onStateChange(previousState, newState);

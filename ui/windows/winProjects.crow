@@ -32,7 +32,7 @@
 
 		</ItemTemplate>
 
-		<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Children" Path="#CrowEditBase.ui.TreeExpandable.template" />
+		<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Children" Path="#CERoslynPlugin.ui.MSBuildProjectNode.template" />
 		<ItemTemplate DataType="CrowEditBase.VirtualNode" Data="Childs" Path="#CrowEditBase.ui.TreeExpandable.template" />
 
 		<ItemTemplate DataType="CrowEditBase.Project" Data="SubProjects" Path="#CrowEditBase.ui.TreeExpandable.template" />

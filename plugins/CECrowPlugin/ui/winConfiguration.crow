@@ -16,7 +16,7 @@
 		</HorizontalStack>
 		<HorizontalStack Height="Fit">
 			<TextBox Height="Fit" Text="{²CrowDbgAssemblyLocation}" Margin="2"/>
-			<Button Command="{CMDOptions_SelectCrowDbgAssemblyLocation}" MinimumSize="0,0"/>
+			<Button Command="{CMDOptions_SelectCrowAssemblyLocation}" MinimumSize="0,0"/>
 		</HorizontalStack>		
 		<Label Background="Red" Foreground="White" Margin="5" Width="Stretched" Text="{ServiceErrorMessage}"
 			IsVisible="{ServiceIsInError}"/>

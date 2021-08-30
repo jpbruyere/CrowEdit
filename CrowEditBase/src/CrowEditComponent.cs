@@ -28,7 +28,7 @@ namespace CrowEditBase
 		public event EventHandler Unselected;	
 
 		public virtual bool IsSelected {
-			get { return isSelected; }
+			get => isSelected;
 			set {
 				if (value == isSelected)
 					return;

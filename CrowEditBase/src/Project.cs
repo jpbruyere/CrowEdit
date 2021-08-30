@@ -30,6 +30,7 @@ namespace CrowEditBase
 				}
 			}
 		}
+		public virtual bool ContainsFile (string fullPath) => false;
 		public bool HasChildren => subProjects?.Count > 0;
 
 		public string FullPath { get ; private set; }

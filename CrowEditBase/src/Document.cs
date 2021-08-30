@@ -13,9 +13,11 @@ using static CrowEditBase.CrowEditBase;
 namespace CrowEditBase
 {
 	public abstract class Document : CrowEditComponent {
+		protected Project project;
 		public Document (string fullPath) {
 			initCommands ();
 			FullPath = fullPath;
+			App.TryGetContainingProject (FullPath, out project);
 		}
 		public event EventHandler CloseEvent;
 		public void SelectDocument () => IsSelected = true;

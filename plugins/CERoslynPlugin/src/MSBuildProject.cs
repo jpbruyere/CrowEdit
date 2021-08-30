@@ -44,11 +44,15 @@ namespace CERoslynPlugin
 			Load ();
 
 			commands = new CommandGroup (CMDLoad, CMDUnload, CMDReload);
+			if (OutputKind != OutputKind.DynamicallyLinkedLibrary)
+				commands.Add (new Command ("Set as startup",() => solutionProject.StartupProject = this));
+			
 			foreach (string target in defaultTargets)
 				Commands.Add (new Crow.Command (target, () => Build (target)));
 		}
 
 		CommandGroup commands;
+		public Command CMDSetAsStartupProject;
 
 		public override CommandGroup Commands => commands;
 
@@ -149,8 +153,10 @@ namespace CERoslynPlugin
 				}	
 				return false;			
 			}
-		} 
-
+		}
+		public bool IsStartupProject => solutionProject.StartupProject == this;
+		public override bool ContainsFile (string fullPath) =>
+			rootNode.Flatten.OfType<ProjectItemNode> ().Any (f => f.FullPath == fullPath);
 
 		void populateTreeNodes ()
 		{

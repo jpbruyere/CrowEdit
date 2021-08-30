@@ -64,7 +64,19 @@ namespace CrowEditBase
 			pn.Parent = null;
 			children.Remove (pn);
 		}
-
+		/*public override bool IsSelected {
+			get => base.IsSelected;
+			set {
+				base.IsSelected = value;
+				if (isSelected) {
+					TreeNode pn = Parent;
+					while (pn != null) {
+						pn.IsExpanded = true;
+						pn = pn.Parent;
+					}
+				}
+			}
+		}*/
 		public virtual bool IsExpanded {
 			get { return isExpanded; }
 			set {
