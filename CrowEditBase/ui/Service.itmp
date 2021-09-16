@@ -5,7 +5,7 @@
 		<Template>
 			<HorizontalStack Name="ItemsContainer" />
 		</Template>
-		<ItemTemplate Path="#CrowEditBase.ui.IconCommand.itmp"/>
+		<ItemTemplate Path="#ui.IconCommand.itmp"/>
 	</ListBox>
 </HorizontalStack>
 

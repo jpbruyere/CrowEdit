@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0"?>
 <VerticalStack DataSourceType="CrowEdit" Spacing="0" >
 	<Menu Data="{CommandsRoot}" >
-		<ItemTemplate DataType="Crow.Command" Path="#CrowEdit.ui.MenuButton.template"/>
+		<ItemTemplate DataType="Crow.Command" Path="#ui.MenuButton.template"/>
 		<ItemTemplate DataType="Crow.CommandGroup"  >
 			<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}"
-						ItemTemplate="#CrowEdit.ui.MenuItem.itmp">
+						ItemTemplate="#ui.MenuItem.itmp">
 				<Template>
 					<Popper PopDirection="Bottom" Caption="{Caption}" Width="Fit" 
 									MouseEnter="{Background=${ControlHighlight}}"

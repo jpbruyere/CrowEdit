@@ -14,7 +14,7 @@ using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
-	public abstract class Project : CrowEditComponent {		
+	public abstract class Project : CrowEditComponent {
 		bool isLoaded;
 		protected Project parent;
 		protected IList<Project> subProjects;
@@ -37,7 +37,7 @@ namespace CrowEditBase
 		public abstract string Name { get; }
 		public string Caption => Name;
 		public bool IsLoaded {
-			get { return isLoaded; }
+			get => isLoaded;
 			set {
 				if (value == isLoaded)
 					return;
@@ -49,20 +49,20 @@ namespace CrowEditBase
 				CMDLoad.CanExecute = !IsLoaded;
 				CMDReload.CanExecute = CMDUnload.CanExecute = IsLoaded;
 			}
-		}		
+		}
 		public Project (string fullPath) {
 			initCommands ();
-			FullPath = fullPath;			
+			FullPath = fullPath;
 		}
 		public Command CMDLoad, CMDUnload, CMDReload, CMDClose;
 		public virtual CommandGroup Commands => new CommandGroup (
 			CMDLoad, CMDUnload, CMDReload, CMDClose);
-		
+
 		void initCommands () {
-			CMDLoad = new Command ("Load", Load, "#icons.reply.svg",  false);
-			CMDUnload = new Command ("Unload", Unload, "#icons.share-arrow.svg", false);
-			CMDReload = new Command ("Reload", () => { Unload(); Load();}, "#icons.refresh.svg", false);		
-			CMDClose = new Command ("Close", Close, "#icons.share-arrow.svg", true);
+			CMDLoad = new ActionCommand ("Load", Load, "#icons.reply.svg",  false);
+			CMDUnload = new ActionCommand ("Unload", Unload, "#icons.share-arrow.svg", false);
+			CMDReload = new ActionCommand ("Reload", () => { Unload(); Load();}, "#icons.refresh.svg", false);
+			CMDClose = new ActionCommand ("Close", Close, "#icons.share-arrow.svg", true);
 		}
 
 		public abstract void Load ();

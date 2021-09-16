@@ -29,11 +29,11 @@ namespace CERoslynPlugin
 				if (eventSource != null)
 					registerHandles ();
 			}
-		} 
+		}
 		public string Parameters { get; set; }
 
 		public CELogger (LoggerVerbosity verbosity = LoggerVerbosity.Detailed)
-		{			
+		{
 			this.verbosity = verbosity;
 		}
 		public void Initialize (IEventSource eventSource) {
@@ -67,6 +67,7 @@ namespace CERoslynPlugin
 				eventSource.TaskFinished += EventSource_TaskFinished;
 				break;
 			case LoggerVerbosity.Diagnostic:
+				eventSource.MessageRaised += EventSource_MessageRaised_All;
 				eventSource.AnyEventRaised += EventSource_AnyEventRaised;
 				break;
 			}
@@ -75,7 +76,8 @@ namespace CERoslynPlugin
 		void unregisterHandles () {
 			eventSource.WarningRaised -= EventSource_WarningRaised;
 			eventSource.ErrorRaised -= EventSource_ErrorRaised;
-
+			eventSource.BuildStarted -= EventSource_Progress_BuildStarted;
+			eventSource.BuildFinished -= EventSource_Progress_BuildFinished;
 
 			switch (Verbosity) {
 			case LoggerVerbosity.Minimal:
@@ -96,6 +98,7 @@ namespace CERoslynPlugin
 				eventSource.TaskFinished -= EventSource_TaskFinished;
 				break;
 			case LoggerVerbosity.Diagnostic:
+				//eventSource.MessageRaised -= EventSource_MessageRaised_All;
 				eventSource.AnyEventRaised -= EventSource_AnyEventRaised;
 				break;
 			}
@@ -115,9 +118,9 @@ namespace CERoslynPlugin
 		{
 			log (LogType.High, "Build Finished.");
 			//ide.CurrentSolution.RaiseDiagnosticsValueChanged();
-		}		
+		}
 
-        private void EventSource_TaskFinished (object sender, TaskFinishedEventArgs e) {
+		private void EventSource_TaskFinished (object sender, TaskFinishedEventArgs e) {
 			log (LogType.Custom1, e.Message);
 		}
 
@@ -125,7 +128,7 @@ namespace CERoslynPlugin
 			log (LogType.Custom1, e.Message);
 		}
 
-		private void EventSource_TargetFinished (object sender, TargetFinishedEventArgs e) {			
+		private void EventSource_TargetFinished (object sender, TargetFinishedEventArgs e) {
 			log (LogType.Custom2, e.Message);
 		}
 
@@ -135,11 +138,25 @@ namespace CERoslynPlugin
 		private void EventSource_MessageRaised (object sender, BuildMessageEventArgs e) {
 			log (LogType.Normal, e.Message);
 		}
-        private void EventSource_AnyEventRaised (object sender, BuildEventArgs e) {
-			log (LogType.Normal, e.Message);
+		private void EventSource_AnyEventRaised (object sender, BuildEventArgs e) {
+			if (e is BuildErrorEventArgs ||
+					e is BuildWarningEventArgs ||
+					e is BuildStartedEventArgs ||
+					e is BuildFinishedEventArgs)
+				return;
+			else if (e is TargetFinishedEventArgs || e is TargetStartedEventArgs)
+				log (LogType.Custom2, e.Message);
+			else if (e is TaskStartedEventArgs || e is TaskFinishedEventArgs)
+				log (LogType.Custom1, e.Message);
+			else if (e is BuildMessageEventArgs bmea)
+				EventSource_MessageRaised_All (sender, bmea);
+			else if (e is BuildStatusEventArgs)
+				log (LogType.High, e.Message);
+			else
+				log (LogType.Custom3, e.Message);
 		}
 
-        private void EventSource_MessageRaised_Minimal (object sender, BuildMessageEventArgs e) {
+		private void EventSource_MessageRaised_Minimal (object sender, BuildMessageEventArgs e) {
 			if (e.Importance == MessageImportance.High)
 				log (LogType.High, e.Message);
 		}
@@ -149,7 +166,7 @@ namespace CERoslynPlugin
 			else if(e.Importance == MessageImportance.High)
 				log (LogType.High, e.Message);
 		}
-		private void EventSource_MessageRaised_All (object sender, BuildMessageEventArgs e) {			
+		private void EventSource_MessageRaised_All (object sender, BuildMessageEventArgs e) {
 			if (e.Importance == MessageImportance.Low)
 				log (LogType.Low, e.Message);
 			else if(e.Importance == MessageImportance.Normal)

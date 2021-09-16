@@ -8,18 +8,17 @@
 					<Template>
 						<HorizontalStack Name="ItemsContainer" />
 					</Template>
-					<ItemTemplate Path="#CrowEditBase.ui.IconCommand.itmp"/>
+					<ItemTemplate Path="#ui.IconCommand.itmp"/>
 				</ListBox>
-			</HorizontalStack>		
+			</HorizontalStack>
 		</ItemTemplate>
 	</ListBox>-->
 
 	<TreeView Name="treeview" IsRoot="true" RootDataLevel="true" Data="{Projects}" Background="Onyx"
 				SelectedItemChanged="tv_projects_SelectedItemChanged" >
 		<ItemTemplate DataType="default" >
-		<!--<ItemTemplate DataType="CrowEditBase.Document" >-->
 			<ListItem CornerRadius="2" Margin="1" Height="Fit" Width="Stretched"
-					BubbleMouseEvent="None" ContextCommands="{Commands}"
+					BubbleMouseEvent="MouseWheel" ContextCommands="{Commands}"
 					MouseDoubleClick="onDblClick"
 					IsSelected="{²IsSelected}"
 					Selected="{Background=RoyalBlue}"
@@ -33,11 +32,11 @@
 		</ItemTemplate>
 
 		<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Children" Path="#CERoslynPlugin.ui.MSBuildProjectNode.template" />
-		<ItemTemplate DataType="CrowEditBase.VirtualNode" Data="Childs" Path="#CrowEditBase.ui.TreeExpandable.template" />
+		<ItemTemplate DataType="CrowEditBase.VirtualNode" Data="Childs" Path="#ui.TreeExpandable.template" />
 
-		<ItemTemplate DataType="CrowEditBase.Project" Data="SubProjects" Path="#CrowEditBase.ui.TreeExpandable.template" />
-		<!--<ItemTemplate DataType="CrowEditBase.TreeNode" DataTest="NodeType" Data="Childs" Path="#CrowEditBase.ui.TreeExpandable.template" />-->
-	</TreeView>	
+		<ItemTemplate DataType="CrowEditBase.Project" Data="SubProjects" Path="#ui.TreeExpandable.template" />
+		<!--<ItemTemplate DataType="CrowEditBase.TreeNode" DataTest="NodeType" Data="Childs" Path="#ui.TreeExpandable.template" />-->
+	</TreeView>
 </DockWindow>
 
 

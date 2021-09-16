@@ -3,7 +3,9 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 using System;
-
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Threading;
 using Crow;
 using Crow.Drawing;
@@ -21,7 +23,7 @@ namespace CECrowPlugin
 		{
 			SolidBackground = false;
 			initBackend (true);
-			
+
 			clientRectangle = new Rectangle (0, 0, 100, 100);
 			CreateMainSurface (ref clientRectangle);
 		}
@@ -39,13 +41,17 @@ namespace CECrowPlugin
 		string source;
 		Action delRegisterForRepaint;//call RegisterForRepaint in the container widget (DebugInterfaceWidget)
 		Action<Exception> delSetCurrentException;
-		//Func<object> delGetScreenCoordinate;
+
+		delegate void GetScreenCoordinateDelegateType(out int x, out int y);
+		GetScreenCoordinateDelegateType delGetScreenCoordinate;
+		Func<IEnumerable<object>> delGetStyling;
+		Func<string, Stream> delGetStreamFromPath;
 
 		void interfaceThread () {
 			while (!Terminate) {
 				try
 				{
-					Update();	
+					Update();
 				}
 				catch (System.Exception ex)
 				{
@@ -72,12 +78,12 @@ namespace CECrowPlugin
 					delSetCurrentException (ex);
 					Console.WriteLine ($"[DbgIFace] {ex}");
 					ClearInterface();
-					Thread.Sleep(1000);	
+					Thread.Sleep(1000);
 				}
-				
+
 				/*if (IsDirty)
 					delRegisterForRepaint();				*/
-					
+
 				Thread.Sleep (UPDATE_INTERVAL);
 			}
 		}
@@ -91,7 +97,9 @@ namespace CECrowPlugin
 			Type t = w.GetType();
 			//delRegisterForRepaint = (Action)Delegate.CreateDelegate(typeof(Action), w, t.GetMethod("RegisterForRepaint"));
 			delSetCurrentException = (Action<Exception>)Delegate.CreateDelegate(typeof(Action<Exception>), w, t.GetProperty("CurrentException").GetSetMethod());
-			//delGetScreenCoordinate = (Func<object>)Delegate.CreateDelegate(typeof(Func<object>), w, t.GetMethod("GetScreenCoordinates"));
+			delGetScreenCoordinate = (GetScreenCoordinateDelegateType)Delegate.CreateDelegate(typeof(GetScreenCoordinateDelegateType), w, t.GetMethod("GetMouseScreenCoordinates"));
+			delGetStyling = (Func<IEnumerable<object>>)Delegate.CreateDelegate (typeof (Func<IEnumerable<object>>), w, t.GetMethod ("GetStyling"));
+			delGetStreamFromPath = (Func<string, Stream>)Delegate.CreateDelegate (typeof (Func<string, Stream>), w, t.GetMethod ("GetStreamFromPath"));
 		}
 		/*public void ResetDirtyState () {
 			IsDirty = false;
@@ -101,17 +109,17 @@ namespace CECrowPlugin
 				if (source == value)
 					return;
 				source = value;
-				if (string.IsNullOrEmpty(source))
-					return;
 				delSetCurrentException(null);
 				try
 				{
 					lock (UpdateMutex) {
+						resetInterface ();
+						if (string.IsNullOrEmpty(source))
+							return;
 						Widget tmp = CreateITorFromIMLFragment (source).CreateInstance();
-						ClearInterface();
 						AddWidget (tmp);
 						tmp.DataSource = this;
-					}					
+					}
 				}
 				catch (IML.InstantiatorException iTorEx)
 				{
@@ -121,6 +129,16 @@ namespace CECrowPlugin
 				{
 					delSetCurrentException(ex);
 				}
+			}
+		}
+		void resetInterface () {
+			ClearInterface();
+			initDictionaries();
+			foreach (object style in delGetStyling ()) {
+				if (style is string stylePath)
+					LoadStyle (stylePath);
+				else if (style is Assembly styleAssembly)
+					loadStylingFromAssembly (styleAssembly);
 			}
 		}
 		public void ReloadIml () {
@@ -137,19 +155,35 @@ namespace CECrowPlugin
 		public override void ProcessResize(Rectangle bounds) {
 			lock (UpdateMutex) {
 				clientRectangle = bounds.Size;
-				
+
 				CreateMainSurface (ref clientRectangle);
 
 				foreach (Widget g in GraphicTree)
 					g.RegisterForLayouting (LayoutingType.All);
 
 				RegisterClip (clientRectangle);
-			}				
-		}		
-		/*public override void ForceMousePosition()
+			}
+		}
+		public override void ForceMousePosition()
 		{
-			Point p = (Point)delGetScreenCoordinate();
-			Glfw.Glfw3.SetCursorPosition (WindowHandle, p.X + MousePosition.X, p.Y + MousePosition.Y);
-		}*/
+			delGetScreenCoordinate(out int x, out int y);
+			Glfw.Glfw3.SetCursorPosition (WindowHandle, x, y);
+		}
+
+		public bool OnKeyDown (Glfw.Key key, int scancode, Glfw.Modifier modifiers) {
+			return base.OnKeyDown (new KeyEventArgs (key, scancode, modifiers));
+		}
+		public bool OnKeyUp (Glfw.Key key, int scancode, Glfw.Modifier modifiers) {
+			return base.OnKeyDown (new KeyEventArgs (key, scancode, modifiers));
+		}
+
+
+		public override Stream GetStreamFromPath(string path)
+		{
+			Stream result = delGetStreamFromPath (path);
+			if (result != null)
+				return result;
+			return base.GetStreamFromPath (path);
+		}
 	}
 }

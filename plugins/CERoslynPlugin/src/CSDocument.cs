@@ -30,12 +30,29 @@ namespace CERoslynPlugin
 		static CSDocument () {
 			App.GetService<RoslynService> ()?.Start ();
 		}
+
 		CSharpSyntaxTree tree;
-		
 		public CSDocument (string fullPath)	: base (fullPath) {
 
 			//tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);			
 		}
+
+		#region SourceDocument abstract class implementation
+		/*protected override Tokenizer CreateTokenizer() => new CSTokenizer ();
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => null;// new XmlSyntaxAnalyser (this);
+
+		public override IList GetSuggestions(int pos)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override TextChange? GetCompletionForCurrentToken(object suggestion, out TextSpan? newSelection)
+		{
+			throw new NotImplementedException();
+		}*/
+		#endregion
+
+		
 
 		/*ProjectCollection tree;
 		public CSDocument (string fullPath)	: base (fullPath) {

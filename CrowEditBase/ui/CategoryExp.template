@@ -18,4 +18,4 @@
 	</Template>
 	<VerticalStack Spacing="1" Height="Fit" Name="ItemsContainer"
 		Margin="0" VerticalAlignment="Top"/>
-</Expandable>	
+</Expandable>

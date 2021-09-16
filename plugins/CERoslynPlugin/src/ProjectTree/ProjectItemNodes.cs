@@ -19,7 +19,7 @@ namespace CERoslynPlugin
 		Always,
 		PreserveNewest
 	}*/
-	public class ProjectItemNode  : TreeNode, IFileNode 
+	public class ProjectItemNode  : TreeNode, IFileNode
 	{
 
 		ProjectItem projectItem;
@@ -27,7 +27,25 @@ namespace CERoslynPlugin
 		public ProjectItemNode (ProjectItem projectItem) {
 			this.projectItem = projectItem;
 		}
-		#endregion		
+		#endregion
+
+
+		public string this[string metadataName] => projectItem.GetMetadataValue (metadataName);
+		public bool TryGetMetadata (string metadataName, out string metadataValue) {
+			metadataValue = this[metadataName];
+			return projectItem.HasMetadata (metadataName);
+		}
+		public bool HasMetadataValue (string metadataName, string expectedValue, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
+			=> TryGetMetadata (metadataName, out string metadataValue) && string.Equals (metadataValue, expectedValue, stringComparison);
+		public string EvaluatedInclude => projectItem.EvaluatedInclude;
+		public string FullPath =>
+			NodeType == NodeType.EmbeddedResource || NodeType == NodeType.None || NodeType == NodeType.Compile ?
+				Path.Combine (GetRoot<ProjectNode>().Project.RootDir, projectItem.EvaluatedInclude) : null;
+
+
+
+
+
 
 		public override string Icon {
 			get {
@@ -59,13 +77,10 @@ namespace CERoslynPlugin
 						return "#icons.blank-file.svg";
 					}
 				default:
-					return "#icons.blank-file.svg"; 
+					return "#icons.blank-file.svg";
 				}
 			}
 		}
-		public string FullPath => 
-			NodeType == NodeType.EmbeddedResource || NodeType == NodeType.None || NodeType == NodeType.Compile ?
-				Path.Combine (GetRoot<ProjectNode>().Project.RootDir, projectItem.EvaluatedInclude) : null;
 
 		public override CommandGroup Commands {
 			get {
@@ -74,12 +89,12 @@ namespace CERoslynPlugin
 				case NodeType.None:
 				case NodeType.Compile:
 					return new CommandGroup (
-						new Command ("Open", () => {
+						new ActionCommand ("Open", () => {
 							App.OpenFile (FullPath);
 						})
 					);
 				default:
-					return null; 
+					return null;
 				}
 			}
 		}
@@ -95,10 +110,8 @@ namespace CERoslynPlugin
 					return null;
 				}
 			}
-		
-		}
-		
 
+		}
 		public override string Caption => Path.GetFileName (projectItem.EvaluatedInclude);
 		public override NodeType NodeType {
 			get {

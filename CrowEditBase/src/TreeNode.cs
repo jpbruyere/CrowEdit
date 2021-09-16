@@ -89,7 +89,7 @@ namespace CrowEditBase
 		}
 		public bool HasChildren => children?.Count > 0;
 		public abstract string Icon { get; }
-		public virtual string IconSub => null;				
+		public virtual string IconSub => null;
 
 		public IEnumerable<TreeNode> Flatten {
 			get {

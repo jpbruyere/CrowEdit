@@ -19,15 +19,15 @@ namespace CrowEditBase
 			Stopped
 		}
 		protected Service () {
-			CMDStart = new Command ("Start", Start, "#icons.play-button.svg", true);
-			CMDStop = new Command ("Stop", Stop, "#icons.stop.svg", false);
-			CMDPause = new Command ("Pause", Pause, "#icons.pause-symbol.svg", false);
-			CMDOpenConfig = new Command ("Service configuration",
+			CMDStart = new ActionCommand ("Start", Start, "#icons.play-button.svg", true);
+			CMDStop = new ActionCommand ("Stop", Stop, "#icons.stop.svg", false);
+			CMDPause = new ActionCommand ("Pause", Pause, "#icons.pause-symbol.svg", false);
+			CMDOpenConfig = new ActionCommand ("Service configuration",
 				() => CrowEditBase.App.LoadWindow (ConfigurationWindowPath, this), "#icons.cogwheel.svg", true);
 			Commands = new CommandGroup (CMDStart, CMDPause, CMDStop, CMDOpenConfig);
 
 			if (CrowEditBase.App.TryGetWindow (ConfigurationWindowPath, out Window win))
-				win.DataSource = this;			
+				win.DataSource = this;
 		}
 		public Command CMDStart, CMDStop, CMDPause, CMDOpenConfig;
 		public CommandGroup Commands;
@@ -55,7 +55,7 @@ namespace CrowEditBase
 		public abstract void Start ();
 		public abstract void Stop ();
 		public abstract void Pause ();
-		public virtual string ConfigurationWindowPath => "#CrowEditBase.ui.winServiceConfig.crow";
+		public virtual string ConfigurationWindowPath => "#ui.winServiceConfig.crow";
 
 		public virtual Document OpenDocument (string fullPath) => null;
 	}

@@ -1,8 +1,33 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Logs"  Width="80%" >
+<DockWindow Style="DockWindow2" Caption="Logs"  Width="80%" >
 	<VerticalStack RootDataLevel="true" >
+		<HorizontalStack Height="Fit" Spacing="2" Margin="1">
+			<Label Text="{../../../Caption}" Fit="true" Foreground="DimGrey" Font="${SmallUIFont}"/>
+			<Widget Width="Stretched"/>
+			<EnumSelector Caption="Filter:" EnumValue="{²../../log.Filter}" />
+			<TextBox Background="Grey" Foreground="Black" MinimumSize="100,1" Text="{²../../log.SearchString}" Width="40%" KeyDown="../../log.onSearch" Font="${SmallUIFont}"/>
+			<CheckBox Fit="true" Caption="Case Sensitive" IsChecked="{²../../log.CaseSensitiveSearch}" Font="${SmallUIFont}"/>
+			<CheckBox Fit="true" Caption="All Word" IsChecked="{²../../log.AllWordSearch}" Font="${SmallUIFont}"/>
+
+			<Menu Style="DockWinTitleBarMenu" Data="{../../log.SearchCommands}" Fit="true" Background="Transparent"/>
+
+			<ListBox Style="DockWinTitleBarIconMenu" Data="{./DockCommands}"/>
+			<ListBox Style="DockWinTitleBarIconMenu" Data="{./Commands}"/>
+			<!--<ListBox Data="{./DockCommands}" Fit="true">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" />
+				</Template>
+				<ItemTemplate Path="#Crow.WindowButton.template"/>
+			</ListBox>
+			<ListBox Data="{./Commands}" Fit="true">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" />
+				</Template>
+				<ItemTemplate Path="#Crow.WindowButton.template"/>
+			</ListBox>-->
+		</HorizontalStack>
 		<HorizontalStack Spacing="0">
-			<LogViewerWidget Name="log" Lines="{MainLog}" Font="${SmallFont}" MaxScrollX="1000"/>
+			<LogViewerWidget Name="log" Lines="{MainLog}" Font="${SmallFont}" MaxScrollX="3000"/>
 			<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}" CursorRatio="{../log.ChildHeightRatio}" Maximum="{../log.MaxScrollY}" />
 		</HorizontalStack>
 		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>

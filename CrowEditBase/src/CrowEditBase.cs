@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Runtime.Loader;
 
 namespace CrowEditBase
-{	
+{
 	public abstract class CrowEditBase : Interface {
 		protected class DocumentClientClassList : List<Type> {
 			string defaultClass;
@@ -34,7 +34,7 @@ namespace CrowEditBase
 				FileAssociations.Add (extension, new DocumentClientClassList ());
 			if (!FileAssociations[extension].Contains (clientClass))
 				FileAssociations[extension].Add (clientClass);
-			
+
 		}
 		public void RemoveFileAssociationByType (Type clientClass) {
 
@@ -110,7 +110,7 @@ namespace CrowEditBase
 
 				currentDocument?.UnselectDocument ();
 
-				currentDocument = value;				
+				currentDocument = value;
 				NotifyValueChanged (currentDocument);
 
 				if (currentDocument == null)
@@ -121,7 +121,7 @@ namespace CrowEditBase
 				FileCommands[3] = currentDocument.CMDSaveAs;
 				EditCommands[0] = currentDocument.CMDUndo;
 				EditCommands[1] = currentDocument.CMDRedo;
-				
+
 			}
 		}
 		public Project CurrentProject {
@@ -195,7 +195,7 @@ namespace CrowEditBase
 		public void CloseFile (string filePath) =>
 			CloseDocument (OpenedDocuments.FirstOrDefault (d => d.FullPath == filePath));
 		public void CloseOthers (string filePath) {
-			foreach (Document doc in OpenedDocuments.Where (d => d.FullPath != filePath)) 
+			foreach (Document doc in OpenedDocuments.Where (d => d.FullPath != filePath))
 				CloseDocument (doc);
 		}
 		public void CloseOthers (Document document) {
@@ -207,8 +207,8 @@ namespace CrowEditBase
 		}
 
 		public void createNewFile(){
-			openOrCreateFile (Path.Combine (CurFileDir, _defaultFileName));	
-		}		
+			openOrCreateFile (Path.Combine (CurFileDir, _defaultFileName));
+		}
 
 		protected abstract Document openOrCreateFile (string filePath);
 		public void CloseDocument (Document doc) {
@@ -260,7 +260,7 @@ namespace CrowEditBase
 
 
 		protected void loadPlugins () {
-			if (string.IsNullOrEmpty (PluginsDirecory))			
+			if (string.IsNullOrEmpty (PluginsDirecory))
 				PluginsDirecory = Path.Combine (
 					Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "plugins");
 
@@ -269,7 +269,7 @@ namespace CrowEditBase
 				Plugins.Add (plugin);
 				plugin.Load ();
 			}
-		}		
+		}
 
 	}
 }

@@ -3,9 +3,6 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.IO;
 using Crow;
 using Crow.Text;
 using System.Diagnostics;
@@ -19,6 +16,9 @@ namespace CrowEditBase
 		}
 		protected Token[] tokens;
 		protected SyntaxNode RootNode;
+		protected Token currentToken;
+		protected SyntaxNode currentNode;	
+
 		public Token[] Tokens => tokens;
 		public Token FindTokenIncludingPosition (int pos) {
 			if (pos == 0 || tokens == null || tokens.Length == 0)
@@ -51,8 +51,27 @@ namespace CrowEditBase
 			parse ();
 		}
 
+		public virtual Crow.Color GetColorForToken (TokenType tokType) {
+			if (tokType.HasFlag (TokenType.Punctuation))
+				return Colors.DarkGrey;
+			if (tokType.HasFlag (TokenType.Trivia))
+				return Colors.DimGrey;
+			if (tokType == TokenType.Keyword) 
+				return Colors.DarkSlateBlue;
+			return Colors.Red;																
+		}
 		protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
+		public abstract IList GetSuggestions (int pos);
+	
+		/// <summary>
+		/// complete current token with selected item from the suggestion overlay.
+		/// It may set a new position or a new selection.
+		/// </summary>
+		/// <param name="suggestion">selected object of suggestion overlay</param>
+		/// <param name="newSelection">new position or selection, null if normal position after text changes</param>
+		/// <returns>the TextChange to apply to the source</returns>
+		public abstract TextChange? GetCompletionForCurrentToken (object suggestion, out TextSpan? newSelection);
 		void parse () {
 			Tokenizer tokenizer = CreateTokenizer ();
 			tokens = tokenizer.Tokenize (Source);
@@ -71,26 +90,6 @@ namespace CrowEditBase
 					Console.WriteLine ($"{t,-40} {Source.AsSpan(t.Start, t.Length).ToString()}");
 				syntaxAnalyser.Root.Dump();*/
 		}		
-		public virtual Crow.Color GetColorForToken (TokenType tokType) {
-			if (tokType.HasFlag (TokenType.Punctuation))
-				return Colors.DarkGrey;
-			if (tokType.HasFlag (TokenType.Trivia))
-				return Colors.DimGrey;
-			if (tokType == TokenType.Keyword) 
-				return Colors.DarkSlateBlue;
-			return Colors.Red;																
-		}
-		protected Token currentToken;
-		protected SyntaxNode currentNode;	
-		public abstract IList GetSuggestions (int pos);
-	
-		/// <summary>
-		/// complete current token with selected item from the suggestion overlay.
-		/// It may set a new position or a new selection.
-		/// </summary>
-		/// <param name="suggestion">selected object of suggestion overlay</param>
-		/// <param name="newSelection">new position or selection, null if normal position after text changes</param>
-		/// <returns>the TextChange to apply to the source</returns>
-		public abstract TextChange? GetCompletionForCurrentToken (object suggestion, out TextSpan? newSelection);
+
 	}
 }

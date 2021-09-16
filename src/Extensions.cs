@@ -16,13 +16,13 @@ namespace CrowEdit
                 tch.Length == 0 ? "" : src.AsSpan (tch.Start, tch.Length).ToString());
 		public static CommandGroup GetCommands (this System.IO.DirectoryInfo di) =>
 			new CommandGroup(
-				new Command ("Set as root", ()=> {CrowEdit.App.CurrentDir = di.FullName;})				
-			);		
+				new ActionCommand ("Set as root", ()=> {CrowEdit.App.CurrentDir = di.FullName;})
+			);
 		public static CommandGroup GetCommands (this System.IO.FileInfo fi) =>
 			new CommandGroup(
-				new Command ("Open", ()=> {CrowEdit.App.OpenFile (fi.FullName);}),
-				new Command ("Close", ()=> {CrowEdit.App.CloseFile (fi.FullName);},null, CrowEdit.App.IsOpened (fi.FullName)),
-				new Command ("Delete", (sender0) => {
+				new ActionCommand ("Open", ()=> {CrowEdit.App.OpenFile (fi.FullName);}),
+				new ActionCommand ("Close", ()=> {CrowEdit.App.CloseFile (fi.FullName);},null, CrowEdit.App.IsOpened (fi.FullName)),
+				new ActionCommand ("Delete", (sender0) => {
 					MessageBox.ShowModal (CrowEdit.App, MessageBox.Type.YesNo, $"Delete {fi.Name}?").Yes += (sender, e) => {
 						System.IO.File.Delete(fi.FullName);
 						Widget listContainer = ((sender0 as Widget).LogicalParent as Widget).DataSource as Widget;
@@ -32,9 +32,9 @@ namespace CrowEdit
 			);
 		public static void OpenWithCrowEdit (this System.IO.FileInfo fi, object sender = null, EventArgs e = null) => CrowEdit.App.OpenFile (fi.FullName);
 
-		public static TreeNode [] GetFileSystemTreeNodeOrdered (this DirectoryInfo di) 
+		public static TreeNode [] GetFileSystemTreeNodeOrdered (this DirectoryInfo di)
 			=> di.GetFileSystemInfos ().OrderBy (f => f.Attributes).ThenBy (f => f.Name).Cast<TreeNode> ().ToArray ();
-			
+
 
     }
 }

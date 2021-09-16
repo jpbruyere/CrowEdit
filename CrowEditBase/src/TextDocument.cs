@@ -14,7 +14,7 @@ namespace CrowEditBase
 {
 	public class TextDocument : Document {
 		public TextDocument (string fullPath)
-			: base (fullPath) {			
+			: base (fullPath) {
 			reloadFromFile ();
 		}
 
@@ -38,11 +38,11 @@ namespace CrowEditBase
 		Dictionary<object, List<TextChange>> registeredClients = new Dictionary<object, List<TextChange>>();
 		public override bool TryGetState<T>(object client, out T state) {
 			state = default;
-			if (editorRWLock.TryEnterReadLock (10)) {				
+			if (editorRWLock.TryEnterReadLock (10)) {
 				try {
 					state = (T)(object)registeredClients[client];
 					registeredClients[client] = null;
-				} finally {					
+				} finally {
 					editorRWLock.ExitReadLock ();
 				}
 			}
@@ -64,7 +64,7 @@ namespace CrowEditBase
 		void notifyClients (TextChange tc, object triggeringClient = null) {
 			object[] clients = registeredClients.Keys.ToArray ();
 			for (int i = 0; i < clients.Length; i++) {
-				if (clients[i] != triggeringClient)					
+				if (clients[i] != triggeringClient)
 					notifyClient (clients[i], tc);
 			}
 		}
@@ -73,7 +73,7 @@ namespace CrowEditBase
 				registeredClients[client] = new List<TextChange> ();
 			registeredClients[client].Add (tc);
 		}
-		
+
 
 
 		protected override void writeToDisk () {
@@ -86,7 +86,7 @@ namespace CrowEditBase
 		}
 		protected override void readFromDisk()
 		{
-			using (Stream s = new FileStream (FullPath, FileMode.Open)) {						
+			using (Stream s = new FileStream (FullPath, FileMode.Open)) {
 				using (StreamReader sr = new StreamReader (s)) {
 					Source = origSource = sr.ReadToEnd ();
 					encoding = sr.CurrentEncoding;
@@ -103,7 +103,7 @@ namespace CrowEditBase
 				if (File.Exists (FullPath))
 					readFromDisk ();
 				else
-					initNewFile ();				
+					initNewFile ();
 				resetUndoRedo ();
 			} finally {
 				editorRWLock.ExitWriteLock ();
@@ -113,7 +113,7 @@ namespace CrowEditBase
 		protected Stack<TextChange> redoStack = new Stack<TextChange> ();
 
 
-		
+
 		protected void saveFileDialog_OkClicked (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
@@ -170,7 +170,7 @@ namespace CrowEditBase
 			undoStack.Clear ();
 			redoStack.Clear ();
 			CMDUndo.CanExecute = false;
-			CMDRedo.CanExecute = false;			
+			CMDRedo.CanExecute = false;
 		}
 		protected bool disableTextChangedEvent = false;
 		protected virtual void apply (TextChange change) {

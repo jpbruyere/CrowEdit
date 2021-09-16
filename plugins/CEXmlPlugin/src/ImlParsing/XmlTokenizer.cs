@@ -16,7 +16,7 @@ namespace CrowEdit.Xml
 			prolog,//misc before doctypedecl
 			ProcessingInstrucitons,
 			DTD,
-			DTDObject,//doctype finished				
+			DTDObject,//doctype finished
 			Xml,
 			StartTag,//inside start tag
 			Content,//after start tag with no closing slash
@@ -31,10 +31,10 @@ namespace CrowEdit.Xml
 		bool readName (ref SpanCharReader reader) {
 			if (reader.EndOfSpan)
 				return false;
-			char c = reader.Peak;					
+			char c = reader.Peak;
 			if (char.IsLetter(c) || c == '_' || c == ':') {
 				reader.Advance ();
-				while (reader.TryPeak (ref c)) {									
+				while (reader.TryPeak (ref c)) {
 					if (!(char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '\xB7'))
 						return true;
 					reader.Advance ();
@@ -58,11 +58,11 @@ namespace CrowEdit.Xml
 						reader.Read();
 						if (reader.IsNextCharIn ('\xA', '\x85'))
 							reader.Read();
-						addTok (ref reader, XmlTokenType.LineBreak);														
+						addTok (ref reader, XmlTokenType.LineBreak);
 						break;
 					case '\x20':
 					case '\x9':
-						char c = reader.Read();									
+						char c = reader.Read();
 						while (reader.TryPeak (c))
 							reader.Read();
 						addTok (ref reader, c == '\x20' ? XmlTokenType.WhiteSpace : XmlTokenType.Tabulation);
@@ -80,7 +80,7 @@ namespace CrowEdit.Xml
 		}
 		public override Token[] Tokenize (string source) {
 			SpanCharReader reader = new SpanCharReader(source);
-			
+
 			startOfTok = 0;
 			int curObjectLevel = 0;
 			curState = States.Init;
@@ -93,10 +93,10 @@ namespace CrowEdit.Xml
 				if (reader.EndOfSpan)
 					break;
 
-				switch (reader.Peak) {				
+				switch (reader.Peak) {
 				case '<':
 					reader.Advance ();
-					if (reader.TryPeak ('?')) {								
+					if (reader.TryPeak ('?')) {
 						reader.Advance ();
 						addTok (ref reader, XmlTokenType.PI_Start);
 						readName (ref reader);
@@ -106,13 +106,13 @@ namespace CrowEdit.Xml
 						reader.Advance ();
 						if (reader.TryPeak ("--")) {
 							reader.Advance (2);
-							addTok (ref reader, XmlTokenType.BlockCommentStart);										
+							addTok (ref reader, XmlTokenType.BlockCommentStart);
 							if (reader.TryReadUntil ("-->")) {
 								addTok (ref reader, XmlTokenType.BlockComment);
-								reader.Advance (3);											
+								reader.Advance (3);
 								addTok (ref reader, XmlTokenType.BlockCommentEnd);
 							} else if (reader.TryPeak ("-->")) {
-								reader.Advance (3);											
+								reader.Advance (3);
 								addTok (ref reader, XmlTokenType.BlockCommentEnd);
 							}
 						} else {
@@ -120,8 +120,8 @@ namespace CrowEdit.Xml
 							if (readName (ref reader)) {
 								addTok (ref reader, XmlTokenType.Keyword);
 								curState = States.DTDObject;
-							}								
-						}								
+							}
+						}
 					} else if (reader.TryPeak('/')) {
 						reader.Advance ();
 						addTok (ref reader, XmlTokenType.EndElementOpen);
@@ -135,12 +135,12 @@ namespace CrowEdit.Xml
 									curState = States.Content;
 								else
 									curState = States.Xml;
-							} 
+							}
 						}
-					}else{							
-						addTok (ref reader, XmlTokenType.ElementOpen);							
+					}else{
+						addTok (ref reader, XmlTokenType.ElementOpen);
 						if (readName (ref reader)) {
-							addTok (ref reader, XmlTokenType.ElementName);								
+							addTok (ref reader, XmlTokenType.ElementName);
 							curState = States.StartTag;
 						}
 					}
@@ -151,8 +151,8 @@ namespace CrowEdit.Xml
 						reader.Advance ();
 						addTok (ref reader, XmlTokenType.PI_End);
 					}else
-						addTok (ref reader, XmlTokenType.Unknown);						
-					curState = States.prolog;						
+						addTok (ref reader, XmlTokenType.Unknown);
+					curState = States.prolog;
 					break;
 				case '\'':
 				case '"':
@@ -202,6 +202,6 @@ namespace CrowEdit.Xml
 
 			return Toks.ToArray();
 		}
-		
+
 	}
 }

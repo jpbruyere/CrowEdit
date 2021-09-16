@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<ItemTemplate DataType="Crow.Command" Path="#CrowEdit.ui.MenuButton.template"/>
+<ItemTemplate DataType="Crow.Command" Path="#ui.MenuButton.template"/>
 <ItemTemplate DataType="Crow.CommandGroup" Data="Commands">
 	<Popper PopDirection="Right" Caption="{Caption}" Width="Stretched"
 			MouseEnter="{Background=${ControlHighlight}}"

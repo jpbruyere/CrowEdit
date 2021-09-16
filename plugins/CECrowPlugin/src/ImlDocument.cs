@@ -15,13 +15,19 @@ using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
 
 using CrowEdit.Xml;
+using CERoslynPlugin;
 
 namespace CECrowPlugin
 {
 	public class ImlDocument : XmlDocument {
 
+
 		public ImlDocument (string fullPath) : base (fullPath) {
 			App.GetService<CrowService> ()?.Start ();
+
+			/*if (project is MSBuildProject msbp) {
+				if (msbp.IsCrowProject)
+			}*/
 		}
 
 		string[] allWidgetNames = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>typeof(Widget).IsAssignableFrom (t))
@@ -35,12 +41,12 @@ namespace CECrowPlugin
 						m.GetCustomAttribute<XmlIgnoreAttribute>() == null);
 		}
 		MemberInfo getCrowTypeMember (string crowTypeName, string memberName) {
-			Type crowType = IML.Instantiator.GetWidgetTypeFromName (crowTypeName);			
+			Type crowType = IML.Instantiator.GetWidgetTypeFromName (crowTypeName);
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}
-		public override IList GetSuggestions (int pos) {			
+		public override IList GetSuggestions (int pos) {
 			base.GetSuggestions (pos);
-#if DEBUG			
+#if DEBUG
 			Console.WriteLine ($"Current Token: {currentToken} Current Node: {currentNode}");
 #endif
 
@@ -71,7 +77,7 @@ namespace CECrowPlugin
 									if (pi.PropertyType == typeof (Measure))
 										return (new string[] {"Stretched", "Fit"}).
 											Where (s => s.StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
-									if (pi.PropertyType == typeof (Fill)) 
+									if (pi.PropertyType == typeof (Fill))
 										return  EnumsNET.Enums.GetValues<Colors> ()
 											.Where (s => s.ToString().StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
 								}
@@ -85,7 +91,7 @@ namespace CECrowPlugin
 										return  Enum.GetNames (pi.PropertyType).ToList ();
 									if (pi.PropertyType == typeof(bool))
 										return  new List<string> (new string[] {"true", "false"});
-									if (pi.PropertyType == typeof (Fill)) 
+									if (pi.PropertyType == typeof (Fill))
 										return  EnumsNET.Enums.GetValues<Colors> ().ToList ();
 									if (pi.PropertyType == typeof (Measure))
 										return  new List<string> (new string[] {"Stretched", "Fit"});
@@ -93,10 +99,10 @@ namespace CECrowPlugin
 							}
 						}
 					}
-				}			
-			} else if (currentToken.GetTokenType() != XmlTokenType.AttributeValueClose && 
-					currentToken.GetTokenType() != XmlTokenType.EmptyElementClosing && 
-					currentToken.GetTokenType() != XmlTokenType.ClosingSign && 
+				}
+			} else if (currentToken.GetTokenType() != XmlTokenType.AttributeValueClose &&
+					currentToken.GetTokenType() != XmlTokenType.EmptyElementClosing &&
+					currentToken.GetTokenType() != XmlTokenType.ClosingSign &&
 					currentNode is ElementStartTagSyntax eltStartTag) {
 				if (currentToken.GetTokenType() == XmlTokenType.AttributeName)
 					return getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source))
@@ -110,8 +116,8 @@ namespace CECrowPlugin
 					(currentToken.Type != TokenType.ClosingSign && currentToken.Type != TokenType.EmptyElementClosing && currentToken.Type != TokenType.Unknown)) {
 					Suggestions = getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source)).ToList ();
 				} else*/
-				
-			}			
+
+			}
 			return null;
 		}
 		public override TextChange? GetCompletionForCurrentToken (object suggestion, out TextSpan? newSelection) {
@@ -129,7 +135,7 @@ namespace CECrowPlugin
 
 			if (currentToken.GetTokenType() == XmlTokenType.AttributeName && currentNode is AttributeSyntax attrib) {
 					if (attrib.ValueToken.HasValue) {
-						TextChange tc = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);						
+						TextChange tc = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
 						newSelection = new TextSpan(
 							attrib.ValueToken.Value.Start + tc.CharDiff + 1,
 							attrib.ValueToken.Value.End + tc.CharDiff - 1
@@ -137,8 +143,8 @@ namespace CECrowPlugin
 						return tc;
 					} else {
 						newSelection = TextSpan.FromStartAndLength (currentToken.Start + selectedSugg.Length + 2);
-						return new TextChange (currentToken.Start, currentToken.Length, selectedSugg + "=\"\"");						
-					}					
+						return new TextChange (currentToken.Start, currentToken.Length, selectedSugg + "=\"\"");
+					}
 			}
 
 			return new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
@@ -148,5 +154,5 @@ namespace CECrowPlugin
 		{
 			return base.GetColorForToken (tokType);
 		}
-	}	
+	}
 }

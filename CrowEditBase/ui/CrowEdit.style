@@ -1,0 +1,131 @@
+﻿SmallUIFont = "sans, 10";
+SmallFont = "consolas, 10";
+InactiveTabBackground = "DarkGrey";
+SelectedTabBackground = "Onyx";
+InactiveTabForeground = "Grey";
+SelectedTabForeground = "White";
+MenuIconSize = "16";
+
+ControlForeground = "LightGrey";
+ControlCaptionHoverColor = "White";
+
+ControlHighlight = "RoyalBlue";
+ControlIdle = "Jet";
+
+DockWindowBackground = "DarkGrey";
+
+Editor {
+	Background="White";
+	Foreground="Black";
+	MouseWheelSpeed = "20";
+	BubbleMouseEvent ="None";
+}
+
+icon {
+	Width="14";
+	Height="14";
+}
+MemberViewLabel {
+	Margin="1";
+	Height="Fit";
+	Width="50%";
+	Background="White";
+}
+MemberViewHStack {
+	Focusable="true";
+	Height="Fit";
+	Spacing="1";
+	MouseEnter="{Background=SteelBlue}";
+	MouseLeave="{Background=Transparent}";
+}
+
+IcoBut {
+	Template = "#Crow.Coding.ui.IcoBut.template";
+	MinimumSize = "10,10";
+	Width = "8";
+	Height = "14";
+	Background = "White";
+}
+Spinner {
+	Template = "#ui.spinner.template";
+}
+TreeIcon {
+	Width="18";
+	Height="18";
+}
+TreeIconSmall {
+	Width="12";
+	Height="12";
+}
+TreeLabel {
+	Foreground="White";
+	Margin = "1";
+}
+Splitter {
+	Thickness="1";
+	Background="Transparent";
+	Hover="{Background=White}";
+	Unhover="{Background=Transparent}";
+}
+DockStack {
+	Margin="0";
+	Spacing="0";
+}
+DockWindow {
+	Template = "#ui.DockWindow.template";
+	Background = "${DockWindowBackground}";
+	Margin="0";
+	RootDataLevel = "true";
+}
+DockWindow2 {
+	Template = "#ui.DockWindow2.template";
+	Background = "${DockWindowBackground}";
+	Margin="0";
+	RootDataLevel = "true";
+}
+DockWinTitleBarMenu {
+	ItemTemplate = "#ui.DockWinTitleBarMenu.itemp";
+}
+DockWinTitleBarIconMenu {
+	Template = "#ui.DockWinTitleBarIconMenu.template";
+	ItemTemplate = "#Crow.WindowButton.template";
+	Width = "Fit";
+	Height = "Fit";
+}
+DockingTabView {
+	Template = "#ui.DockingTabView.template";
+}
+MenuItem {
+	Template = "#ui.MenuItem.template";
+}
+
+MenuIcon {
+	Margin = "1";
+	Width = "${MenuIconSize}";
+	Height = "${MenuIconSize}";
+}
+
+suggestionsListBox {
+	Template = "#ui.Suggestions.template";
+	Width = "Fit";
+	Height = "Fit";
+	MaximumSize = "300, 120";
+	Background = "Jet";
+	UseLoadingThread = "false";
+}
+EnumSelector {
+	Template = "#ui.EnumSelector.template";
+	//ItemStyle = "CheckBox";
+}
+CheckBox {
+	Template= "#Crow.CheckBox2.template";
+	Width = "Stretched";
+	Height = "Fit";
+	CornerRadius = "3";
+	Background = "${ControlIdle}";
+	Foreground = "${ControlForeground}";
+	Checked = "{Background=${ControlHighlight}}";
+	Unchecked = "{Background=${ControlIdle}}";
+	MouseEnter = "{Foreground=${ControlCaptionHoverColor}}";
+	MouseLeave = "{Foreground=${ControlForeground}}";
+}

@@ -21,7 +21,7 @@ using static CrowEditBase.CrowEditBase;
 using CECrowPlugin;
 
 namespace Crow
-{	
+{
 	public class DebugInterfaceWidget : Widget {
 		CrowService crowIFaceService;
 		public CrowService CrowIFaceService {
@@ -33,7 +33,17 @@ namespace Crow
 				NotifyValueChangedAuto (crowIFaceService);
 			}
 		}
+		Command CMDRefresh;
 		public DebugInterfaceWidget () : base () {
+			CMDRefresh = new ActionCommand (this, "Refresh",
+				() => {
+					crowIFaceService?.LoadIML ("");
+					crowIFaceService?.LoadIML (imlSource);
+					RegisterForGraphicUpdate ();
+				},
+				"#icons.refresh.svg",
+				new KeyBinding (Key.F3));
+
 			Thread t = new Thread (backgroundThreadFunc);
 			t.IsBackground = true;
 			t.Start ();
@@ -42,8 +52,8 @@ namespace Crow
 			Stopwatch sw = Stopwatch.StartNew ();
 			int refreshRate = crowIFaceService == null ? 10 : crowIFaceService.RefreshRate;
 			while (true) {
-				if (sw.ElapsedMilliseconds > 200) {					
-					if (Document != null && document.TryGetState (this, out List<TextChange> changes)) {					
+				if (sw.ElapsedMilliseconds > 200) {
+					if (Document != null && document.TryGetState (this, out List<TextChange> changes)) {
 						foreach (TextChange tc in changes)
 							updateIMLSource (tc);
 					}
@@ -53,22 +63,22 @@ namespace Crow
 				if (crowIFaceService != null && crowIFaceService.GetDirtyState)
 					RegisterForRepaint ();
 				Thread.Sleep (refreshRate);
-			}	
-		}	
-		void updateIMLSource (TextChange change) {			
+			}
+		}
+		void updateIMLSource (TextChange change) {
 			ReadOnlySpan<char> src = imlSource.AsSpan ();
 			Span<char> tmp = stackalloc char[src.Length + (change.ChangedText.Length - change.Length)];
 			//Console.WriteLine ($"{Text.Length,-4} {change.Start,-4} {change.Length,-4} {change.ChangedText.Length,-4} tmp:{tmp.Length,-4}");
 			src.Slice (0, change.Start).CopyTo (tmp);
 			change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
 			src.Slice (change.End).CopyTo (tmp.Slice (change.Start + change.ChangedText.Length));
-		
+
 			imlSource = tmp.ToString ();
-		
+
 			crowIFaceService?.LoadIML (imlSource);
 
 			RegisterForRedraw ();
-		}			
+		}
 		string imlSource;
 
 		ImlDocument document;
@@ -77,7 +87,7 @@ namespace Crow
 			set {
 				if (document == value)
 					return;
-				
+
 				if (value is ImlDocument imlDoc) {
 					document?.UnregisterClient (this);
 					imlSource = "";
@@ -89,13 +99,13 @@ namespace Crow
 				}
 			}
 		}
-		
+
 		protected override void onInitialized(object sender, EventArgs e)
 		{
 			base.onInitialized(sender, e);
-			
 
-			CrowIFaceService = App.GetService<CrowService> ();			
+
+			CrowIFaceService = App.GetService<CrowService> ();
 			crowIFaceService?.Start ();
 		}
 		/*public CommandGroup LoggerCommands =>
@@ -106,7 +116,7 @@ namespace Crow
 				new Command("Load from file", () => loadLogFromDebugLogFilePath ())
 			);*/
 		public CommandGroup WindowCommands => new CommandGroup (
-			crowIFaceService.CMDRefresh,
+			CMDRefresh,
 			crowIFaceService.CMDStartRecording,
 			crowIFaceService.CMDStopRecording,
 			crowIFaceService.CMDOpenConfig,
@@ -127,7 +137,7 @@ namespace Crow
 		public override void onKeyPress(object sender, KeyPressEventArgs e) => crowIFaceService?.onKeyPress(e);
 		public override void onMouseMove(object sender, MouseMoveEventArgs e) {
 			Point m = ScreenPointToLocal (e.Position);
-			crowIFaceService?.onMouseMove(new MouseMoveEventArgs(m.X,m.Y, e.XDelta, e.YDelta));			
+			crowIFaceService?.onMouseMove(e.Position, new MouseMoveEventArgs(m.X,m.Y, e.XDelta, e.YDelta));
 		}
 		public override void onMouseDown(object sender, MouseButtonEventArgs e) => crowIFaceService?.onMouseDown(e);
 		public override void onMouseUp(object sender, MouseButtonEventArgs e) => crowIFaceService?.onMouseUp(e);
@@ -135,33 +145,34 @@ namespace Crow
 
 		protected override void RecreateCache()
 		{
-			bmp?.Dispose ();		
-			
+			bmp?.Dispose ();
+
 			if (crowIFaceService != null && crowIFaceService.IsRunning) {
 				crowIFaceService.Resize (Slot.Width, Slot.Height);
 				if (crowIFaceService.HasVkvgBackend)
 					bmp = IFace.CreateSurfaceForData (crowIFaceService.SurfacePointer, Slot.Width, Slot.Height);
 				else
 					bmp = IFace.CreateSurface (crowIFaceService.SurfacePointer);
-				bmp = Crow.Drawing.Surface.Lookup (crowIFaceService.SurfacePointer, false);				
-			}
+				bmp = Crow.Drawing.Surface.Lookup (crowIFaceService.SurfacePointer, false);
+			} else
+				base.RecreateCache ();
 
-			IsDirty = false;			
+			IsDirty = false;
 		}
 		protected override void UpdateCache(Context ctx)
 		{
-			if (bmp != null) {				
+			if (bmp != null) {
 				paintCache (ctx, Slot + Parent.ClientRectangle.Position);
-				crowIFaceService?.ResetDirtyState ();			
+				crowIFaceService?.ResetDirtyState ();
 			}
 		}
 
 
 		protected override void Dispose(bool disposing)
 		{
+			CMDRefresh?.Dispose ();
 			crowIFaceService?.Stop ();
-			base.Dispose(disposing);			
+			base.Dispose(disposing);
 		}
-
 	}
 }

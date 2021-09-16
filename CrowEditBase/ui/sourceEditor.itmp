@@ -14,10 +14,20 @@
 		<HorizontalStack Height="Fit">
 			<Widget Width="Stretched"/>
 			<Widget Height="5" Width="10"/>
+			<Label Text="MouseY:" Foreground="Grey"/>
+			<Label Text="{../../tb.MouseY}" Margin="3"/>
+			<Label Text="VisibleLines:" Foreground="Grey"/>
+			<Label Text="{../../tb.VisibleLines}" Margin="3"/>
+			<Label Text="ScrollY:" Foreground="Grey"/>
+			<Label Text="{../../tb.ScrollY}" Margin="3"/>
+			<Label Text="ScrollLine:" Foreground="Grey"/>
+			<Label Text="{../../tb.ScrollLine}" Margin="3"/>
+			<Label Text="HoverLine:" Foreground="Grey"/>
+			<Label Text="{../../tb.HoverLine}" Margin="3"/>
 			<Label Text="Line:" Foreground="Grey"/>
-			<Label Text="{../../tb.CurrentLine}" Margin="3"/>				
+			<Label Text="{../../tb.CurrentLine}" Margin="3"/>
 			<Label Text="col:" Foreground="Grey"/>
-			<Label Text="{../../tb.CurrentColumn}" Margin="3"/>				
-		</HorizontalStack>		
+			<Label Text="{../../tb.CurrentColumn}" Margin="3"/>
+		</HorizontalStack>
 	</VerticalStack>
 </ListItem>

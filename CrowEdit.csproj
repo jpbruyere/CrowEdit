@@ -9,7 +9,6 @@
 		<Compile Include="src\**\*.cs" />
 		<EmbeddedResource Include="ui\**\*.*" />
 		<EmbeddedResource Include="default.config" />
-		<EmbeddedResource Include="CrowEdit.style" />
 	</ItemGroup>
 	<ItemGroup>
 		<!--<ProjectReference Include="Crow.Coding\Crow.Coding.csproj" />-->

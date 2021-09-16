@@ -23,8 +23,8 @@ namespace CrowEditBase
 		ObservableList<Watch> children = new ObservableList<Watch>();
 
 		public CommandGroup Commands => new CommandGroup (
-			new Command ("Update Value", () => UpdateValue()),
-			new Command ("Delete", () => Delete())
+			new ActionCommand ("Update Value", () => UpdateValue()),
+			new ActionCommand ("Delete", () => Delete())
 		);
 
 		public bool HasChildren => NumChild > 0;

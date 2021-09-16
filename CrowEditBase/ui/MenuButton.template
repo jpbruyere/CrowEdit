@@ -6,6 +6,6 @@
 						MouseLeave="{Background=Transparent}">
 			<Image Style="MenuIcon" Picture="{./Icon}" />
 			<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="1"/>
-		</HorizontalStack>	
+		</HorizontalStack>
 	</Template>
 </Button>

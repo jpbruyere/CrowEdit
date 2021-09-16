@@ -21,7 +21,7 @@ namespace CrowEditBase
 
 		public Assembly Load (AssemblyName assemblyName)
 			=> loadContext.LoadFromAssemblyName (assemblyName);
-		
+
 		public bool TryGet (AssemblyName assemblyName, out Assembly assembly) {
 			assembly = loadContext.Assemblies.FirstOrDefault (a=>a.GetName().Name == assemblyName.Name);
 			return assembly != null;
@@ -42,18 +42,18 @@ namespace CrowEditBase
 		}
 		public readonly string Name;
 		public Plugin (string fullPath) {
-			initCommands ();			
+			initCommands ();
 			FullPath = fullPath;
 			Name = Path.GetFileNameWithoutExtension (FullPath);
 		}
 		public Command CMDLoad, CMDUnload, CMDReload;
 		public CommandGroup Commands => new CommandGroup (
 			CMDLoad, CMDUnload, CMDReload);
-		
+
 		protected virtual void initCommands () {
-			CMDLoad = new Command ("Load", Load, "#icons.reply.svg",  false);
-			CMDUnload = new Command ("Unload", Unload, "#icons.share-arrow.svg", false);
-			CMDReload = new Command ("Reload", () => { Unload(); Load();}, "#icons.refresh.svg", false);		
+			CMDLoad = new ActionCommand ("Load", Load, "#icons.reply.svg",  false);
+			CMDUnload = new ActionCommand ("Unload", Unload, "#icons.share-arrow.svg", false);
+			CMDReload = new ActionCommand ("Reload", () => { Unload(); Load();}, "#icons.refresh.svg", false);
 		}
 
 		public void Load () {
@@ -62,10 +62,10 @@ namespace CrowEditBase
 
 			if (loadContext == null)
 				loadContext = new PluginsLoadContext(FullPath);
-			
+
 			App.AddCrowAssembly (loadContext.MainAssembly);
 
-			string defaultConfigName = loadContext.MainAssembly.GetManifestResourceNames ().FirstOrDefault(c=>c.EndsWith ("default.conf"));			
+			string defaultConfigName = loadContext.MainAssembly.GetManifestResourceNames ().FirstOrDefault(c=>c.EndsWith ("default.conf"));
 			if (!string.IsNullOrEmpty (defaultConfigName)) {
 				Configuration config = new Configuration (loadContext.MainAssembly.GetManifestResourceStream (defaultConfigName));
 				string fileAssociations = config.Get<string> ("FileAssociations");
@@ -75,11 +75,11 @@ namespace CrowEditBase
 						foreach (string associations in fileAssociations.Split (';')) {
 							string[] typeExts = associations.Split (':');
 							Type clientClass = loadContext.MainAssembly.GetType (typeExts[0]);
-							foreach (string ext in typeExts[1].Split (','))	
-								App.AddFileAssociation (ext, clientClass);					
+							foreach (string ext in typeExts[1].Split (','))
+								App.AddFileAssociation (ext, clientClass);
 						}
 					}
-					catch (System.Exception ex)	{					
+					catch (System.Exception ex)	{
 						throw;
 					}
 				}

@@ -16,14 +16,14 @@ using Crow;
 
 
 namespace CERoslynPlugin
-{	
+{
 	public class RoslynService : Service {
 		internal CELogger Logger { get; private set; }
 		public LogLevel LogLevel {
 			get => Crow.Configuration.Global.Get<LogLevel>("LogLevel");
 			set {
 				if (LogLevel == value)
-					return;				
+					return;
 				Crow.Configuration.Global.Set ("LogLevel", value);
 				updateLogLevel ();
 				NotifyValueChanged ("LogLevel", value);
@@ -45,7 +45,7 @@ namespace CERoslynPlugin
 				break;
 			}
 		}
-		
+
 		public RoslynService () : base () {
 			configureDefaultSDKPathes ();
 			//TODO static init to prevent rebinding on Service multiple instantiation
@@ -57,12 +57,12 @@ namespace CERoslynPlugin
 			string capath = Path.Combine (MSBuildRoot, "Roslyn", "bincore");
 			foreach (string dll in Directory.GetFiles (capath, "*.dll")) {
 				try	{
-					pluginCtx.LoadFromAssemblyPath (dll);	
+					pluginCtx.LoadFromAssemblyPath (dll);
 				}
 				catch (Exception ex) {
 					Console.WriteLine ($"[RoslynService]{ex}");
 				}
-				
+
 			}
 		}
 		Assembly msbuildResolve (AssemblyLoadContext context, AssemblyName assemblyName) {
@@ -83,7 +83,7 @@ namespace CERoslynPlugin
 			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", Path.Combine (MSBuildRoot, "Sdks"));
 
 			if (Environment.OSVersion.Platform == PlatformID.Unix)
-				Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");			
+				Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");
 
 			CurrentState = Status.Running;
 
@@ -106,7 +106,7 @@ namespace CERoslynPlugin
 				return (Document)Activator.CreateInstance (t, new object[] {fullPath});
 			}
 		}*/
-		public override string ConfigurationWindowPath => "#CERoslynPlugin.ui.winConfiguration.crow";		
+		public override string ConfigurationWindowPath => "#CERoslynPlugin.ui.winConfiguration.crow";
 
 		public string SDKFolder {
 			get => Configuration.Global.Get<string> ("SDKFolder");
@@ -126,8 +126,8 @@ namespace CERoslynPlugin
 				NotifyValueChanged (MSBuildRoot);
 			}
 		}
-		public Command CMDOptions_SelectSDKFolder => new Command ("...",
-			() => {				
+		public Command CMDOptions_SelectSDKFolder => new ActionCommand ("...",
+			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
 				<FileDialog Caption='Select SDK Folder' CurrentDirectory='{SDKFolder}'
 							ShowFiles='false' ShowHidden='true' />");
@@ -135,7 +135,7 @@ namespace CERoslynPlugin
 				dlg.DataSource = this;
 			}
 		);
-		public Command CMDOptions_SelectMSBuildRoot => new Command ("...",
+		public Command CMDOptions_SelectMSBuildRoot => new ActionCommand ("...",
 			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
 					<FileDialog Caption='Select MSBuild Root' CurrentDirectory='{MSBuildRoot}'
@@ -146,7 +146,7 @@ namespace CERoslynPlugin
 		);
 
 		void configureDefaultSDKPathes ()
-		{			
+		{
 			if (string.IsNullOrEmpty (SDKFolder)) {
 				switch (Environment.OSVersion.Platform) {
 				case PlatformID.Win32S:
@@ -160,7 +160,7 @@ namespace CERoslynPlugin
 					break;
 				default:
 					throw new NotSupportedException ();
-				}				
+				}
 			}
 
 			if (!string.IsNullOrEmpty (MSBuildRoot) && Directory.Exists(MSBuildRoot))
@@ -175,7 +175,7 @@ namespace CERoslynPlugin
 			versions.Sort ((a, b) => a.ToInt.CompareTo (b.ToInt));
 			MSBuildRoot = versions.Count > 0 ? Path.Combine (SDKFolder, versions.Last ().ToString ()) : SDKFolder;
 		}
-	
+
 		public class SDKVersion
 		{
 			public int major, minor, revision;
@@ -197,6 +197,6 @@ namespace CERoslynPlugin
 			}
 			public long ToInt => major << 62 + minor << 60 + revision;
 			public override string ToString () => $"{major}.{minor}.{revision}";
-		}		
+		}
 	}
 }

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0"?>
+<!--<ItemTemplate DataType="Command">-->
+<Button MinimumSize	= "1,1" Font="${SmallUIFont}" Command="{}" >
+	<Template>
+		<Border Style="ButtonBorder" Background="{./Background}" CornerRadius="{../CornerRadius}" Name="Content">
+			<Label Font="{./Font}" Name="caption" Margin="1" Foreground="{./Foreground}" Text="{./Caption}"/>
+		</Border>
+	</Template>
+</Button>
+<!--</ItemTemplate>-->

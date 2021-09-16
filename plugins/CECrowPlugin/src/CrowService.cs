@@ -20,7 +20,7 @@ using System.Runtime.CompilerServices;
 using static CrowEditBase.CrowEditBase;
 
 namespace Crow
-{	
+{
 	public class CrowService : Service {
 		public CrowService () : base () {
 
@@ -28,7 +28,7 @@ namespace Crow
 
 			//resolve other plugins dependencies
 			//AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly ()).Resolving += resolvePluginRefs;
-			
+
 			if (CrowEditBase.CrowEditBase.App.TryGetWindow ("#CECrowPlugin.ui.winLogGraph.crow", out Window win))
 				win.DataSource = this;
 		}
@@ -52,18 +52,19 @@ namespace Crow
 
 		void updateCrowApp () {
 			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
-				CERoslynPlugin.SolutionProject project = App.CurrentProject as CERoslynPlugin.SolutionProject;
-				Console.WriteLine (project.Name);
+				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
+
+				}
 			}else if (App.CurrentProject is CERoslynPlugin.MSBuildProject csprj){
 				CERoslynPlugin.MSBuildProject project = App.CurrentProject as CERoslynPlugin.MSBuildProject;
 				Console.WriteLine ($"{project.Name}: {project.IsCrowProject}");
-				
+
 			}
-			
-			
+
+
 		}
-		
-		
+
+
 		public Command CMDStartRecording, CMDStopRecording, CMDRefresh;
 		public Command CMDGotoParentEvent, CMDEventHistoryForward, CMDEventHistoryBackward;
 		public CommandGroup LoggerCommands => new CommandGroup (CMDRefresh, CMDStartRecording, CMDStopRecording);
@@ -72,19 +73,19 @@ namespace Crow
 		void initCommands ()
 		{
 			App.ViewCommands.Add (
-				new Command("Crow Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App)));
-			CMDRefresh = new Command ("Refresh", refresh, "#icons.refresh.svg", IsRunning);
-			CMDStartRecording = new Command ("Start Recording", () => Recording = true, "#icons.circle.svg", false);
-			CMDStopRecording = new Command ("Stop Recording", stopRecording, "#icons.circle-red.svg", false);
+				new ActionCommand("Crow Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App)));
+			CMDRefresh = new ActionCommand ("Refresh", refresh, "#icons.refresh.svg", IsRunning);
+			CMDStartRecording = new ActionCommand ("Start Recording", () => Recording = true, "#icons.circle.svg", false);
+			CMDStopRecording = new ActionCommand ("Stop Recording", stopRecording, "#icons.circle-red.svg", false);
 
-			CMDGotoParentEvent = new Command("parent", ()=> { CurrentEvent = CurrentEvent?.parentEvent; }, "#icons.level-up.svg", false);
-			CMDEventHistoryBackward = new Command("back.", currentEventHistoryGoBack, "#icons.previous.svg", false);
-			CMDEventHistoryForward = new Command("forw.", currentEventHistoryGoForward, "#icons.forward-arrow.svg", false);
+			CMDGotoParentEvent = new ActionCommand("parent", ()=> { CurrentEvent = CurrentEvent?.parentEvent; }, "#icons.level-up.svg", false);
+			CMDEventHistoryBackward = new ActionCommand("back.", currentEventHistoryGoBack, "#icons.previous.svg", false);
+			CMDEventHistoryForward = new ActionCommand("forw.", currentEventHistoryGoForward, "#icons.forward-arrow.svg", false);
 		}
 		public void LoadIML (string imlSource) {
 			if (CurrentState == Status.Running)
-				delSetSource (imlSource);			
-		}			
+				delSetSource (imlSource);
+		}
 		Exception currentException;
 		object dbgIFace;
 		AssemblyLoadContext crowLoadCtx;
@@ -97,10 +98,10 @@ namespace Crow
 		Func<float, bool> delMouseWheelChanged;
 		Func<MouseButton, bool> delMouseDown, delMouseUp;
 		Func<char, bool> delKeyPress;
-		Func<Key, bool> delKeyDown, delKeyUp;
+		Func<Key, int, Modifier, bool> delKeyDown, delKeyUp;
 		FieldInfo fiDbgIFace_IsDirty;
 		Action delResetDebugger;
-		Action<object, string> delSaveDebugLog;		
+		Action<object, string> delSaveDebugLog;
 		Func<IntPtr> delGetSurfacePointer;
 		Action<string> delSetSource;
 		Action delReloadIml;
@@ -117,8 +118,8 @@ namespace Crow
 				if (RefreshRate == value)
 					return;
 				Configuration.Global.Set ("RefreshRate", value);
-				NotifyValueChanged(value);				
-			}			
+				NotifyValueChanged(value);
+			}
 		}
 		public int MaxLayoutingTries {
 			get => Configuration.Global.Get<int> ("MaxLayoutingTries", 30);
@@ -128,7 +129,7 @@ namespace Crow
 				Configuration.Global.Set ("MaxLayoutingTries", value);
 				NotifyValueChanged(value);
 				fiDbgIFace_MaxLayoutingTries.SetValue (null, value);
-			}			
+			}
 		}
 		public int MaxDiscardCount {
 			get => Configuration.Global.Get<int> ("MaxDiscardCount", 5);
@@ -136,30 +137,30 @@ namespace Crow
 				if (MaxDiscardCount == value)
 					return;
 				Configuration.Global.Set ("MaxDiscardCount", value);
-				NotifyValueChanged(value);	
-				fiDbgIFace_MaxDiscardCount.SetValue (null, value);			
-			}			
-		}		
+				NotifyValueChanged(value);
+				fiDbgIFace_MaxDiscardCount.SetValue (null, value);
+			}
+		}
 		public bool PreviewHasError => currentException != null;
 		public Exception CurrentException {
 			get => currentException;
 			set {
 				if (currentException == value)
 					return;
-				currentException = value;									
+				currentException = value;
 				NotifyValueChanged (currentException);
 				NotifyValueChanged ("PreviewHasError", PreviewHasError);
 			}
-		}		
+		}
 		public string CrowDbgAssemblyLocation {
 			get => Configuration.Global.Get<string> ("CrowDbgAssemblyLocation");
 			set {
 				if (CrowDbgAssemblyLocation == value)
 					return;
 				Configuration.Global.Set ("CrowDbgAssemblyLocation", value);
-				NotifyValueChanged(value);				
+				NotifyValueChanged(value);
 			}
-		}		
+		}
 		public bool DebugLogIsEnabled {
 			get => debugLogIsEnabled;
 			set {
@@ -170,7 +171,7 @@ namespace Crow
 				CMDStopRecording.CanExecute = debugLogIsEnabled & Recording;
 				NotifyValueChanged (debugLogIsEnabled);
 			}
-		}		
+		}
 		public bool Recording {
 			get => recording;
 			set {
@@ -180,12 +181,12 @@ namespace Crow
 				if (recording) {
 					fiDbg_DiscardEvents.SetValue (dbgIFace, DiscardedEvents);
 					fiDbg_IncludeEvents.SetValue (dbgIFace, RecordedEvents);
-					CMDStartRecording.CanExecute = false;					
+					CMDStartRecording.CanExecute = false;
 					CMDStopRecording.CanExecute = true;
 				} else {
 					fiDbg_DiscardEvents.SetValue (dbgIFace, DbgEvtType.All);
 					fiDbg_IncludeEvents.SetValue (dbgIFace, DbgEvtType.None);
-					CMDStartRecording.CanExecute = debugLogIsEnabled;					
+					CMDStartRecording.CanExecute = debugLogIsEnabled;
 					CMDStopRecording.CanExecute = false;
 				}
 				NotifyValueChanged(recording);
@@ -206,7 +207,7 @@ namespace Crow
 			get => discardedEvents;
 			set {
 				if (discardedEvents == value)
-					return;				
+					return;
 				discardedEvents = value;
 				if (Recording)
 					fiDbg_DiscardEvents.SetValue (dbgIFace, value);
@@ -230,18 +231,22 @@ namespace Crow
 			NotifyValueChanged ("ServiceErrorMessage", (object)ErrorMessage);
 			NotifyValueChanged ("ServiceIsInError",  ServiceIsInError);
 		}
+		public void GetMouseScreenCoordinates (out int x, out int y) {
+			x = mouseScreenPos.X;
+			y = mouseScreenPos.Y;
+		}
 		public override void Start()
 		{
 			if (CurrentState == Status.Running)
 				return;
 
-			
+
 			if (!File.Exists (CrowDbgAssemblyLocation))	{
 				DebugLogIsEnabled = false;
 				updateCrowDebuggerState($"Crow.dll for debugging file not found");
 				return;
-			}	
-			
+			}
+
 			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
 			crowLoadCtx.ResolvingUnmanagedDll += resolveUnmanaged;
 			crowLoadCtx.Resolving += (context, assemblyName) => {
@@ -250,16 +255,16 @@ namespace Crow
 						System.IO.Path.GetDirectoryName(CrowDbgAssemblyLocation), assemblyName.Name + ".dll"));
 			};
 			//crowLoadCtx.Resolving += (ctx,name) => AssemblyLoadContext.Default.LoadFromAssemblyName (name);
-		
+
 			//using (crowLoadCtx.EnterContextualReflection()) {
 				crowAssembly = crowLoadCtx.LoadFromAssemblyPath (CrowDbgAssemblyLocation);
-				thisAssembly = crowLoadCtx.LoadFromAssemblyPath (new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath);				
+				thisAssembly = crowLoadCtx.LoadFromAssemblyPath (new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath);
 
 				Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
 				DebugLogIsEnabled = (bool)debuggerType.GetField("IsEnabled").GetValue(null);
 
 				dbgIfaceType = thisAssembly.GetType("CECrowPlugin.DebugInterface");
-				
+
 				dbgIFace = Activator.CreateInstance (dbgIfaceType, new object[] {CrowEditBase.CrowEditBase.App.WindowHandle});
 
 				delResize = (Action<int, int>)Delegate.CreateDelegate(typeof(Action<int, int>),
@@ -278,10 +283,10 @@ namespace Crow
 				delMouseUp = (Func<MouseButton, bool>)Delegate.CreateDelegate(typeof(Func<MouseButton, bool>),
 											dbgIFace, dbgIfaceType.GetMethod("OnMouseButtonUp"));
 
-				delKeyDown = (Func<Key, bool>)Delegate.CreateDelegate(typeof(Func<Key, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnKeyDown"));
-				delKeyUp = (Func<Key, bool>)Delegate.CreateDelegate(typeof(Func<Key, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnKeyUp"));
+				delKeyDown = (Func<Key, int, Modifier, bool>)Delegate.CreateDelegate(typeof(Func<Key, int, Modifier, bool>),
+											dbgIFace, dbgIfaceType.GetMethod("OnKeyDown", new Type[] { typeof(Key), typeof(int), typeof (Modifier)}));
+				delKeyUp = (Func<Key, int, Modifier, bool>)Delegate.CreateDelegate(typeof(Func<Key, int, Modifier, bool>),
+											dbgIFace, dbgIfaceType.GetMethod("OnKeyUp", new Type[] { typeof(Key), typeof(int), typeof (Modifier)}));
 				delKeyPress = (Func<char, bool>)Delegate.CreateDelegate(typeof(Func<char, bool>),
 											dbgIFace, dbgIfaceType.GetMethod("OnKeyPress"));
 
@@ -303,7 +308,7 @@ namespace Crow
 				/*delSaveDebugLog = (Action<object, string>)Delegate.CreateDelegate(typeof(Action<object, string>),
 											null, debuggerType.GetMethod("Save", new Type[] {dbgIfaceType, typeof(string)}));*/
 				HasVkvgBackend = (bool)dbgIfaceType.GetField ("HaveVkvgBackend", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).GetValue (null);
-				dbgIfaceType.GetMethod("RegisterDebugInterfaceCallback").Invoke (dbgIFace, new object[] {this} );				
+				dbgIfaceType.GetMethod("RegisterDebugInterfaceCallback").Invoke (dbgIFace, new object[] {this} );
 				dbgIfaceType.GetMethod("Run").Invoke (dbgIFace, null);
 
 				fiDbgIFace_MaxLayoutingTries.SetValue (null, MaxLayoutingTries);
@@ -325,7 +330,7 @@ namespace Crow
 			CurrentState = Status.Paused;
 		}
 		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
-		public Command CMDOptions_SelectCrowAssemblyLocation => new Command ("...",
+		public ActionCommand CMDOptions_SelectCrowAssemblyLocation => new ActionCommand ("...",
 			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
 				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
@@ -340,57 +345,59 @@ namespace Crow
 			base.onStateChange(previousState, newState);
 			CMDRefresh.CanExecute = IsRunning;
 		}
-
+		#region Mouse & Keyboard
+		Point mouseScreenPos;//absolute on screen position.
 		public void onKeyDown(KeyEventArgs e)
 		{
 			if (CurrentState == Status.Running) {
 				try
-				{					
-					e.Handled = delKeyDown (e.Key);
+				{
+					e.Handled = delKeyDown (e.Key, e.ScanCode, e.Modifiers);//KeyEventArgs being defined in Crow...
 				}
 				catch (System.Exception ex)
 				{
 					Console.WriteLine($"[Error][DebugIFace key down]{ex}");
-				}				
+				}
 			}
 		}
 		public void onKeyUp(KeyEventArgs e)
 		{
 			if (CurrentState == Status.Running) {
 				try
-				{					
-					e.Handled = delKeyUp (e.Key);
+				{
+					e.Handled = delKeyUp (e.Key, e.ScanCode, e.Modifiers);
 				}
 				catch (System.Exception ex)
 				{
 					Console.WriteLine($"[Error][DebugIFace key up]{ex}");
-				}				
+				}
 			}
 		}
 		public void onKeyPress(KeyPressEventArgs e)
 		{
 			if (CurrentState == Status.Running) {
 				try
-				{					
+				{
 					e.Handled = delKeyPress (e.KeyChar);
 				}
 				catch (System.Exception ex)
 				{
 					Console.WriteLine($"[Error][DebugIFace key press]{ex}");
-				}				
+				}
 			}
 		}
-		public void onMouseMove(MouseMoveEventArgs e)
+		public void onMouseMove(Point _mouseScreenPos, MouseMoveEventArgs e)
 		{
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = delMouseMove (e.X, e.Y);
+					mouseScreenPos = _mouseScreenPos;//absolute on screen position.
+					e.Handled = delMouseMove (e.X, e.Y);//DebugInterface local coordinate for mouse.
 				}
 				catch (System.Exception ex)
 				{
 					Console.WriteLine($"[Error][DebugIFace mouse move]{ex}");
-				}				
+				}
 			}
 		}
 		public void onMouseDown(MouseButtonEventArgs e)
@@ -403,7 +410,7 @@ namespace Crow
 				catch (System.Exception ex)
 				{
 					Console.WriteLine($"[Error][DebugIFace mouse down]{ex}");
-				}				
+				}
 			}
 		}
 		public void onMouseUp(MouseButtonEventArgs e)
@@ -411,12 +418,12 @@ namespace Crow
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = delMouseUp (e.Button);			
+					e.Handled = delMouseUp (e.Button);
 				}
 				catch (System.Exception ex)
 				{
 					Console.WriteLine($"[Error][DebugIFace mouse up]{ex}");
-				}				
+				}
 			}
 		}
 		public void onMouseWheel(MouseWheelEventArgs e)
@@ -424,14 +431,15 @@ namespace Crow
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = delMouseWheelChanged (e.Delta);			
+					e.Handled = delMouseWheelChanged (e.Delta);
 				}
 				catch (System.Exception ex)
 				{
 					Console.WriteLine($"[Error][DebugIFace mouse wheel change]{ex}");
-				}				
+				}
 			}
 		}
+		#endregion
 		public IntPtr SurfacePointer => IsRunning ? delGetSurfacePointer() : IntPtr.Zero;
 		public void Resize (int width, int height) {
 			if (IsRunning)
@@ -442,8 +450,26 @@ namespace Crow
 				fiDbgIFace_IsDirty.SetValue (dbgIFace, false);
 		}
 		public bool GetDirtyState => IsRunning ? (bool)fiDbgIFace_IsDirty.GetValue (dbgIFace) : false;
+		public IEnumerable<object> GetStyling () {
+			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
+				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
+					foreach (var style in csprj.RootNode.Flatten.OfType<CERoslynPlugin.ProjectItemNode>()
+						.Where (pin=>pin.NodeType == NodeType.EmbeddedResource && pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase)))
+						yield return style.FullPath;
+				}
+			}
+			yield return crowAssembly;
+		}
+		public Stream GetStreamFromPath (string path) {
+			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
+				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
+					return csprj.GetStreamFromTargetPath (path);
+				}
+			}
+			return null;
+		}
 
-
+		#region Debug log
 		IList<DbgEvent> events;
 		IList<DbgWidgetRecord> widgets;
 		public IList<DbgEvent> Events {
@@ -465,9 +491,11 @@ namespace Crow
 			}
 		}
 		void refresh () {
+			if (!IsRunning)
+				Start ();
 			if (IsRunning)
 				delReloadIml ();
-			updateCrowApp();
+			//updateCrowApp();
 		}
 		void stopRecording () {
 			if (!Recording)
@@ -509,7 +537,7 @@ namespace Crow
 				}
 				Events = events;
 				Widgets = widgets;
-				firstWidgetIndexToGet += widgets.Count;				
+				firstWidgetIndexToGet += widgets.Count;
 				/*if (widgets.Count > 0 && firstWidgetIndexToGet != widgets.Last().InstanceIndex + 1)
 					Debugger.Break ();*/
 			}
@@ -519,8 +547,8 @@ namespace Crow
 				widgets.FirstOrDefault (w => w.InstanceIndex == we.InstanceIndex)?.Events.Add (we);
 			if (evt.Events == null)
 				return;
-			foreach (DbgEvent e in evt.Events) 
-				updateWidgetEvents (widgets, e);			
+			foreach (DbgEvent e in evt.Events)
+				updateWidgetEvents (widgets, e);
 		}
 		void saveLogToDebugLogFilePath () {
 
@@ -529,7 +557,6 @@ namespace Crow
 
 		}
 
-		//public virtual object GetScreenCoordinates () => ScreenCoordinates(Slot).TopLeft;
 		DbgEvent curEvent;
 		bool disableCurrentEventHistory;
 		Stack<DbgEvent> CurrentEventHistoryForward = new Stack<DbgEvent>();
@@ -570,8 +597,8 @@ namespace Crow
 						CurrentEventHistoryBackward.Push (curEvent);
 						CMDEventHistoryBackward.CanExecute = true;
 					}
-				}				
-				
+				}
+
 				curEvent = value;
 
 				NotifyValueChanged (nameof (CurrentEvent), curEvent);
@@ -581,7 +608,7 @@ namespace Crow
 				if (CurrentEvent != null && CurrentEvent.parentEvent != null)
 					CMDGotoParentEvent.CanExecute = true;
 				else
-					CMDGotoParentEvent.CanExecute = false;				
+					CMDGotoParentEvent.CanExecute = false;
 			}
 		}
 		void currentEventHistoryGoBack () {
@@ -636,6 +663,6 @@ namespace Crow
 				return result;
 			}
 		}
-
+		#endregion
 	}
 }

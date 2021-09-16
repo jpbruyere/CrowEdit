@@ -26,6 +26,11 @@ namespace CrowEditBase
 			Type = type;
 			Start = start;
 			Length = end - start;
+		}
+		public Token (int start, int length, TokenType type) {
+			Type = type;
+			Start = start;
+			Length = length;
 		}		
 
 		public int CompareTo([AllowNull] Token other)

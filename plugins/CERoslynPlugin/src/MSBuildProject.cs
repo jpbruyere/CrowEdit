@@ -32,29 +32,35 @@ namespace CERoslynPlugin
 		Microsoft.Build.Evaluation.Project project;
 		CSharpCompilationOptions compileOptions;
 		CSharpParseOptions parseOptions;
-		
+
+		CommandGroup commands;
+
+
 		public string RootDir => project.DirectoryPath;
 
 		static string[] defaultTargets = { "Clean", "Restore", "Build", "Rebuild", "Pack", "Publish"};
+		public override CommandGroup Commands => commands;
+		public CommandGroup CMDSBuild { get; private set; }
+		public Command CMDSetAsStartupProject { get; private set; }
+
 
 		internal MSBuildProject (SolutionProject solution, ProjectInSolution projectInSolution) : base (projectInSolution.AbsolutePath) {
 			this.projectInSolution = projectInSolution;
 			this.solutionProject = solution;
 
-			Load ();
-
 			commands = new CommandGroup (CMDLoad, CMDUnload, CMDReload);
-			if (OutputKind != OutputKind.DynamicallyLinkedLibrary)
-				commands.Add (new Command ("Set as startup",() => solutionProject.StartupProject = this));
-			
+
+			CMDSetAsStartupProject = new ActionCommand ("Set as startup", () => solutionProject.StartupProject = this);
+			CMDSBuild = new CommandGroup ("Build");
+
 			foreach (string target in defaultTargets)
-				Commands.Add (new Crow.Command (target, () => Build (target)));
+				CMDSBuild.Add (new ActionCommand (target, () => Build (target), null, false));
+
+			commands.Add (CMDSBuild.Commands.ToArray());
+
+			Load ();
 		}
 
-		CommandGroup commands;
-		public Command CMDSetAsStartupProject;
-
-		public override CommandGroup Commands => commands;
 
 		public override void Load () {
 			if (IsLoaded)
@@ -66,7 +72,7 @@ namespace CERoslynPlugin
 					project = new Microsoft.Build.Evaluation.Project (projectInSolution.AbsolutePath, null, null, solutionProject.projectCollection);
 
 					ProjectProperty msbuildProjExtPath = project.GetProperty ("MSBuildProjectExtensionsPath");
-					ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");			
+					ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");
 
 					string[] props = { "EnableDefaultItems", "EnableDefaultCompileItems", "EnableDefaultNoneItems", "EnableDefaultEmbeddedResourceItems" };
 
@@ -77,7 +83,7 @@ namespace CERoslynPlugin
 					}
 
 					project.ReevaluateIfNecessary ();
-					
+
 					parseOptions = CSharpParseOptions.Default;
 
 					ProjectProperty langVersion = project.GetProperty ("LangVersion");
@@ -92,24 +98,31 @@ namespace CERoslynPlugin
 
 					populateTreeNodes ();
 				}
-				
-				IsLoaded = true;			
+
+				if (OutputKind != OutputKind.DynamicallyLinkedLibrary)
+					commands.Add (CMDSetAsStartupProject);
+
+				CMDSBuild.ToggleAllCommand (true);
+
+				IsLoaded = true;
 			}
 			catch (System.Exception ex)
-			{				
+			{
 				Console.WriteLine (ex);
 			}
 		}
 		public override void Unload () {
-
-			IsLoaded = true;
+			CMDSBuild.ToggleAllCommand (false);
+			if (commands.Contains (CMDSetAsStartupProject))
+				commands.Remove (CMDSetAsStartupProject);
+			IsLoaded = false;
 		}
 		public void Build () => Build ("Build");
 		public void Build (params string[] targets)
 		{
 			//using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
 				ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
-				BuildRequestData request = new BuildRequestData (pi, targets,null,BuildRequestDataFlags.ProvideProjectStateAfterBuild);			
+				BuildRequestData request = new BuildRequestData (pi, targets,null,BuildRequestDataFlags.ProvideProjectStateAfterBuild);
 				BuildResult result = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
 			//}
 		}
@@ -150,8 +163,8 @@ namespace CERoslynPlugin
 								return true;
 							break;
 					}
-				}	
-				return false;			
+				}
+				return false;
 			}
 		}
 		public bool IsStartupProject => solutionProject.StartupProject == this;
@@ -165,12 +178,12 @@ namespace CERoslynPlugin
 			root.AddChild (refs);
 
 
-			foreach (ProjectItem pn in project.AllEvaluatedItems) {								
+			foreach (ProjectItem pn in project.AllEvaluatedItems) {
 				//IDE.ProgressNotify (1);
 
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":
-					/*Commands.Add (new Crow.Command (new Action (() => Compile (pn.EvaluatedInclude))) {
+					/*Commands.Add (new Crow.Command (new Action (() => Build (pn.EvaluatedInclude))) {
 						Caption = pn.EvaluatedInclude,
 					});*/
 					break;
@@ -187,7 +200,7 @@ namespace CERoslynPlugin
 						string file = pn.EvaluatedInclude;
 						string treePath = file;
 						if (pn.HasMetadata ("Link"))
-							treePath = pn.GetMetadataValue ("Link");							
+							treePath = pn.GetMetadataValue ("Link");
 						string [] folds = treePath.Split (new char [] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 						for (int i = 0; i < folds.Length - 1; i++) {
 							TreeNode nextNode = curNode.Childs.OfType<VirtualNode>().FirstOrDefault (n => n.Caption == folds [i] && n.NodeType == NodeType.VirtualGroup);
@@ -244,7 +257,7 @@ namespace CERoslynPlugin
 
 		public override string Name => project == null ? projectInSolution.ProjectName : project.GetProperty ("MSBuildProjectName").EvaluatedValue;
 		public string ToolsVersion => project.ToolsVersion;
-		public string DefaultTargets => project.Xml.DefaultTargets;		
+		public string DefaultTargets => project.Xml.DefaultTargets;
 		public ICollection<ProjectProperty> Properties => project.Properties;
 		public ICollection<ProjectProperty> PropertiesSorted => project.Properties.OrderBy(p=>p.Name).ToList();
 		public string AssemblyName => project.GetProperty ("AssemblyName").EvaluatedValue;
@@ -280,5 +293,24 @@ namespace CERoslynPlugin
 		public int WarningLevel => int.Parse (project.GetProperty ("WarningLevel").EvaluatedValue);
 
 
+		public Stream GetStreamFromTargetPath (string targetPath) {
+			IEnumerable<ProjectItemNode> piNodes = RootNode.Flatten.OfType<CERoslynPlugin.ProjectItemNode>();
+			if (targetPath.StartsWith ('#')) {
+				targetPath = targetPath.Substring (1);
+				ProjectItemNode pin = piNodes.FirstOrDefault (n =>
+					n.NodeType == NodeType.EmbeddedResource &&
+					n.HasMetadataValue ("LogicalName", targetPath));
+				if (pin != null)
+					return new FileStream (pin.FullPath, FileMode.Open);
+			} else {
+				ProjectItemNode pin = piNodes.FirstOrDefault (n =>
+					n.NodeType == NodeType.None &&
+					(n.HasMetadataValue ("CopyToOutputDirectory", "PreserveNewest") || n.HasMetadataValue ("CopyToOutputDirectory", "Always")) &&
+					n.EvaluatedInclude == targetPath);
+				if (pin != null)
+					return new FileStream (pin.FullPath, FileMode.Open);
+			}
+			return null;
+		}
 	}
 }

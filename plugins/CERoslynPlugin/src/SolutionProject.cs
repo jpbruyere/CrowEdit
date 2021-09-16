@@ -44,27 +44,27 @@ namespace CERoslynPlugin
 		public IEnumerable<string> Configurations => solutionFile.SolutionConfigurations.Select (sc => sc.ConfigurationName).Distinct ().ToList ();
 		public IEnumerable<string> Platforms => solutionFile.SolutionConfigurations.Select (sc => sc.PlatformName).Distinct ().ToList ();
 		public string ActiveConfiguration {
-			get => projectCollection.GetGlobalProperty ("Configuration")?.ToString();			
-			set {
+			get => projectCollection.GetGlobalProperty ("Configuration")?.ToString();
+			/*set {
 				if (ActiveConfiguration == value)
-					return;				
+					return;
 				projectCollection.SetGlobalProperty ("Configuration", value);
 				NotifyValueChanged (value);
-			}
+			}*/
 		}
 		public string ActivePlatform {
-			get => projectCollection.GetGlobalProperty ("Platform")?.ToString();			
-			set {
+			get => projectCollection.GetGlobalProperty ("Platform")?.ToString();
+			/*set {
 				if (ActivePlatform == value)
-					return;				
+					return;
 				projectCollection.SetGlobalProperty ("Platform", value);
 				NotifyValueChanged (value);
-			}
+			}*/
 		}
 		public override string Name => Path.GetFileNameWithoutExtension (FullPath);
 		public override string Icon => "#icons.file_type_sln2.svg";
 		public Project StartupProject {
-			get => Flatten.FirstOrDefault (p => p.FullPath == UserConfig.Get<string> ("StartupProject")); 
+			get => Flatten.FirstOrDefault (p => p.FullPath == UserConfig.Get<string> ("StartupProject"));
 			set {
 				if (value == StartupProject)
 					return;
@@ -81,8 +81,10 @@ namespace CERoslynPlugin
 			}
 		}
 		public override void Load () {
+			Dictionary<string,string> globalProperties = new Dictionary<string, string>();
+			globalProperties.Add ("Configuration", "Debug");
 			projectCollection = new ProjectCollection (
-				null,
+				globalProperties,
 				new ILogger [] { roslynService.Logger },
 				ToolsetDefinitionLocations.Default
 			);
@@ -93,15 +95,16 @@ namespace CERoslynPlugin
 
 			//IDE.ProgressNotify (10);
 
-			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
-			ActivePlatform = solutionFile.GetDefaultPlatformName ();
+			//projectCollection has to be recreated to change global properties
+			//ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
+			//ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
 			projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
 							Path.Combine (
 								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
 								"NuGet.Config"));
 
-			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (FullPath) + Path.DirectorySeparatorChar);			
+			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (FullPath) + Path.DirectorySeparatorChar);
 			projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 
 			//IDE.ProgressNotify (10);
@@ -109,8 +112,8 @@ namespace CERoslynPlugin
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (projectCollection) {
 				Loggers = projectCollection.Loggers,
-				LogInitialPropertiesAndItems = false,
-				LogTaskInputs = false,				
+				LogInitialPropertiesAndItems = true,
+				LogTaskInputs = true,
 				UseSynchronousLogging = true
 			};
 
@@ -136,10 +139,10 @@ namespace CERoslynPlugin
 					targetChildren = this.Children;*/
 
 				switch (pis.ProjectType) {
-				case SolutionProjectType.KnownToBeMSBuildFormat:					
+				case SolutionProjectType.KnownToBeMSBuildFormat:
 					targetChildren.Add (new MSBuildProject (this, pis));
 					break;
-				/*case SolutionProjectType.SolutionFolder:					
+				/*case SolutionProjectType.SolutionFolder:
 					targetChildren.Add (new SolutionFolder (this, pis));
 					break;
 				case SolutionProjectType.Unknown:

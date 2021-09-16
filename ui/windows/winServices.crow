@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Services"  Width="60%" >
 	<ListBox Data="{Services}" >
-		<ItemTemplate Path="#CrowEditBase.ui.Service.itmp"/>
+		<ItemTemplate Path="#ui.Service.itmp"/>
 	</ListBox>
 </DockWindow>
 

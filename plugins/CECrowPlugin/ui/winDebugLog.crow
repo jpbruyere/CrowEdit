@@ -90,7 +90,7 @@
 				<Template>
 					<HorizontalStack Name="ItemsContainer" />
 				</Template>
-				<ItemTemplate Path="#CrowEditBase.ui.IconCommand.itmp"/>
+				<ItemTemplate Path="#ui.IconCommand.itmp"/>
 			</ListBox>
 			<Popper Caption="Search...">
 				<VerticalStack Fit="true" Background="Onyx" Margin="10">

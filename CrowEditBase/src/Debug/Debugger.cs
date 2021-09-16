@@ -28,12 +28,12 @@ namespace CrowEditBase
 		public virtual CommandGroup Commands => new CommandGroup (
 			CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut);
 		protected virtual void initCommands () {
-			CMDDebugStart = new Command ("Start", Start, "#Icons.debug-play.svg");
-			CMDDebugPause = new Command ("Pause", Pause, "#Icons.debug-pause.svg", false);
-			CMDDebugStop = new Command ("Stop", Stop, "#Icons.debug-stop.svg", false);
-			CMDDebugStepIn = new Command ("Step in", StepIn, "#Icons.debug-step-into.svg", false);
-			CMDDebugStepOut = new Command ("Step out", StepOut, "#Icons.debug-step-out.svg", false);
-			CMDDebugStepOver = new Command ("Step over", StepOver, "#Icons.debug-step-over.svg", false);
+			CMDDebugStart = new ActionCommand ("Start", Start, "#Icons.debug-play.svg");
+			CMDDebugPause = new ActionCommand ("Pause", Pause, "#Icons.debug-pause.svg", false);
+			CMDDebugStop = new ActionCommand ("Stop", Stop, "#Icons.debug-stop.svg", false);
+			CMDDebugStepIn = new ActionCommand ("Step in", StepIn, "#Icons.debug-step-into.svg", false);
+			CMDDebugStepOut = new ActionCommand ("Step out", StepOut, "#Icons.debug-step-out.svg", false);
+			CMDDebugStepOver = new ActionCommand ("Step over", StepOver, "#Icons.debug-step-over.svg", false);
 		}
 
 

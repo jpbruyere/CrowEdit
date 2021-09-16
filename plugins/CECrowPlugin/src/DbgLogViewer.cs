@@ -32,14 +32,14 @@ namespace Crow
 
 		IList<DbgEvent> events = new List<DbgEvent> ();
 		IList<DbgWidgetRecord> widgets = new List<DbgWidgetRecord> ();
-		
+
 
 		public DbgEvtType Filter {
 			get => Configuration.Global.Get<DbgEvtType> ("DbgLogViewFilter");
 			set {
 				if (Filter == value)
-					return;				
-				Configuration.Global.Set ("DbgLogViewFilter", value);				
+					return;
+				Configuration.Global.Set ("DbgLogViewFilter", value);
 				NotifyValueChangedAuto(Filter);
 				RegisterForGraphicUpdate();
 			}
@@ -53,7 +53,7 @@ namespace Crow
 				NotifyValueChanged (nameof (Events), events);
 
 				maxTicks = minTicks = 0;
-				if (events != null && events.Count > 0) {				
+				if (events != null && events.Count > 0) {
 					minTicks = long.MaxValue;
 					foreach (DbgEvent e in events) {
 						if (e.begin < minTicks)
@@ -67,7 +67,7 @@ namespace Crow
 					ScrollY = 0;
 				} else {
 					maxTicks = 1;
-					XScale = 1.0/1024.0;					
+					XScale = 1.0/1024.0;
 				}
 
 
@@ -97,7 +97,7 @@ namespace Crow
 					return;
 				if (CurrentWidget.listIndex < scrollY || CurrentWidget.listIndex > scrollY + visibleLines)
 					ScrollY = CurrentWidget.listIndex - (visibleLines / 2);
-				
+
 				currentLine = CurrentWidget.listIndex;
 				RegisterForRedraw();
 			}
@@ -118,8 +118,8 @@ namespace Crow
 					}
 					currentTick = curEvent.begin;
 					if (curEvent.begin > minTicks + ScrollX + visibleTicks ||
-						curEvent.end < minTicks + ScrollX) 						
-							ScrollX = curEvent.begin - minTicks - visibleTicks / 2;											
+						curEvent.end < minTicks + ScrollX)
+							ScrollX = curEvent.begin - minTicks - visibleTicks / 2;
 				}
 				NotifyValueChanged (nameof (CurrentEvent), curEvent);
 				RegisterForRedraw ();
@@ -216,9 +216,9 @@ namespace Crow
 						DbgWidgetEvent eW = evt as DbgWidgetEvent;
 						int lIdx = eW.InstanceIndex - ScrollY;
 						if (lIdx >= 0 && lIdx <= visibleLines) {
-							
-							penY += (lIdx) * fe.Height; 
-						
+
+							penY += (lIdx) * fe.Height;
+
 							ctx.SetSource (evt.Color);
 							ctx.Rectangle (getWidgetEvtBounds (evt, ref cb, penY));
 							ctx.Fill ();
@@ -233,8 +233,8 @@ namespace Crow
 						x += leftMargin + cb.Left;
 						double rightDiff = x + w - cb.Right;
 						if (rightDiff > 0)
-							w -= rightDiff;					
-						//ctx.SetSource (0.9,0.9,0.0,0.1);					
+							w -= rightDiff;
+						//ctx.SetSource (0.9,0.9,0.0,0.1);
 						ctx.SetSource (evt.Color.AdjustAlpha(0.15));
 						ctx.Rectangle (x, cb.Top + topMargin, w, cb.Height);
 						ctx.Fill ();
@@ -310,7 +310,7 @@ namespace Crow
 				double x = (double)gg * xScale + leftMargin + cb.Left;
 
 				gr.MoveTo (x, penY - 0.5);
-				if (curGrad % largeGrad == 0) { 
+				if (curGrad % largeGrad == 0) {
 					gr.LineTo (x, penY - 8.5);
 					string str = ticksToMS(curGrad);
 					TextExtents te = gr.TextExtents (str);
@@ -344,7 +344,7 @@ namespace Crow
 				else
 					x = Math.Truncate (x) - 0.5;
 				ctx.MoveTo (x, cb.Top + topMargin - 4.0);
-				ctx.LineTo (x, cb.Bottom);				
+				ctx.LineTo (x, cb.Bottom);
 				ctx.SetSource (0.7,0.7,0.7,0.5);
 				ctx.Stroke();
 			}
@@ -356,7 +356,7 @@ namespace Crow
 					else
 						x = Math.Truncate (x) - 0.5;
 					ctx.MoveTo (x, cb.Top);
-					ctx.LineTo (x, cb.Bottom);				
+					ctx.LineTo (x, cb.Bottom);
 					ctx.SetSource (0.2,0.7,1.0,0.6);
 					ctx.Stroke();
 				}
@@ -450,7 +450,7 @@ namespace Crow
 			hoverTick = 0;
 		}
 		public override void onMouseMove (object sender, MouseMoveEventArgs e)
-		{			
+		{
 			long lastTick = hoverTick;
 			int lastLine = hoverLine;
 			updateMouseLocalPos (e.Position);
@@ -472,14 +472,14 @@ namespace Crow
 			}
 
 			RegisterForRepaint();
-			
+
 			e.Handled = true;
 			base.onMouseMove (sender, e);
-		}		
+		}
 		void findHoverEvent (DbgWidgetRecord widget, long tick, long precision = 0) {
 			DbgEvent tmp = widget?.Events.FirstOrDefault (ev => ev.begin - precision <= tick && ev.end + precision >= tick);
 			if (tmp == null) {
-				tmp = Events.Where(e=>e.type.HasFlag(DbgEvtType.IFace)).Where (ev => ev.begin - precision <= tick && ev.end + precision >= tick).FirstOrDefault();				
+				tmp = Events.Where(e=>e.type.HasFlag(DbgEvtType.IFace)).Where (ev => ev.begin - precision <= tick && ev.end + precision >= tick).FirstOrDefault();
 				while(tmp != null) {
 					DbgEvent che = tmp.Events?.Where(e=>e.type.HasFlag(DbgEvtType.IFace)).Where (ev => ev.begin - precision <= tick && ev.end + precision >= tick).FirstOrDefault();
 					if (che == null)
@@ -546,7 +546,7 @@ namespace Crow
 
 		/// <summary> Process scrolling vertically, or if shift is down, vertically </summary>
 		public override void onMouseWheel (object sender, MouseWheelEventArgs e)
-		{			
+		{
 			//base.onMouseWheel (sender, e);
 
 			if (IFace.Shift)
@@ -620,7 +620,7 @@ namespace Crow
 		void updateMaxScrollX ()
 		{
 			if (widgets == null) {
-				MaxScrollX = 0;				
+				MaxScrollX = 0;
 			} else {
 				long tot = maxTicks - minTicks;
 				MaxScrollX = Math.Max (0L, tot - visibleTicks);
@@ -664,7 +664,7 @@ namespace Crow
 			hoverTick = (long)((double)(mousePos.X - cb.X) / xScale) + minTicks + ScrollX;
 			RegisterForRedraw ();
 		}
-		void zoom (long start, long end) {						
+		void zoom (long start, long end) {
 			//Rectangle cb = ClientRectangle;
 			//cb.X += (int)leftMargin;
 			XScale = ((double)ClientRectangle.Width - leftMargin)/(end - start);
@@ -739,7 +739,7 @@ namespace Crow
 				else
 					hoverLine = (int)((double)(mousePos.Y - cb.Top) / fe.Height) + ScrollY;
 
-				NotifyValueChanged ("CurrentLine", hoverLine);				
+				NotifyValueChanged ("CurrentLine", hoverLine);
 			}
 		}
 		/// <summary> Horizontal Scrolling maximum value </summary>
@@ -783,7 +783,7 @@ namespace Crow
 			set {
 				if (mouseWheelSpeed == value)
 					return;
-				
+
 				mouseWheelSpeed = value;
 
 				NotifyValueChangedAuto (mouseWheelSpeed);

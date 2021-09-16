@@ -32,7 +32,7 @@ namespace CrowEditBase
 		public abstract void UnregisterClient (object client);
 
 		DateTime accessTime;
-		string fullPath;		
+		string fullPath;
 
 		public string FullPath {
 			get => fullPath;
@@ -41,7 +41,7 @@ namespace CrowEditBase
 					return;
 
 				fullPath = value;
-					
+
 				NotifyValueChanged (fullPath);
 				NotifyValueChanged ("FileName", (object)FileName);
 				NotifyValueChanged ("FileDirectory", (object)Extension);
@@ -65,7 +65,7 @@ namespace CrowEditBase
 			if (File.Exists (FullPath))
 				writeToDisk ();
 			else
-				SaveAs ();				
+				SaveAs ();
 		}
 
 		public Command CMDUndo, CMDRedo, CMDSave, CMDSaveAs;
@@ -74,14 +74,14 @@ namespace CrowEditBase
 		public CommandGroup TabCommands => new CommandGroup (
 			CMDClose, CMDCloseOther
 		);
-		
+
 		protected virtual void initCommands () {
-			CMDUndo = new Command ("Undo", undo, "#icons.reply.svg",  false);
-			CMDRedo = new Command ("Redo", redo, "#icons.share-arrow.svg", false);
-			CMDSave = new Command ("save", Save, "#icons.inbox.svg", false);
-			CMDSaveAs = new Command ("Save As...", SaveAs, "#icons.inbox.svg");
-			CMDClose = new Command ("Close", () => App.CloseDocument (this), "#icons.sign-out.svg");
-			CMDCloseOther = new Command ("Close Others", () => App.CloseOthers (this), "#icons.inbox.svg");
+			CMDUndo = new ActionCommand ("Undo", undo, "#icons.reply.svg",  false);
+			CMDRedo = new ActionCommand ("Redo", redo, "#icons.share-arrow.svg", false);
+			CMDSave = new ActionCommand ("save", Save, "#icons.inbox.svg", false);
+			CMDSaveAs = new ActionCommand ("Save As...", SaveAs, "#icons.inbox.svg");
+			CMDClose = new ActionCommand ("Close", () => App.CloseDocument (this), "#icons.sign-out.svg");
+			CMDCloseOther = new ActionCommand ("Close Others", () => App.CloseOthers (this), "#icons.inbox.svg");
 		}
 		protected abstract void undo();
 		protected abstract void redo();
@@ -94,7 +94,7 @@ namespace CrowEditBase
 				if (File.Exists (FullPath))
 					readFromDisk ();
 				else
-					initNewFile ();				
+					initNewFile ();
 			} finally {
 				editorRWLock.ExitWriteLock ();
 			}

@@ -1,15 +1,15 @@
 ﻿<?xml version="1.0"?>
-<GenericStack Orientation="{./OppositeOrientation}" Spacing="0" Background="{./Background}" > 
+<GenericStack Orientation="{./OppositeOrientation}" Spacing="0" Background="{./Background}" >
 	<ListBox  Data="{./Items}" Width="{./TabHeight}" Height="{./TabWidth}" HorizontalAlignment="Left" VerticalAlignment="Top"
-				SelectedItem="{²./SelectedItem}"> 
+				SelectedItem="{²./SelectedItem}">
 		<Template>
 			<GenericStack Orientation="{../../../Orientation}" Name="ItemsContainer" />
 		</Template>
 		<ItemTemplate>
 			<ListItem Fit="true" Background="${InactiveTabBackground}" Foreground="${InactiveTabForeground}" IsSelected="{IsVisible}"
 					Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}};{Foreground=${SelectedTabForeground}}"
-					Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}">					
-				<HorizontalStack Margin="2" >  
+					Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}">
+				<HorizontalStack Margin="2" >
 					<Label Text="{Caption}" Margin="1" Font="${SmallUIFont}" Foreground="{../../Foreground}"/>
 					<Border CornerRadius="6" BorderWidth="1" Foreground="Transparent"  Height="10" Width="10" VerticalAlignment="Center"
 						MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
@@ -17,7 +17,7 @@
 							 MouseClick="onQuitPress"/>
 					</Border>
 					</HorizontalStack>
-			</ListItem>			
+			</ListItem>
 		</ItemTemplate>
 	</ListBox>
 	<Group Name="ItemsContainer" />
