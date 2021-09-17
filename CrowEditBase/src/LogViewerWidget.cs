@@ -344,6 +344,7 @@ namespace Crow
 		public override void onMouseLeave(object sender, MouseMoveEventArgs e)
 		{
 			hoverEntryIdx = -1;
+			RegisterForRedraw ();
 			base.onMouseLeave(sender, e);
 		}
 		public override void onMouseDown(object sender, MouseButtonEventArgs e)

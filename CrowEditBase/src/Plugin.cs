@@ -80,7 +80,7 @@ namespace CrowEditBase
 						}
 					}
 					catch (System.Exception ex)	{
-						throw;
+						Console.WriteLine ($"[Plugin]Error reading 'default.conf' for {FullPath}: {ex.Message}");
 					}
 				}
 			}

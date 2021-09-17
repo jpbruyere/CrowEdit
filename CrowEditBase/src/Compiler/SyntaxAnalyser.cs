@@ -8,13 +8,13 @@ using System.Linq;
 namespace CrowEditBase
 {
 	public class SyntaxException : Exception {
-		public readonly Token Token;		
+		public readonly Token Token;
 		public SyntaxException(string message, Token token = default, Exception innerException = null)
 				: base (message, innerException) {
 			Token = token;
 		}
 	}
-	public abstract class SyntaxAnalyser {		
+	public abstract class SyntaxAnalyser {
 		protected SourceDocument source;
 		public abstract SyntaxNode Root { get; }
 		public List<SyntaxException> Exceptions { get; protected set; }

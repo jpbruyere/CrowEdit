@@ -8,7 +8,7 @@ using CrowEditBase;
 
 namespace CrowEdit.Xml
 {
-	public class XmlSyntaxAnalyser : SyntaxAnalyser {				
+	public class XmlSyntaxAnalyser : SyntaxAnalyser {
 		public override SyntaxNode Root => CurrentNode;
 		public XmlSyntaxAnalyser (XmlDocument source) : base (source) {
 			this.source = source;
@@ -23,7 +23,7 @@ namespace CrowEdit.Xml
 			Exceptions = new List<SyntaxException> ();
 			CurrentNode = new IMLRootSyntax (xmlDoc);
 			previousTok = default;
-			iter = xmlDoc.Tokens.AsEnumerable().GetEnumerator ();		
+			iter = xmlDoc.Tokens.AsEnumerable().GetEnumerator ();
 
 			bool notEndOfSource = iter.MoveNext ();
 			while (notEndOfSource) {
@@ -36,7 +36,7 @@ namespace CrowEdit.Xml
 						} else if (iter.Current.GetTokenType() == XmlTokenType.ElementName)
 							tag.NameToken = iter.Current;
 						else if (iter.Current.GetTokenType() == XmlTokenType.ClosingSign) {
-							tag.EndToken = iter.Current;						
+							tag.EndToken = iter.Current;
 							CurrentNode = tag.Parent;
 							CurrentNode.RemoveChild (tag);
 							CurrentNode = CurrentNode.AddChild (new ElementSyntax (tag));
@@ -49,13 +49,13 @@ namespace CrowEdit.Xml
 							Exceptions.Add (new SyntaxException  ("Unexpected Token", iter.Current));
 							CurrentNode.EndToken = previousTok;
 							CurrentNode = CurrentNode.Parent;
-							continue;						
+							continue;
 						}
 					} else if (CurrentNode is ElementSyntax elt) {
 						if (iter.Current.GetTokenType() == XmlTokenType.ElementOpen)
 							CurrentNode = CurrentNode.AddChild (new ElementStartTagSyntax (iter.Current));
-						else if (iter.Current.GetTokenType() == XmlTokenType.EndElementOpen) {						
-							elt.EndTag = new ElementEndTagSyntax (iter.Current);						
+						else if (iter.Current.GetTokenType() == XmlTokenType.EndElementOpen) {
+							elt.EndTag = new ElementEndTagSyntax (iter.Current);
 							CurrentNode = elt.AddChild (elt.EndTag);
 						}
 					} else if (CurrentNode is AttributeSyntax attrib) {
@@ -75,7 +75,7 @@ namespace CrowEdit.Xml
 							Exceptions.Add (new SyntaxException  ("Unexpected Token", iter.Current));
 							CurrentNode.EndToken = previousTok;
 							CurrentNode = CurrentNode.Parent;
-							continue;						
+							continue;
 						}
 					} else if (CurrentNode is ElementEndTagSyntax eltEndTag) {
 						if (iter.Current.GetTokenType() == XmlTokenType.ElementName)
@@ -87,7 +87,7 @@ namespace CrowEdit.Xml
 							Exceptions.Add (new SyntaxException  ("Unexpected Token", iter.Current));
 							eltEndTag.EndToken = eltEndTag.Parent.EndToken = previousTok;
 							CurrentNode = CurrentNode.Parent.Parent;
-							continue;						
+							continue;
 						}
 					} else if (CurrentNode is IMLRootSyntax) {
 						switch (iter.Current.GetTokenType()) {
@@ -115,11 +115,11 @@ namespace CrowEdit.Xml
 							Exceptions.Add (new SyntaxException  ("Unexpected Token", iter.Current));
 							pi.EndToken = previousTok;
 							CurrentNode = CurrentNode.Parent;
-							continue;						
+							continue;
 						}
 					}
 				}
-				
+
 				previousTok = iter.Current;
 				notEndOfSource = iter.MoveNext ();
 			}
@@ -127,7 +127,7 @@ namespace CrowEdit.Xml
 				if (!CurrentNode.EndToken.HasValue)
 					CurrentNode.EndToken = previousTok;
 				CurrentNode = CurrentNode.Parent;
-			}			
+			}
 		}
 	}
 }

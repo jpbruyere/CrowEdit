@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace CrowEditBase
 {
-	public class CrowEditComponent : IValueChange, ISelectable {		
+	public class CrowEditComponent : IValueChange, ISelectable {
 		#region IValueChange implementation
 		public event EventHandler<ValueChangeEventArgs> ValueChanged;
 		public void NotifyValueChanged (string MemberName, object _value)
@@ -21,11 +21,11 @@ namespace CrowEditBase
 			NotifyValueChanged (caller, _value);
 		}
 		#endregion
-	
+
 		#region ISelectable implementation
 		bool isSelected;
 		public event EventHandler Selected;
-		public event EventHandler Unselected;	
+		public event EventHandler Unselected;
 
 		public virtual bool IsSelected {
 			get => isSelected;

@@ -9,7 +9,7 @@ using CrowEditBase;
 
 namespace CrowEdit.Xml
 {
-	
+
 	public class IMLRootSyntax : SyntaxNode {
 		internal readonly XmlDocument source;
 		public override SyntaxNode Root => this;
@@ -36,7 +36,7 @@ namespace CrowEdit.Xml
 		protected ElementTagSyntax (Token startTok)
 			: base (startTok) {
 		}
-	}	
+	}
 	public class ElementStartTagSyntax : ElementTagSyntax {
 		public ElementStartTagSyntax (Token startTok)
 			: base (startTok) {
@@ -47,11 +47,11 @@ namespace CrowEdit.Xml
 			: base (startTok) {
 		}
 	}
-	
+
 	public class EmptyElementSyntax : SyntaxNode {
 		public readonly ElementStartTagSyntax StartTag;
 		public EmptyElementSyntax (ElementStartTagSyntax startNode) : base (startNode.StartToken, startNode.EndToken) {
-			StartTag = startNode;			
+			StartTag = startNode;
 			AddChild (StartTag);
 		}
 	}
@@ -63,7 +63,7 @@ namespace CrowEdit.Xml
 		public override bool IsComplete => base.IsComplete & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
 
 		public ElementSyntax (ElementStartTagSyntax startTag)
-			: base (startTag.StartToken) {			
+			: base (startTag.StartToken) {
 			StartTag = startTag;
 			AddChild (StartTag);
 		}
@@ -72,9 +72,9 @@ namespace CrowEdit.Xml
 	public class AttributeSyntax : SyntaxNode {
 		public Token? NameToken { get; internal set; }
 		public Token? EqualToken { get; internal set; }
-		public Token? ValueOpenToken { get; internal set; }		
-		public Token? ValueCloseToken { get; internal set; }		
-		public Token? ValueToken { get; internal set; }		
+		public Token? ValueOpenToken { get; internal set; }
+		public Token? ValueCloseToken { get; internal set; }
+		public Token? ValueToken { get; internal set; }
 		public AttributeSyntax (Token startTok) : base  (startTok) {}
 		public override bool IsComplete => base.IsComplete & NameToken.HasValue & EqualToken.HasValue & ValueToken.HasValue & ValueOpenToken.HasValue & ValueCloseToken.HasValue;
 	}

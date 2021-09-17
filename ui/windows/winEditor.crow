@@ -52,6 +52,7 @@
 			</ListItem>
 		</ItemTemplate>
 		<ItemTemplate Path="#ui.sourceEditor.itmp" DataType=".crow"/>
+		<ItemTemplate Path="#ui.sourceEditor.itmp" DataType=".style"/>
 	</TabView>
 </DockWindow>
 

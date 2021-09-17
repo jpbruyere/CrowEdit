@@ -20,6 +20,11 @@
 		</HorizontalStack>
 		<Label Background="Red" Foreground="White" Margin="5" Width="Stretched" Text="{ServiceErrorMessage}"
 			IsVisible="{ServiceIsInError}"/>
+		<ListBox Style="ScrollingListBox" Data="{CrowAssemblies}"/>
+		<HorizontalStack Height="Fit" Width="Fit" HorizontalAlignment="Right">
+			<Button Command="{CMDOptions_AddCrowAssembly}"/>
+			<Button Command="{CMDOptions_AddCrowAssembly}"/>
+		</HorizontalStack>
 		<Spinner Caption="Refresh Rate (ms)" Value="{²RefreshRate}" Maximum="1000"/>
 		<Spinner Caption="Max Layout Try" Value="{²MaxLayoutingTries}" Maximum="1000"/>
 		<Spinner Caption="Max Layout Discard" Value="{²MaxDiscardCount}" Maximum="1000"/>

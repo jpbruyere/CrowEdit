@@ -12,12 +12,12 @@ namespace CrowEditBase
 {
 	public abstract class SourceDocument : TextDocument {
 		public SourceDocument (string fullPath)
-			: base (fullPath) {			
+			: base (fullPath) {
 		}
 		protected Token[] tokens;
 		protected SyntaxNode RootNode;
 		protected Token currentToken;
-		protected SyntaxNode currentNode;	
+		protected SyntaxNode currentNode;
 
 		public Token[] Tokens => tokens;
 		public Token FindTokenIncludingPosition (int pos) {
@@ -56,14 +56,14 @@ namespace CrowEditBase
 				return Colors.DarkGrey;
 			if (tokType.HasFlag (TokenType.Trivia))
 				return Colors.DimGrey;
-			if (tokType == TokenType.Keyword) 
+			if (tokType == TokenType.Keyword)
 				return Colors.DarkSlateBlue;
-			return Colors.Red;																
+			return Colors.Red;
 		}
 		protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public abstract IList GetSuggestions (int pos);
-	
+
 		/// <summary>
 		/// complete current token with selected item from the suggestion overlay.
 		/// It may set a new position or a new selection.
@@ -89,7 +89,7 @@ namespace CrowEditBase
 				/*foreach (Token t in Tokens)
 					Console.WriteLine ($"{t,-40} {Source.AsSpan(t.Start, t.Length).ToString()}");
 				syntaxAnalyser.Root.Dump();*/
-		}		
+		}
 
 	}
 }

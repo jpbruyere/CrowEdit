@@ -10,10 +10,10 @@ namespace CrowEditBase
 	public class SyntaxNode {
 		public SyntaxNode Parent { get; private set; }
 		List<SyntaxNode> children = new List<SyntaxNode> ();
-		
+
 		public readonly Token StartToken;
 		public Token? EndToken { get; set; }
-		public SyntaxNode (Token tokStart, Token? tokEnd = null) {			
+		public SyntaxNode (Token tokStart, Token? tokEnd = null) {
 			StartToken = tokStart;
 			EndToken = tokEnd;
 		}

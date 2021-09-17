@@ -185,5 +185,18 @@ namespace CECrowPlugin
 				return result;
 			return base.GetStreamFromPath (path);
 		}
+		public override Type GetWidgetTypeFromName (string typeName){
+			if (knownCrowWidgetTypes.ContainsKey (typeName))
+				return knownCrowWidgetTypes [typeName];
+			foreach (Assembly a in System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly ()).Assemblies) {
+				foreach (Type expT in a.GetExportedTypes ()) {
+					if (expT.Name != typeName)
+						continue;
+					knownCrowWidgetTypes.Add (typeName, expT);
+					return expT;
+				}
+			}
+			return null;
+		}
 	}
 }

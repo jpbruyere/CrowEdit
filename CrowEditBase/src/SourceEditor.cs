@@ -16,7 +16,7 @@ using CrowEditBase;
 
 namespace Crow
 {
-	public class SourceEditor : Editor {		
+	public class SourceEditor : Editor {
 		object TokenMutex = new object();
 
 
@@ -33,7 +33,7 @@ namespace Crow
 				if (suggestions == null || suggestions.Count == 0)
 					hideOverlay ();
 				else
-					showOverlay ();		
+					showOverlay ();
 			}
 		}
 		bool suggestionsActive => overlay != null && overlay.IsVisible;
@@ -44,7 +44,7 @@ namespace Crow
 				return;
 
 			base.OnTextChanged(sender, e);
-			
+
 			if (!disableSuggestions && HasFocus)
 				tryGetSuggestions ();
 
@@ -53,10 +53,10 @@ namespace Crow
 			//Console.WriteLine ($"{pos}: {suggestionTok.AsString (_text)} {suggestionTok}");
 		}
 
-		
+
 
 		protected void tryGetSuggestions () {
-			if (currentLoc.HasValue && Document is SourceDocument srcDoc) 
+			if (currentLoc.HasValue && Document is SourceDocument srcDoc)
 				Suggestions = srcDoc.GetSuggestions (lines.GetAbsolutePosition (CurrentLoc.Value));
 			 else
 				Suggestions = null;
@@ -67,39 +67,39 @@ namespace Crow
 					overlay = IFace.LoadIMLFragment<ListBox>(@"
 						<ListBox Style='suggestionsListBox' Data='{Suggestions}' UseLoadingThread = 'false'>
 							<ItemTemplate>
-								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' 
+								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
 												Selected = '{Background=${ControlHighlight}}'
 												Unselected = '{Background=Transparent}'>
 									<Label Text='{}' HorizontalAlignment='Left' />
-								</ListItem>							
+								</ListItem>
 							</ItemTemplate>
 							<ItemTemplate DataType='System.Reflection.MemberInfo'>
-								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' 
+								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
 												Selected = '{Background=${ControlHighlight}}'
 												Unselected = '{Background=Transparent}'>
 									<HorizontalStack>
 										<!--<Image Picture='{GetIcon}' Width='16' Height='16'/>-->
 										<Label Text='{Name}' HorizontalAlignment='Left' />
 									</HorizontalStack>
-								</ListItem>							
+								</ListItem>
 							</ItemTemplate>
 							<ItemTemplate DataType='Crow.Colors'>
-								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' 
+								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
 												Selected = '{Background=${ControlHighlight}}'
 												Unselected = '{Background=Transparent}'>
 									<HorizontalStack>
 										<Widget Background='{}' Width='20' Height='14'/>
 										<Label Text='{}' HorizontalAlignment='Left' />
 									</HorizontalStack>
-								</ListItem>							
+								</ListItem>
 							</ItemTemplate>
 						</ListBox>
 					");
 					overlay.DataSource = this;
-					overlay.Loaded += (sender, arg) => (sender as ListBox).SelectedIndex = 0;				
+					overlay.Loaded += (sender, arg) => (sender as ListBox).SelectedIndex = 0;
 				} else
 					overlay.IsVisible = true;
-				overlay.RegisterForLayouting(LayoutingType.Sizing);	
+				overlay.RegisterForLayouting(LayoutingType.Sizing);
 			}
 		}
 		void hideOverlay () {
@@ -108,9 +108,9 @@ namespace Crow
 			overlay.IsVisible = false;
 		}
 		void completeToken () {
-			if (Document is SourceDocument srcDoc) { 
+			if (Document is SourceDocument srcDoc) {
 				TextChange? change = srcDoc.GetCompletionForCurrentToken (overlay.SelectedItem, out TextSpan? nextSelection);
-				if (change.HasValue) 
+				if (change.HasValue)
 					update (change.Value);
 				if (nextSelection.HasValue)
 					Selection = nextSelection.Value;
@@ -121,7 +121,7 @@ namespace Crow
 			hideOverlay ();
 			base.onMouseDown (sender, e);
 		}
-		
+
 		public override void onKeyDown(object sender, KeyEventArgs e)
 		{
 			TextSpan selection = Selection;
@@ -162,7 +162,7 @@ namespace Crow
 				disableSuggestions = true;
 
 				if (IFace.Shift) {
-					for (int l = lineStart; l <= lineEnd; l++) {				
+					for (int l = lineStart; l <= lineEnd; l++) {
 						if (_text[lines[l].Start] == '\t')
 							update (new TextChange (lines[l].Start, 1, ""));
 						else if (Char.IsWhiteSpace (_text[lines[l].Start])) {
@@ -174,10 +174,10 @@ namespace Crow
 					}
 
 				}else{
-					for (int l = lineStart; l <= lineEnd; l++)		
-						update (new TextChange (lines[l].Start, 0, "\t"));				
+					for (int l = lineStart; l <= lineEnd; l++)
+						update (new TextChange (lines[l].Start, 0, "\t"));
 				}
-				
+
 				selectionStart = new CharLocation (lineStart, 0);
 				CurrentLoc = new CharLocation (lineEnd, lines[lineEnd].Length);
 
@@ -186,7 +186,7 @@ namespace Crow
 				return;
 			}
 			base.onKeyDown(sender, e);
-		}		
+		}
 
 		protected override void drawContent (Context gr) {
 			if (!(Document is SourceDocument xmlDoc)) {
@@ -200,7 +200,7 @@ namespace Crow
 					base.drawContent (gr);
 					return;
 				}
-			
+
 				Rectangle cb = ClientRectangle;
 				fe = gr.FontExtents;
 				double lineHeight = fe.Ascent + fe.Descent;
@@ -262,7 +262,7 @@ namespace Crow
 				TextExtents extents;
 				int tokPtr = 0;
 				Token tok = xmlDoc.Tokens[tokPtr];
-				bool multilineToken = false;				
+				bool multilineToken = false;
 
 				ReadOnlySpan<char> buff = sourceBytes;
 
@@ -272,7 +272,7 @@ namespace Crow
 
 					if (multilineToken) {
 						if (tok.End < lines[i].End) {//last incomplete line of multiline token
-							buff = sourceBytes.Slice (lines[i].Start, tok.End - lines[i].Start);								
+							buff = sourceBytes.Slice (lines[i].Start, tok.End - lines[i].Start);
 						} else {//print full line
 							buff = sourceBytes.Slice (lines[i].Start, lines[i].Length);
 						}
@@ -301,7 +301,7 @@ namespace Crow
 							gr.MoveTo (pixX, lineHeight * y + fe.Ascent);
 							gr.ShowText (bytes.Slice (0, encodedBytes));
 							pixX += extents.XAdvance;
-							x += buff.Length;								
+							x += buff.Length;
 						}
 
 						if (multilineToken) {
@@ -319,7 +319,7 @@ namespace Crow
 					if (HasFocus && selectionNotEmpty) {
 						RectangleD lineRect = new RectangleD (cb.X,	lineHeight * y + cb.Top, pixX, lineHeight);
 						RectangleD selRect = lineRect;
-						
+
 						if (i >= selStart.Line && i <= selEnd.Line) {
 							if (selStart.Line == selEnd.Line) {
 								selRect.X = selStart.VisualCharXPosition + cb.X;
@@ -365,7 +365,7 @@ namespace Crow
 
 					x = 0;
 					pixX = 0;
-		
+
 					y++;
 
 
@@ -379,13 +379,13 @@ namespace Crow
 								continue;
 							} else if (tok2.Type == TokenType.WhiteSpace) {
 								x += tok2.Length;
-								pixX += spacePixelWidth * tok2.Length;*/																				
-				}					
+								pixX += spacePixelWidth * tok2.Length;*/
+				}
 				//gr.Translate (ScrollX, ScrollY);
 			} finally {
 				xmlDoc.ExitReadLock ();
 			}
 
-		}			
+		}
 	}
 }

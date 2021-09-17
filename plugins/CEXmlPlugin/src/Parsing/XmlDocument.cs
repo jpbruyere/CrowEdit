@@ -27,12 +27,12 @@ namespace CrowEdit.Xml
 	public class XmlDocument : SourceDocument {
 
 		public XmlDocument (string fullPath) : base (fullPath) {
-			
+
 		}
 		protected override Tokenizer CreateTokenizer() => new XmlTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (int pos) {			
+		public override IList GetSuggestions (int pos) {
 			currentToken = FindTokenIncludingPosition (pos);
 			currentNode = FindNodeIncludingPosition (pos);
 			return null;
@@ -49,18 +49,18 @@ namespace CrowEdit.Xml
 				return Colors.DarkGrey;
 			if (xmlTokType.HasFlag (XmlTokenType.Trivia))
 				return Colors.DimGrey;
-			else if (xmlTokType == XmlTokenType.ElementName) 
+			else if (xmlTokType == XmlTokenType.ElementName)
 				return Colors.Green;
-			if (xmlTokType == XmlTokenType.AttributeName) 
+			if (xmlTokType == XmlTokenType.AttributeName)
 				return Colors.Blue;
-			if (xmlTokType == XmlTokenType.AttributeValue) 
+			if (xmlTokType == XmlTokenType.AttributeValue)
 				return Colors.OrangeRed;
-			if (xmlTokType == XmlTokenType.EqualSign) 
+			if (xmlTokType == XmlTokenType.EqualSign)
 				return Colors.Black;
-			if (xmlTokType == XmlTokenType.PI_Target) 
+			if (xmlTokType == XmlTokenType.PI_Target)
 				return Colors.DarkSlateBlue;
 			return Colors.Red;
 
 		}
-	}	
+	}
 }

@@ -24,6 +24,8 @@ namespace Crow
 	public class CrowService : Service {
 		public CrowService () : base () {
 
+			loadCrowAssemblies ();
+
 			initCommands ();
 
 			//resolve other plugins dependencies
@@ -152,15 +154,6 @@ namespace Crow
 				NotifyValueChanged ("PreviewHasError", PreviewHasError);
 			}
 		}
-		public string CrowDbgAssemblyLocation {
-			get => Configuration.Global.Get<string> ("CrowDbgAssemblyLocation");
-			set {
-				if (CrowDbgAssemblyLocation == value)
-					return;
-				Configuration.Global.Set ("CrowDbgAssemblyLocation", value);
-				NotifyValueChanged(value);
-			}
-		}
 		public bool DebugLogIsEnabled {
 			get => debugLogIsEnabled;
 			set {
@@ -235,6 +228,20 @@ namespace Crow
 			x = mouseScreenPos.X;
 			y = mouseScreenPos.Y;
 		}
+		void saveCrowAssemblies () {
+			if (crowAssemblies.Count > 0)
+				Configuration.Global.Set ("CrowAssemblies", crowAssemblies.Aggregate ((a, b)=> $"{a};{b}"));
+			else
+				Configuration.Global.Set ("CrowAssemblies", "");
+		}
+		void loadCrowAssemblies () {
+			crowAssemblies.Clear ();
+			if (!Configuration.Global.TryGet<string> ("CrowAssemblies", out string assemblies))
+				return;
+			foreach (string a in assemblies.Split (';'))
+				crowAssemblies.Add (a);
+		}
+
 		public override void Start()
 		{
 			if (CurrentState == Status.Running)
@@ -246,19 +253,30 @@ namespace Crow
 				updateCrowDebuggerState($"Crow.dll for debugging file not found");
 				return;
 			}
+			List<string> additionalResolvePath = new List<string>();
+			additionalResolvePath.Add (System.IO.Path.GetDirectoryName(CrowDbgAssemblyLocation));
+			foreach (string assemblyPath in crowAssemblies)
+				additionalResolvePath.Add (System.IO.Path.GetDirectoryName(assemblyPath));
 
 			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
 			crowLoadCtx.ResolvingUnmanagedDll += resolveUnmanaged;
 			crowLoadCtx.Resolving += (context, assemblyName) => {
-				return crowLoadCtx.LoadFromAssemblyPath (
-					System.IO.Path.Combine (
-						System.IO.Path.GetDirectoryName(CrowDbgAssemblyLocation), assemblyName.Name + ".dll"));
+				foreach (string path in additionalResolvePath) {
+					string assemblyPath = System.IO.Path.Combine (path, assemblyName.Name + ".dll");
+					if (!File.Exists (assemblyPath))
+						continue;
+					return crowLoadCtx.LoadFromAssemblyPath (assemblyPath);
+				}
+				return null;
 			};
 			//crowLoadCtx.Resolving += (ctx,name) => AssemblyLoadContext.Default.LoadFromAssemblyName (name);
 
 			//using (crowLoadCtx.EnterContextualReflection()) {
 				crowAssembly = crowLoadCtx.LoadFromAssemblyPath (CrowDbgAssemblyLocation);
 				thisAssembly = crowLoadCtx.LoadFromAssemblyPath (new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath);
+
+				foreach (string assemblyPath in crowAssemblies)
+					crowLoadCtx.LoadFromAssemblyPath (assemblyPath);
 
 				Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
 				DebugLogIsEnabled = (bool)debuggerType.GetField("IsEnabled").GetValue(null);
@@ -330,6 +348,20 @@ namespace Crow
 			CurrentState = Status.Paused;
 		}
 		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
+
+		public string CrowDbgAssemblyLocation {
+			get => Configuration.Global.Get<string> ("CrowDbgAssemblyLocation");
+			set {
+				if (CrowDbgAssemblyLocation == value)
+					return;
+				Configuration.Global.Set ("CrowDbgAssemblyLocation", value);
+				NotifyValueChanged(value);
+			}
+		}
+		//assemblies with crow resources in order of loading
+		IList<string> crowAssemblies = new ObservableList<string> ();
+		public IList<string> CrowAssemblies => crowAssemblies;
+
 		public ActionCommand CMDOptions_SelectCrowAssemblyLocation => new ActionCommand ("...",
 			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
@@ -339,6 +371,19 @@ namespace Crow
 				dlg.DataSource = this;
 			}
 		);
+		public ActionCommand CMDOptions_AddCrowAssembly => new ActionCommand ("Add Assembly with Crow Ressource",
+			() => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Assembly with Crow Ressources' CurrentDirectory='{CrowDbgAssemblyLocation}'
+							ShowFiles='true' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => {
+					crowAssemblies.Add ((sender as FileDialog).SelectedFileFullPath);
+					saveCrowAssemblies ();
+				};
+				dlg.DataSource = this;
+			}
+		);
+		
 
 		protected override void onStateChange(Status previousState, Status newState)
 		{
