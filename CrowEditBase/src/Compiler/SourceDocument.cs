@@ -11,8 +11,8 @@ using System.Collections;
 namespace CrowEditBase
 {
 	public abstract class SourceDocument : TextDocument {
-		public SourceDocument (string fullPath)
-			: base (fullPath) {
+		public SourceDocument (string fullPath, string editorPath = "#ui.sourceEditor.itmp")
+			: base (fullPath, editorPath) {
 		}
 		protected Token[] tokens;
 		protected SyntaxNode RootNode;

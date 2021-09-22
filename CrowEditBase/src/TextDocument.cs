@@ -13,8 +13,8 @@ using static CrowEditBase.CrowEditBase;
 namespace CrowEditBase
 {
 	public class TextDocument : Document {
-		public TextDocument (string fullPath)
-			: base (fullPath) {
+		public TextDocument (string fullPath, string editorPath = "default")
+			: base (fullPath, editorPath) {
 			reloadFromFile ();
 		}
 

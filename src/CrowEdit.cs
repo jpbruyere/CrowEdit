@@ -51,6 +51,15 @@ namespace CrowEdit
 #endif
 		static void Main ()
 		{
+			/*DbgLogger.IncludedEvents.AddRange ( new DbgEvtType[] {
+				DbgEvtType.MouseEnter,
+				DbgEvtType.MouseLeave,
+				DbgEvtType.WidgetMouseDown,
+				DbgEvtType.WidgetMouseUp,
+				DbgEvtType.WidgetMouseClick,
+				DbgEvtType.HoverWidget
+			});*/
+
 			CrowEdit.CrowAssemblyNames = new string[] {"CrowEditBase"};
 			using (CrowEdit app = new CrowEdit ())
 				app.Run	();
@@ -167,15 +176,17 @@ namespace CrowEdit
 
 		}
 
-		protected override Document openOrCreateFile (string filePath) {
+		protected override Document openOrCreateFile (string filePath, string editorPath = null) {
 			Document doc = null;
 			CurrentFilePath = filePath;
 
 			string ext = Path.GetExtension (CurrentFilePath);
 			if (TryGetDefaultTypeForExtension (ext, out Type clientType)) {
-				if (typeof(Document).IsAssignableFrom (clientType))
-					doc = (Document)Activator.CreateInstance (clientType, new object[] {CurrentFilePath});
-				else if (typeof(Service).IsAssignableFrom (clientType))
+				if (typeof(Document).IsAssignableFrom (clientType)) {
+					if (editorPath == null)
+						TryGetDefaultEditorForDocumentType (clientType, out editorPath);
+					doc = (Document)Activator.CreateInstance (clientType, new object[] {CurrentFilePath, editorPath});
+				}else if (typeof(Service).IsAssignableFrom (clientType))
 					doc = GetService (clientType)?.OpenDocument (CurrentFilePath);
 				else if (typeof(Project).IsAssignableFrom (clientType)) {
 					Project prj = (Project)Activator.CreateInstance (clientType, new object[] {CurrentFilePath});

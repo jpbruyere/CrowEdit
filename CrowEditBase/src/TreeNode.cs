@@ -21,26 +21,40 @@ namespace CrowEditBase
 		None,
 		Compile,
 		EmbeddedResource,
-	}	
+		Project,
+		ProjectGroup,
+	}
 	public abstract class TreeNode : CrowEditComponent
 	{
 		#region CTOR
 		protected TreeNode () { }
 		#endregion
 
-		ObservableList<TreeNode> children = new ObservableList<TreeNode> ();		
+		ObservableList<TreeNode> children = new ObservableList<TreeNode> ();
 
-		protected bool isSelected, isExpanded;
+		protected bool isExpanded;
 
 		public TreeNode Parent { get; private set; }
 
 		public abstract string Caption { get; }
 		public abstract NodeType NodeType { get; }
-		public T GetRoot<T> () where T : TreeNode {
+		public abstract string Icon { get; }
+		public virtual string IconSub => null;
+		public T GetFirstAncestorOfType<T> () where T : TreeNode {
 			TreeNode n = this;
-			while (n.Parent != null)
+			while (n.Parent != null && !(n is T))
 				n = n.Parent;
 			return (T)n;
+		}
+		public virtual bool TryFindFileNode (string fullPath, out IFileNode node) {
+			foreach	(IFileNode n in Flatten.OfType<IFileNode> ()) {
+				if (n.FullPath == fullPath) {
+					node = n;
+					return true;
+				}
+			}
+			node = null;
+			return false;
 		}
 
 		public ObservableList<TreeNode> Childs {
@@ -64,9 +78,11 @@ namespace CrowEditBase
 			pn.Parent = null;
 			children.Remove (pn);
 		}
-		/*public override bool IsSelected {
+		public override bool IsSelected {
 			get => base.IsSelected;
 			set {
+				if (isSelected == value)
+					return;
 				base.IsSelected = value;
 				if (isSelected) {
 					TreeNode pn = Parent;
@@ -76,9 +92,9 @@ namespace CrowEditBase
 					}
 				}
 			}
-		}*/
+		}
 		public virtual bool IsExpanded {
-			get { return isExpanded; }
+			get => isExpanded;
 			set {
 				if (value == isExpanded)
 					return;
@@ -88,8 +104,7 @@ namespace CrowEditBase
 			}
 		}
 		public bool HasChildren => children?.Count > 0;
-		public abstract string Icon { get; }
-		public virtual string IconSub => null;
+
 
 		public IEnumerable<TreeNode> Flatten {
 			get {
@@ -98,7 +113,6 @@ namespace CrowEditBase
 					yield return node;
 			}
 		}
-
 		public virtual void SortChilds ()
 		{
 			foreach (TreeNode pn in Childs)

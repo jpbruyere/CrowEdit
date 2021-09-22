@@ -25,7 +25,7 @@ namespace CrowEditBase
 
 		public override CommandGroup Commands {
 			get {
-				return null; 
+				return null;
 			}
 		}
 	}

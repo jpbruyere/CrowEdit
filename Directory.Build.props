@@ -3,7 +3,7 @@
 		<OutputPath>$(SolutionDir)build\$(Configuration)\</OutputPath>
 		<IntermediateOutputPath>$(SolutionDir)build\obj\$(Configuration)\</IntermediateOutputPath>
 		<License>MIT</License>
-		<Authors>Jean-Philippe Bruyère</Authors>	    
+		<Authors>Jean-Philippe Bruyère</Authors>
 		<LangVersion>7.2</LangVersion>
 	</PropertyGroup>
 </Project>

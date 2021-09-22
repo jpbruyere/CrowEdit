@@ -2,26 +2,18 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
-using System;
-using System.Linq;
 using Crow.Text;
-using System.Collections.Generic;
-using System.Diagnostics;
 using Crow;
-using IML = Crow.IML;
 using System.Collections;
-using System.Reflection;
 using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
-
-using CERoslynPlugin;
 
 namespace CECrowPlugin
 {
 	public class StyleDocument : SourceDocument {
 
 
-		public StyleDocument (string fullPath) : base (fullPath) {
+		public StyleDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
 			App.GetService<CrowService> ()?.Start ();
 
 			/*if (project is MSBuildProject msbp) {

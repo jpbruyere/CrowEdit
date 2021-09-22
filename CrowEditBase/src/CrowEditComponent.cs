@@ -23,7 +23,7 @@ namespace CrowEditBase
 		#endregion
 
 		#region ISelectable implementation
-		bool isSelected;
+		protected bool isSelected;
 		public event EventHandler Selected;
 		public event EventHandler Unselected;
 
@@ -34,7 +34,6 @@ namespace CrowEditBase
 					return;
 
 				isSelected = value;
-
 				NotifyValueChanged (isSelected);
 			}
 		}

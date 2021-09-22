@@ -15,8 +15,6 @@ namespace CECrowPlugin
 {
 	public class DebugInterface : Interface {
 		static DebugInterface() {
-			DbgLogger.IncludeEvents = DbgEvtType.None;
-			DbgLogger.DiscardEvents = DbgEvtType.None;
 			DbgLogger.ConsoleOutput = false;
 		}
 		public DebugInterface (IntPtr hWin) : base (100, 100, hWin)

@@ -17,24 +17,28 @@
 	<TreeView Name="treeview" IsRoot="true" RootDataLevel="true" Data="{Projects}" Background="Onyx"
 				SelectedItemChanged="tv_projects_SelectedItemChanged" >
 		<ItemTemplate DataType="default" >
-			<ListItem CornerRadius="2" Margin="1" Height="Fit" Width="Stretched"
-					BubbleMouseEvent="MouseWheel" ContextCommands="{Commands}"
+			<ListItem Margin="0" IsSelected="{²IsSelected}" Width="Stretched" ContextCommands="{Commands}"
+					BubbleEvents="MouseWheel"
 					MouseDoubleClick="onDblClick"
-					IsSelected="{²IsSelected}"
-					Selected="{Background=RoyalBlue}"
-					Unselected="{Background=Transparent}" >
-				<HorizontalStack Spacing="5">
-					<Image Style="TreeIcon"	Path="{Icon}" SvgSub="{IconSub}"/>
-					<Label Text="{Caption}" Width="Stretched"/>
-				</HorizontalStack>
+					Selected="{/border.Background=${ControlHighlight}}"
+					Unselected="{/border.Background=${TreeItemBackground}}"
+					MouseEnter="{/border.Foreground=${TreeItemBorderHighlightFG}}"
+					MouseLeave="{/border.Foreground=${TreeItemBorderFG}}">
+				<Border Name="border" Margin="2" CornerRadius="${TreeItemBorderCornerRadius}"
+													Foreground="${TreeItemBorderFG}">
+					<HorizontalStack Spacing="5">
+						<Image Style="TreeIcon"	Path="{Icon}" SvgSub="{IconSub}"/>
+						<Label Text="{Caption}" Width="Stretched"/>
+					</HorizontalStack>
+				</Border>
 			</ListItem>
 
 		</ItemTemplate>
 
-		<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Children" Path="#CERoslynPlugin.ui.MSBuildProjectNode.template" />
+		<!--<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Childs" Path="#CERoslynPlugin.ui.MSBuildProjectNode.template" />-->
 		<ItemTemplate DataType="CrowEditBase.VirtualNode" Data="Childs" Path="#ui.TreeExpandable.template" />
 
-		<ItemTemplate DataType="CrowEditBase.Project" Data="SubProjects" Path="#ui.TreeExpandable.template" />
+		<ItemTemplate DataType="CrowEditBase.Project" Data="Childs" Path="#ui.TreeExpandable.template" />
 		<!--<ItemTemplate DataType="CrowEditBase.TreeNode" DataTest="NodeType" Data="Childs" Path="#ui.TreeExpandable.template" />-->
 	</TreeView>
 </DockWindow>

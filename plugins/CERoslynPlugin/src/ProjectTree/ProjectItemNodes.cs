@@ -40,9 +40,18 @@ namespace CERoslynPlugin
 		public string EvaluatedInclude => projectItem.EvaluatedInclude;
 		public string FullPath =>
 			NodeType == NodeType.EmbeddedResource || NodeType == NodeType.None || NodeType == NodeType.Compile ?
-				Path.Combine (GetRoot<ProjectNode>().Project.RootDir, projectItem.EvaluatedInclude) : null;
+				Path.Combine (GetFirstAncestorOfType<MSBuildProject>().RootDir, projectItem.EvaluatedInclude) : null;
 
-
+		public override bool IsSelected {
+			get => base.IsSelected;
+			set {
+				if (isSelected == value)
+					return;
+				base.IsSelected = value;
+				if (isSelected && App.TryGetOpenedDocument (FullPath, out Document doc))
+					doc.IsSelected = true;
+			}
+		}
 
 
 

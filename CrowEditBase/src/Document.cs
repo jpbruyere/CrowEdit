@@ -13,15 +13,20 @@ using static CrowEditBase.CrowEditBase;
 namespace CrowEditBase
 {
 	public abstract class Document : CrowEditComponent {
-		protected Project project;
-		public Document (string fullPath) {
+		public Document (string fullPath, string editorPath) {
 			initCommands ();
+			EditorPath = editorPath;
 			FullPath = fullPath;
-			App.TryGetContainingProject (FullPath, out project);
 		}
+		/// <summary>
+		/// Editor used to open the document, can't be changed once opened
+		/// </summary>
+		/// <remark>
+		/// The editor path is used as an ID for itemTemplate selection
+		/// </remark>
+		/// <value></value>
+		public string EditorPath { get; private set; }//the ressource path is used as an id for editor template selection.
 		public event EventHandler CloseEvent;
-		public void SelectDocument () => IsSelected = true;
-		public void UnselectDocument () => IsSelected = true;
 
 		protected ReaderWriterLockSlim editorRWLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 		public void EnterReadLock () => editorRWLock.EnterReadLock ();
@@ -102,5 +107,16 @@ namespace CrowEditBase
 		public abstract bool IsDirty { get; }
 
 		public override string ToString() => FullPath;
+
+		public override bool IsSelected {
+			get => base.IsSelected;
+			set {
+				if (isSelected == value)
+					return;
+				base.IsSelected = value;
+				if (App.TryFindFileNode (FullPath, out IFileNode node))
+					(node as TreeNode).IsSelected = isSelected;
+			}
+		}
 	}
 }

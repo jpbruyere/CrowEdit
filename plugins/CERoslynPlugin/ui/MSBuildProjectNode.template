@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<Expandable Caption="{Caption}" IsExpanded="{²IsExpanded}" BubbleMouseEvent="MouseWheel" ContextCommands="{Commands}">
+<Expandable Caption="{Caption}" IsExpanded="{²IsExpanded}" BubbleEvents="MouseWheel" ContextCommands="{Commands}">
 	<HorizontalStack Height="Fit">
 		<Shape Foreground="DimGrey" Background="Transparent"
 			Path="M 5.5,0 L 5.5,11 G" Size="11,11" Width="11" Height="Stretched" KeepProportions="false" Margin="0"/>

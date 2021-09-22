@@ -26,7 +26,7 @@ namespace CrowEdit.Xml
 	}
 	public class XmlDocument : SourceDocument {
 
-		public XmlDocument (string fullPath) : base (fullPath) {
+		public XmlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
 
 		}
 		protected override Tokenizer CreateTokenizer() => new XmlTokenizer ();

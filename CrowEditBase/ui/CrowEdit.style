@@ -14,11 +14,18 @@ ControlIdle = "Jet";
 
 DockWindowBackground = "DarkGrey";
 
+TreeItemBorderCornerRadius	= "0";
+TreeItemBorderFG			= "Transparent";
+TreeItemBorderHighlightFG	= "DimGrey";
+TreeItemBackground			= "Transparent";
+//TreeItemHighlight			= "
+
 Editor {
 	Background="White";
 	Foreground="Black";
 	MouseWheelSpeed = "20";
-	BubbleMouseEvent ="None";
+	BubbleEvents ="None";
+	ClipToClientRect = "false";
 }
 
 icon {

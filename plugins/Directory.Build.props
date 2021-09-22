@@ -2,9 +2,9 @@
 	<PropertyGroup>
 		<SolutionDir>$(MSBuildThisFileDirectory)..\</SolutionDir>
 		<License>MIT</License>
-		<Authors>Jean-Philippe Bruyère</Authors>	    
+		<Authors>Jean-Philippe Bruyère</Authors>
 		<LangVersion>7.2</LangVersion>
-		
+
 	</PropertyGroup>
 
 	<ItemGroup>

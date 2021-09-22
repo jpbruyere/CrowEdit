@@ -96,6 +96,9 @@ namespace CERoslynPlugin
 					if (constants != null)
 						parseOptions = parseOptions.WithPreprocessorSymbols (constants.EvaluatedValue.Split (';'));
 
+					/*ProjectProperty targetPath = project.GetProperty ("TargetPath");
+					printEvaluatedProperties(project.CreateProjectInstance());*/
+
 					populateTreeNodes ();
 				}
 
@@ -111,34 +114,48 @@ namespace CERoslynPlugin
 				Console.WriteLine (ex);
 			}
 		}
+		void printEvaluatedProperties (ProjectInstance pi) {
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.WriteLine ($"Evaluated Globals properties for {Name}");
+			foreach (ProjectPropertyInstance item in pi.Properties.OrderBy (p => p.Name)) {
+				Console.ForegroundColor = ConsoleColor.White;
+				Console.Write ($"\t{item.Name,-40} = ");
+				Console.ForegroundColor = ConsoleColor.Gray;
+				Console.WriteLine ($"{item.EvaluatedValue}");
+
+			}
+			ICollection<ProjectItemInstance> pii = pi.GetItems ("InnerOutput");
+			ProjectRootElement pre = pi.ToProjectRootElement();
+			pre.FullPath = "/home/jp/test.csproj";
+			pre.Save();
+
+		}
 		public override void Unload () {
 			CMDSBuild.ToggleAllCommand (false);
 			if (commands.Contains (CMDSetAsStartupProject))
 				commands.Remove (CMDSetAsStartupProject);
+			if (IsLoaded) {
+				solutionProject.projectCollection.UnloadProject (project);
+				project = null;
+				this.Childs.Clear();
+			}
 			IsLoaded = false;
 		}
 		public void Build () => Build ("Build");
 		public void Build (params string[] targets)
 		{
+			BuildManager.DefaultBuildManager.ResetCaches ();
 			//using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
 				ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
-				BuildRequestData request = new BuildRequestData (pi, targets,null,BuildRequestDataFlags.ProvideProjectStateAfterBuild);
+				BuildRequestData request = new BuildRequestData (pi, targets, null,
+					BuildRequestDataFlags.ProvideProjectStateAfterBuild);
+
 				BuildResult result = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
+
+				printEvaluatedProperties (result.ProjectStateAfterBuild);
+
 			//}
 		}
-
-		TreeNode rootNode;
-		public TreeNode RootNode {
-			get => rootNode;
-			set {
-				if (rootNode == value)
-					return;
-				rootNode = value;
-				NotifyValueChanged (rootNode);
-				NotifyValueChanged ("Children", Children);
-			}
-		}
-		public IList<TreeNode> Children => rootNode?.Childs;
 		public override string Icon {
 			get {
 				switch (Path.GetExtension (FullPath)) {
@@ -152,7 +169,7 @@ namespace CERoslynPlugin
 
 		public bool IsCrowProject {
 			get {
-				foreach (ProjectItemNode reference in rootNode.Childs[0].Flatten.OfType<ProjectItemNode>()) {
+				foreach (ProjectItemNode reference in Childs[0].Flatten.OfType<ProjectItemNode>()) {
 					switch (reference.NodeType)	{
 						case NodeType.PackageReference:
 							if (reference.Caption == "Crow")
@@ -169,14 +186,13 @@ namespace CERoslynPlugin
 		}
 		public bool IsStartupProject => solutionProject.StartupProject == this;
 		public override bool ContainsFile (string fullPath) =>
-			rootNode.Flatten.OfType<ProjectItemNode> ().Any (f => f.FullPath == fullPath);
+			Flatten.OfType<ProjectItemNode> ().Any (f => f.FullPath == fullPath);
 
 		void populateTreeNodes ()
 		{
-			TreeNode root = new ProjectNode (this);
+			TreeNode root = this;
 			VirtualNode refs = new VirtualNode ("References", NodeType.ReferenceGroup);
 			root.AddChild (refs);
-
 
 			foreach (ProjectItem pn in project.AllEvaluatedItems) {
 				//IDE.ProgressNotify (1);
@@ -247,7 +263,6 @@ namespace CERoslynPlugin
 				}
 			}
 			root.SortChilds ();
-			RootNode = root;
 
 			/*foreach (var item in root.Childs) {
 				Childs.Add (item);
@@ -292,9 +307,8 @@ namespace CERoslynPlugin
 		public bool DebugSymbols => bool.Parse (project.GetProperty ("DebugSymbols").EvaluatedValue);
 		public int WarningLevel => int.Parse (project.GetProperty ("WarningLevel").EvaluatedValue);
 
-
 		public Stream GetStreamFromTargetPath (string targetPath) {
-			IEnumerable<ProjectItemNode> piNodes = RootNode.Flatten.OfType<CERoslynPlugin.ProjectItemNode>();
+			IEnumerable<ProjectItemNode> piNodes = Flatten.OfType<CERoslynPlugin.ProjectItemNode>();
 			if (targetPath.StartsWith ('#')) {
 				targetPath = targetPath.Substring (1);
 				ProjectItemNode pin = piNodes.FirstOrDefault (n =>

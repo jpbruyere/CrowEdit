@@ -3,7 +3,7 @@
 	<ListItem Height="Fit"
 						Selected="{/exp.Background=${ControlHighlight}}"
 						Unselected="{/exp.Background=Transparent}">
-		<Expandable Name="exp" Caption="{type}" MouseDoubleClick="/onClickForExpand" CacheEnabled="true" BubbleMouseEvent="All">
+		<Expandable Name="exp" Caption="{type}" MouseDoubleClick="/onClickForExpand" CacheEnabled="true" BubbleEvents="All">
 			<Template>
 					<VerticalStack>
 						<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"
@@ -37,7 +37,7 @@
 	<ListItem  Height="Fit"
 						Selected="{/exp.Background=${ControlHighlight}}"
 						Unselected="{/exp.Background=Transparent}">
-		<Expandable Name="exp" Caption="{type}" MouseDoubleClick="/onClickForExpand" CacheEnabled="true" BubbleMouseEvent="All">
+		<Expandable Name="exp" Caption="{type}" MouseDoubleClick="/onClickForExpand" CacheEnabled="true" BubbleEvents="All">
 			<Template>
 				<VerticalStack>
 					<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"

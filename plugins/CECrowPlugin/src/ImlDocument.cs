@@ -22,7 +22,7 @@ namespace CECrowPlugin
 	public class ImlDocument : XmlDocument {
 
 
-		public ImlDocument (string fullPath) : base (fullPath) {
+		public ImlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
 			App.GetService<CrowService> ()?.Start ();
 
 			/*if (project is MSBuildProject msbp) {

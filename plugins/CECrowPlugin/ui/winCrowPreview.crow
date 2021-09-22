@@ -2,11 +2,19 @@
 <DockWindow Caption="Crow Preview"  Width="60%" Commands="{/dbgIfaceWidget.WindowCommands}">
 	<VerticalStack Background="Black" >
 		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true"
-					BubbleMouseEvent="None"
+					BubbleEvents="None"
 					Document="{CurrentDocument}"/>
-		<Label DataSource="{../dbgIfaceWidget.CrowIFaceService}" Text="{CurrentException}" Background="DarkRed" Foreground="White"
-				IsVisible="{PreviewHasError}"
-				Width="Stretched" Margin="2" Multiline="true"/>
+		<Popper DataSource="{../dbgIfaceWidget.CrowIFaceService}" IsVisible="{PreviewHasError}" Background="DarkRed">
+			<Template>
+				<CheckBox IsChecked="{²./IsPopped}" MouseEnter="{IsChecked='true'}" MouseLeave="{IsChecked='false'}">
+					<Template>
+						<Label DataSource="{CurrentException}" Text="{Message}" Background="Red" Foreground="White" Width="Stretched" Margin="2"
+							Multiline="true"/>
+					</Template>
+				</CheckBox>
+			</Template>
+			<Label Text="{CurrentException}" Background="DarkRed" Foreground="White" Width="90%" Margin="2" Multiline="true"/>
+		</Popper>
 	</VerticalStack>
 </DockWindow>
 

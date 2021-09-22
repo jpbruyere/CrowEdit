@@ -7,11 +7,7 @@ using Glfw;
 using Crow.Text;
 using System.Collections.Generic;
 using Crow.Drawing;
-using System.Threading.Tasks;
 using System.Linq;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-using System.Collections;
 using CrowEditBase;
 using System.Threading;
 using System.ComponentModel;
@@ -357,7 +353,7 @@ namespace Crow
 			CharLocation selStart = default, selEnd = default;
 			bool selectionNotEmpty = false;
 
-			if (HasFocus) {
+			//if (HasFocus) {
 				if (currentLoc?.Column < 0) {
 					updateLocation (gr, cb.Width, ref currentLoc);
 					NotifyValueChanged ("CurrentColumn", CurrentColumn);
@@ -384,7 +380,7 @@ namespace Crow
 					}
 				} else
 					IFace.forceTextCursor = true;
-			}
+			//}
 
 			if (!string.IsNullOrEmpty (_text)) {
 				Foreground?.SetAsSource (IFace, gr);
@@ -427,7 +423,7 @@ namespace Crow
 						Foreground.SetAsSource (IFace, gr);
 						********** DEBUG TextLineCollection *************/
 
-						if (HasFocus && selectionNotEmpty) {
+						if (selectionNotEmpty) {
 							RectangleD selRect = lineRect;
 
 							if (i >= selStart.Line && i <= selEnd.Line) {
@@ -472,14 +468,14 @@ namespace Crow
 		protected virtual void updateHoverLocation (Point mouseLocalPos) {
 			int hoverLine = (int)Math.Min (Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ (fe.Ascent + fe.Descent))), lines.Count - 1);
 			int scrollLine = (int)Math.Ceiling((double)ScrollY / (fe.Ascent + fe.Descent));
-			if (hoverLine > scrollLine + visibleLines)
-				ScrollY = (int)((double)(hoverLine - visibleLines) * (fe.Ascent + fe.Descent));
+			/*if (hoverLine > scrollLine + visibleLines)
+				ScrollY = (int)((double)(hoverLine - visibleLines) * (fe.Ascent + fe.Descent));*/
 			NotifyValueChanged("MouseY", mouseLocalPos.Y + ScrollY);
 			NotifyValueChanged("ScrollY", ScrollY);
 			NotifyValueChanged("VisibleLines", visibleLines);
 			NotifyValueChanged("HoverLine", hoverLine);
 			NotifyValueChanged("ScrollLine", hoverLine);
-			hoverLoc = new CharLocation (hoverLine, -1, mouseLocalPos.X);
+			hoverLoc = new CharLocation (hoverLine, -1, mouseLocalPos.X + ScrollX);
 			using (Context gr = new Context (IFace.surf)) {
 				setFontForContext (gr);
 				updateLocation (gr, ClientRectangle.Width, ref hoverLoc);
@@ -571,8 +567,8 @@ namespace Crow
 			}
 		}
 
-		protected void checkShift () {
-			if (IFace.Shift) {
+		protected void checkShift (KeyEventArgs e) {
+			if (e.Modifiers.HasFlag (Modifier.Shift)) {
 				if (!selectionStart.HasValue)
 					selectionStart = CurrentLoc;
 			} else
@@ -599,18 +595,20 @@ namespace Crow
 		public override int measureRawSize(LayoutingType lt)
 		{
 			DbgLogger.StartEvent(DbgEvtType.GOMeasure, this, lt);
+			try {
+				if ((bool)lines?.IsEmpty)
+					getLines ();
 
-			if ((bool)lines?.IsEmpty)
-				getLines ();
-
-			if (!textMeasureIsUpToDate) {
-				using (Context gr = new Context (IFace.surf)) {
-					setFontForContext (gr);
-					measureTextBounds (gr);
+				if (!textMeasureIsUpToDate) {
+					using (Context gr = new Context (IFace.surf)) {
+						setFontForContext (gr);
+						measureTextBounds (gr);
+					}
 				}
+				return Margin * 2 + (lt == LayoutingType.Height ? cachedTextSize.Height : cachedTextSize.Width);
+			} finally {
+				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
 			}
-			DbgLogger.EndEvent(DbgEvtType.GOMeasure);
-			return Margin * 2 + (lt == LayoutingType.Height ? cachedTextSize.Height : cachedTextSize.Width);
 		}
 
 		protected override void onDraw (Context gr)
@@ -643,33 +641,41 @@ namespace Crow
 		{
 			base.onFocused (sender, e);
 
-			if (CurrentLoc == null) {
-				selectionStart = new CharLocation (0, 0);
-				CurrentLoc = new CharLocation (lines.Count - 1, lines[lines.Count - 1].Length);
-			}
+			if (CurrentLoc == null)
+				CurrentLoc = new CharLocation (0, 0);
 
 			RegisterForRedraw ();
 
 			(IFace as CrowEditBase.CrowEditBase).CurrentEditor = this;
 		}
-		protected override void onUnfocused (object sender, EventArgs e)
+		/*protected override void onUnfocused (object sender, EventArgs e)
 		{
 			base.onUnfocused (sender, e);
 			RegisterForRedraw ();
-		}
+		}*/
         public override void onMouseEnter (object sender, MouseMoveEventArgs e) {
             base.onMouseEnter (sender, e);
+			HasFocus = true;
 			if (Focusable)
 				IFace.MouseCursor = MouseCursor.ibeam;
 		}
         public override void onMouseMove (object sender, MouseMoveEventArgs e)
 		{
 			base.onMouseMove (sender, e);
-
-			updateHoverLocation (ScreenPointToLocal (e.Position));
+			mouseMove (e);
+		}
+		public override void onMouseWheel(object sender, MouseWheelEventArgs e)
+		{
+			base.onMouseWheel(sender, e);
+			mouseMove (e);
+		}
+		void mouseMove (MouseEventArgs e) {
+			updateHoverLocation (ScreenPointToLocal (IFace.MousePosition));
 
 			if (HasFocus && IFace.IsDown (MouseButton.Left)) {
 				CurrentLoc = hoverLoc;
+				autoAdjustScroll = true;
+				IFace.forceTextCursor = true;
 				RegisterForRedraw ();
 			}
 		}
@@ -745,9 +751,9 @@ namespace Crow
 				}
 				break;
 			case Key.Insert:
-				if (IFace.Shift)
+				if (e.Modifiers.HasFlag (Modifier.Shift))
 					Paste ();
-				else if (IFace.Ctrl)
+				else if (e.Modifiers.HasFlag (Modifier.Control))
 					Copy ();
 				break;
 			case Key.KeypadEnter:
@@ -765,55 +771,61 @@ namespace Crow
 				update (new TextChange (selection.Start, selection.Length, "\t"));
 				break;
 			case Key.PageUp:
-				checkShift ();
+				checkShift (e);
 				LineMove (-visibleLines);
 				RegisterForRedraw ();
 				break;
 			case Key.PageDown:
-				checkShift ();
+				checkShift (e);
 				LineMove (visibleLines);
 				RegisterForRedraw ();
 				break;
 			case Key.Home:
 				targetColumn = -1;
-				checkShift ();
-				if (IFace.Ctrl)
+				checkShift (e);
+				if (e.Modifiers.HasFlag (Modifier.Control))
 					CurrentLoc = new CharLocation (0, 0);
 				else
 					CurrentLoc = new CharLocation (CurrentLoc.Value.Line, 0);
 				RegisterForRedraw ();
 				break;
 			case Key.End:
-				checkShift ();
-				int l = IFace.Ctrl ? lines.Count - 1 : CurrentLoc.Value.Line;
+				checkShift (e);
+				int l = e.Modifiers.HasFlag (Modifier.Control) ? lines.Count - 1 : CurrentLoc.Value.Line;
 				CurrentLoc = new CharLocation (l, lines[l].Length);
 				RegisterForRedraw ();
 				break;
 			case Key.Left:
-				checkShift ();
-				if (IFace.Ctrl)
+				checkShift (e);
+				if (e.Modifiers.HasFlag (Modifier.Control))
 					GotoWordStart ();
 				else
 					MoveLeft ();
 				RegisterForRedraw ();
 				break;
 			case Key.Right:
-				checkShift ();
-				if (IFace.Ctrl)
+				checkShift (e);
+				if (e.Modifiers.HasFlag (Modifier.Control))
 					GotoWordEnd ();
 				else
 					MoveRight ();
 				RegisterForRedraw ();
 				break;
 			case Key.Up:
-				checkShift ();
+				checkShift (e);
 				LineMove (-1);
 				RegisterForRedraw ();
 				break;
 			case Key.Down:
-				checkShift ();
+				checkShift (e);
 				LineMove (1);
 				RegisterForRedraw ();
+				break;
+			case Key.A:
+				if (e.Modifiers.HasFlag (Modifier.Control)) {
+					selectionStart = new CharLocation (0, 0);
+					CurrentLoc = new CharLocation (lines.Count - 1, lines[lines.Count - 1].Length);
+				}
 				break;
 			default:
 				base.onKeyDown (sender, e);
@@ -836,10 +848,10 @@ namespace Crow
 			if (autoAdjustScroll) {
 				autoAdjustScroll = false;
 				int goodMsrs = 0;
-				if (cursor.Right < 0)
-					ScrollX += cursor.Right;
+				if (cursor.Left < 0)
+					ScrollX += cursor.Left;
 				else if (cursor.X > cb.Width)
-					ScrollX += cursor.X - cb.Width;
+					ScrollX += cursor.X - cb.Width + 5;
 				else
 					goodMsrs++;
 
@@ -858,7 +870,7 @@ namespace Crow
 			return cursor;
 		}
 
-		void updateMaxScrolls (LayoutingType layout) {
+		protected virtual void updateMaxScrolls (LayoutingType layout) {
 			Rectangle cb = ClientRectangle;
 			if (layout == LayoutingType.Width) {
 				MaxScrollX = cachedTextSize.Width - cb.Width;

@@ -61,10 +61,12 @@ namespace CERoslynPlugin
 				NotifyValueChanged (value);
 			}*/
 		}
+		public override bool ContainsFile (string fullPath) =>
+				FlattenSubProjetcs.Any (f => f.ContainsFile (fullPath));
 		public override string Name => Path.GetFileNameWithoutExtension (FullPath);
 		public override string Icon => "#icons.file_type_sln2.svg";
 		public Project StartupProject {
-			get => Flatten.FirstOrDefault (p => p.FullPath == UserConfig.Get<string> ("StartupProject"));
+			get => FlattenSubProjetcs.FirstOrDefault (p => p.FullPath == UserConfig.Get<string> ("StartupProject"));
 			set {
 				if (value == StartupProject)
 					return;
@@ -80,6 +82,9 @@ namespace CERoslynPlugin
 				NotifyValueChanged ("StartupProject", StartupProject);
 			}
 		}
+
+		public override NodeType NodeType => NodeType.ProjectGroup;
+
 		public override void Load () {
 			Dictionary<string,string> globalProperties = new Dictionary<string, string>();
 			globalProperties.Add ("Configuration", "Debug");
@@ -114,7 +119,8 @@ namespace CERoslynPlugin
 				Loggers = projectCollection.Loggers,
 				LogInitialPropertiesAndItems = true,
 				LogTaskInputs = true,
-				UseSynchronousLogging = true
+				UseSynchronousLogging = true,
+				ResetCaches = true
 			};
 
 			//projectCollection.IsBuildEnabled = false;
@@ -130,8 +136,7 @@ namespace CERoslynPlugin
 			//ide.projectCollection.to
 			//------------
 
-			subProjects = new List<Project> ();
-			IList<Project> targetChildren = subProjects;
+			TreeNode targetNode = this;
 			foreach (ProjectInSolution pis in solutionFile.ProjectsInOrder) {
 				/*if (!string.IsNullOrEmpty (pis.ParentProjectGuid))
 					targetChildren = allSolutionNodes.FirstOrDefault (sn => sn.ProjectGuid == pis.ParentProjectGuid).Childs;
@@ -140,7 +145,7 @@ namespace CERoslynPlugin
 
 				switch (pis.ProjectType) {
 				case SolutionProjectType.KnownToBeMSBuildFormat:
-					targetChildren.Add (new MSBuildProject (this, pis));
+					targetNode.AddChild (new MSBuildProject (this, pis));
 					break;
 				/*case SolutionProjectType.SolutionFolder:
 					targetChildren.Add (new SolutionFolder (this, pis));

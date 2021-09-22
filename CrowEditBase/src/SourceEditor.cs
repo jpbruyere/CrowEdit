@@ -5,22 +5,15 @@
 using System;
 using Glfw;
 using Crow.Text;
-using System.Collections.Generic;
 using Crow.Drawing;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Collections;
 using CrowEditBase;
+using static CrowEditBase.CrowEditBase;
 
 namespace Crow
 {
 	public class SourceEditor : Editor {
 		object TokenMutex = new object();
-
-
-
 
 		ListBox overlay;
 		IList suggestions;
@@ -52,8 +45,6 @@ namespace Crow
 
 			//Console.WriteLine ($"{pos}: {suggestionTok.AsString (_text)} {suggestionTok}");
 		}
-
-
 
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc)
@@ -121,7 +112,6 @@ namespace Crow
 			hideOverlay ();
 			base.onMouseDown (sender, e);
 		}
-
 		public override void onKeyDown(object sender, KeyEventArgs e)
 		{
 			TextSpan selection = Selection;
@@ -188,22 +178,87 @@ namespace Crow
 			base.onKeyDown(sender, e);
 		}
 
+		const int leftMarginGap = 3;//gap between margin start and numbering
+		const int leftMarginRightGap = 3;//gap between items in margin and text
+		const int foldSize = 9;//folding rectangles size
+		const int foldMargin = 9;
+
+		int leftMargin;
+		void updateMargin () {
+			leftMargin = leftMarginGap;
+			if (App.PrintLineNumbers)
+				leftMargin += (int)Math.Ceiling((double)lines.Count.ToString().Length * fe.MaxXAdvance) + 6;
+			if (App.FoldingEnabled)
+				leftMargin += foldMargin;
+			if (leftMargin > 0)
+				leftMargin += leftMarginRightGap;
+			//updateVisibleColumns ();
+		}
+		public override int measureRawSize(LayoutingType lt)
+		{
+			DbgLogger.StartEvent(DbgEvtType.GOMeasure, this, lt);
+			try {
+				if ((bool)lines?.IsEmpty)
+					getLines ();
+
+				updateMargin ();
+
+				if (!textMeasureIsUpToDate) {
+					using (Context gr = new Context (IFace.surf)) {
+						setFontForContext (gr);
+						measureTextBounds (gr);
+					}
+				}
+				return Margin * 2 + (lt == LayoutingType.Height ? cachedTextSize.Height : cachedTextSize.Width + leftMargin);
+			} finally {
+				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
+			}
+		}
+		protected override void updateMaxScrolls (LayoutingType layout) {
+			updateMargin();
+			Rectangle cb = ClientRectangle;
+			cb.Width -= leftMargin;
+			if (layout == LayoutingType.Width) {
+				MaxScrollX = cachedTextSize.Width - cb.Width;
+				NotifyValueChanged ("PageWidth", ClientRectangle.Width);
+				if (cachedTextSize.Width > 0)
+					NotifyValueChanged ("ChildWidthRatio", Math.Min (1.0, (double)cb.Width / cachedTextSize.Width));
+			} else if (layout == LayoutingType.Height) {
+				MaxScrollY = cachedTextSize.Height - cb.Height;
+				NotifyValueChanged ("PageHeight", ClientRectangle.Height);
+				if (cachedTextSize.Height > 0)
+					NotifyValueChanged ("ChildHeightRatio", Math.Min (1.0, (double)cb.Height / cachedTextSize.Height));
+			}
+		}
+
 		protected override void drawContent (Context gr) {
-			if (!(Document is SourceDocument xmlDoc)) {
+			if (!(Document is SourceDocument doc)) {
 				base.drawContent (gr);
 				return;
 			}
 			//lock(TokenMutex) {
-			xmlDoc.EnterReadLock ();
+			doc.EnterReadLock ();
 			try {
-				if (xmlDoc.Tokens == null || xmlDoc.Tokens.Length == 0) {
+				if (doc.Tokens == null || doc.Tokens.Length == 0) {
 					base.drawContent (gr);
 					return;
 				}
 
-				Rectangle cb = ClientRectangle;
-				fe = gr.FontExtents;
 				double lineHeight = fe.Ascent + fe.Descent;
+				updateMargin ();
+
+				bool printLineNumbers = App.PrintLineNumbers;
+				Color marginBG = App.MarginBackground;
+				Color marginFG = Colors.Ivory;
+				double lineNumWidth = gr.TextExtents (lines.Count.ToString()).Width;
+
+				Rectangle cb = ClientRectangle;
+				RectangleD marginRect = new RectangleD (cb.X, cb.Y, leftMargin - leftMarginRightGap, lineHeight);
+				/*gr.SetSource (App.MarginBackground);
+				gr.Rectangle (marginRect);
+				gr.Fill ();*/
+				cb.Left += leftMargin;
+
 
 				CharLocation selStart = default, selEnd = default;
 				bool selectionNotEmpty = false;
@@ -252,16 +307,17 @@ namespace Crow
 				int x = 0, y = 0;
 				double pixX = cb.Left;
 
-
 				Foreground.SetAsSource (IFace, gr);
 				gr.Translate (-ScrollX, -ScrollY);
 
 
-				ReadOnlySpan<char> sourceBytes = xmlDoc.Source.AsSpan();
+
+
+				ReadOnlySpan<char> sourceBytes = doc.Source.AsSpan();
 				Span<byte> bytes = stackalloc byte[128];
 				TextExtents extents;
 				int tokPtr = 0;
-				Token tok = xmlDoc.Tokens[tokPtr];
+				Token tok = doc.Tokens[tokPtr];
 				bool multilineToken = false;
 
 				ReadOnlySpan<char> buff = sourceBytes;
@@ -286,7 +342,7 @@ namespace Crow
 							} else
 								buff = sourceBytes.Slice (tok.Start, tok.Length);
 
-							gr.SetSource(xmlDoc.GetColorForToken (tok.Type));
+							gr.SetSource(doc.GetColorForToken (tok.Type));
 						}
 
 						int size = buff.Length * 4 + 1;
@@ -311,13 +367,13 @@ namespace Crow
 								break;
 						}
 
-						if (++tokPtr >= xmlDoc.Tokens.Length)
+						if (++tokPtr >= doc.Tokens.Length)
 							break;
-						tok = xmlDoc.Tokens[tokPtr];
+						tok = doc.Tokens[tokPtr];
 					}
 
-					if (HasFocus && selectionNotEmpty) {
-						RectangleD lineRect = new RectangleD (cb.X,	lineHeight * y + cb.Top, pixX, lineHeight);
+					RectangleD lineRect = new RectangleD (cb.X,	lineHeight * y + cb.Top, pixX, lineHeight);
+					if (selectionNotEmpty) {
 						RectangleD selRect = lineRect;
 
 						if (i >= selStart.Line && i <= selEnd.Line) {
@@ -357,14 +413,29 @@ namespace Crow
 						}
 					}
 
+					//Draw line numbering
+					int curLine = i;
+					if (printLineNumbers){
+						marginRect.Y = lineRect.Y;
+
+						string strLN = (curLine+1).ToString ();
+						gr.SetSource (marginBG);
+						gr.Rectangle (marginRect);
+						gr.Fill();
+						gr.SetSource (marginFG);
+						gr.MoveTo (marginRect.X + leftMarginGap + lineNumWidth - gr.TextExtents (strLN).Width, marginRect.Y + fe.Ascent);
+						gr.ShowText (strLN);
+						gr.Fill ();
+					}
+
 					if (!multilineToken) {
-						if (++tokPtr >= xmlDoc.Tokens.Length)
+						if (++tokPtr >= doc.Tokens.Length)
 							break;
-						tok = xmlDoc.Tokens[tokPtr];
+						tok = doc.Tokens[tokPtr];
 					}
 
 					x = 0;
-					pixX = 0;
+					pixX = cb.Left;
 
 					y++;
 
@@ -383,7 +454,7 @@ namespace Crow
 				}
 				//gr.Translate (ScrollX, ScrollY);
 			} finally {
-				xmlDoc.ExitReadLock ();
+				doc.ExitReadLock ();
 			}
 
 		}

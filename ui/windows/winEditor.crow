@@ -1,16 +1,37 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Editor"  Width="60%">
-	<TabView Data="{OpenedDocuments}" SelectedItem="{²CurrentDocument}"	DataTest="Extension">
+	<TabView ItemTemplate="{EditorItemTemplates}"
+			Data="{OpenedDocuments}" SelectedItem="{²CurrentDocument}"	DataTest="EditorPath">
 		<Template>
 			<VerticalStack Spacing="0" >
-				<ListBox Data="{./Items}" Fit="true" HorizontalAlignment="Left" VerticalAlignment="Top">
+				<ListBox Data="{./Items}" Height="Fit" >
 					<Template>
-						<HorizontalStack Name="ItemsContainer" />
+						<VerticalStack Spacing="0" >
+							<ScrollBar Orientation="Horizontal" Foreground="RoyalBlue" Height="6" Width="Stretched" CornerRadius="3"
+								Value="{²../ItemsScroller.ScrollX}"
+								LargeIncrement="{../ItemsScroller.PageWidth}" SmallIncrement="1"
+								CursorRatio="{../ItemsScroller.ChildWidthRatio}" Maximum="{../ItemsScroller.MaxScrollX}">
+								<Template>
+									<Container Margin="1" Background="{./Background}">
+										<Widget Name="Cursor" Background="{./Foreground}" CornerRadius="{./CornerRadius}"/>
+									</Container>
+								</Template>
+							</ScrollBar>
+							<Scroller Name="ItemsScroller" Height="Fit" Width="Stretched">
+								<HorizontalStack Name="ItemsContainer" Width="Fit" HorizontalAlignment="Left"/>
+							</Scroller>
+						</VerticalStack>
 					</Template>
 					<ItemTemplate>
+						<!--<ListItem Fit="true" Background="${InactiveTabItem}" IsSelected="{IsVisible}" Margin="5"
+								Selected="{.DataSource.Visible='true'};{Background=.DataSource.Background}"
+								Unselected="{.DataSource.Visible='false'};{Background=${InactiveTabItem}}">
+							<Label Text="{Name}" Width="200" />
+						</ListItem>-->
 						<ListItem RootDataLevel="true" Fit="true" Background="${InactiveTabBackground}" Foreground="${InactiveTabForeground}" IsSelected="{IsVisible}"
 								Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}};{Foreground=${SelectedTabForeground}}"
-								Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}">
+								Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}"
+								BubbleEvents="MouseWheel">
 							<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
 
 								<Widget Width="10" Height="10" Background="RoyalBlue" IsVisible="{IsDirty}"/>
@@ -27,32 +48,6 @@
 				<Group Name="ItemsContainer" />
 			</VerticalStack>
 		</Template>
-		<ItemTemplate>
-			<ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}" Selected="{/tb.HasFocus='true'}">
-				<VerticalStack Spacing="0">
-					<HorizontalStack Spacing="0">
-						<Editor Name="tb" Font="consolas, 12" Focusable="true" Height="Stretched" Width="Stretched"
-								Document="{}" TextChanged="onTextChanged"/>
-						<ScrollBar Value="{²../tb.ScrollY}"
-								LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"
-								CursorRatio="{../tb.ChildHeightRatio}" Maximum="{../tb.MaxScrollY}" />
-					</HorizontalStack>
-					<ScrollBar Style="HScrollBar" Value="{²../tb.ScrollX}"
-							LargeIncrement="{../tb.PageWidth}" SmallIncrement="1"
-							CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />
-					<HorizontalStack Height="Fit">
-						<Widget Width="Stretched"/>
-						<Widget Height="5" Width="10"/>
-						<Label Text="Line:" Foreground="Grey"/>
-						<Label Text="{../../tb.CurrentLine}" Margin="3"/>
-						<Label Text="col:" Foreground="Grey"/>
-						<Label Text="{../../tb.CurrentColumn}" Margin="3"/>
-					</HorizontalStack>
-				</VerticalStack>
-			</ListItem>
-		</ItemTemplate>
-		<ItemTemplate Path="#ui.sourceEditor.itmp" DataType=".crow"/>
-		<ItemTemplate Path="#ui.sourceEditor.itmp" DataType=".style"/>
 	</TabView>
 </DockWindow>
 

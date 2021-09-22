@@ -13,7 +13,7 @@ using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
-	
+
 	/*public class Plugin {
 		string path;
 		Assembly assembly;
@@ -35,8 +35,8 @@ namespace CrowEditBase
 			string pluginAssembly = Path.Combine (fullPath, $"{Name}.dll");
 			MainAssembly = LoadFromAssemblyPath (pluginAssembly);
 		}
-		protected override Assembly Load(AssemblyName assemblyName) {			
-			string assemblyPath = Path.Combine (fullPath, assemblyName.Name + ".dll");			
+		protected override Assembly Load(AssemblyName assemblyName) {
+			string assemblyPath = Path.Combine (fullPath, assemblyName.Name + ".dll");
 			return File.Exists (assemblyPath) ? LoadFromAssemblyPath (assemblyPath) : null;
 		}
 

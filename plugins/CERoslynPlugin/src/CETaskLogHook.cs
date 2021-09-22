@@ -41,18 +41,18 @@ namespace CERoslynPlugin
 		}
 
 		private void EventSource_TaskFinished (object sender, TaskFinishedEventArgs e) {
-			Console.WriteLine ($"Task <- {sender} {e}");
+			Console.WriteLine ($"Task <- {sender} {e.TaskName}");
 		}
 
 		private void EventSource_TaskStarted (object sender, TaskStartedEventArgs e) {
 			Console.WriteLine ($"Task -> {sender} {e}");
 		}
 		private void EventSource_TargetFinished (object sender, TargetFinishedEventArgs e) {
-			
+
 		}
 
 		private void EventSource_TargetStarted (object sender, TargetStartedEventArgs e) {
-			
+
 		}
 
 		public void Shutdown ()

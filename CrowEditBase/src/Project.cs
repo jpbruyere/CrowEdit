@@ -2,40 +2,29 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using Crow;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using System.Linq;
+using Crow;
 using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
-	public abstract class Project : CrowEditComponent {
+	public abstract class Project : TreeNode {
 		bool isLoaded;
 		protected Project parent;
-		protected IList<Project> subProjects;
-
-		public Project Parent => parent;
-		public IList<Project> SubProjects => subProjects;
-		public IEnumerable<Project> Flatten {
+		public abstract bool ContainsFile (string fullPath);
+		public IEnumerable<Project> SubProjetcs => Childs.OfType<Project> ();
+		public IEnumerable<Project> FlattenSubProjetcs {
 			get {
-				yield return this;
-				if (subProjects != null) {
-					foreach (var node in subProjects?.SelectMany (child => child.Flatten))
-						yield return node;
-				}
+				foreach (var node in SubProjetcs.SelectMany (sp => sp.FlattenSubProjetcs))
+					yield return node;
 			}
 		}
-		public virtual bool ContainsFile (string fullPath) => false;
-		public bool HasChildren => subProjects?.Count > 0;
-
 		public string FullPath { get ; private set; }
 		public abstract string Name { get; }
-		public string Caption => Name;
+		public override string Caption => Name;
+		public override NodeType NodeType => NodeType.Project;
+
 		public bool IsLoaded {
 			get => isLoaded;
 			set {
@@ -55,7 +44,7 @@ namespace CrowEditBase
 			FullPath = fullPath;
 		}
 		public Command CMDLoad, CMDUnload, CMDReload, CMDClose;
-		public virtual CommandGroup Commands => new CommandGroup (
+		public override CommandGroup Commands => new CommandGroup (
 			CMDLoad, CMDUnload, CMDReload, CMDClose);
 
 		void initCommands () {
@@ -75,6 +64,6 @@ namespace CrowEditBase
 			App.Projects.Remove (this);
 			IsLoaded = false;
 		}
-		public virtual string Icon => "#icons.question.svg";
+		public override string Icon => "#icons.question.svg";
 	}
 }

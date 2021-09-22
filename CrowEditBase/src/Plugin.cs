@@ -74,9 +74,13 @@ namespace CrowEditBase
 					{
 						foreach (string associations in fileAssociations.Split (';')) {
 							string[] typeExts = associations.Split (':');
-							Type clientClass = loadContext.MainAssembly.GetType (typeExts[0]);
-							foreach (string ext in typeExts[1].Split (','))
-								App.AddFileAssociation (ext, clientClass);
+							Type clientClass = loadContext.MainAssembly.GetType (typeExts[0].Trim());
+							foreach (string ext in typeExts[1].Split (','))//supported extension comma separated list
+								App.AddFileAssociation (ext.Trim(), clientClass);
+							if (typeExts.Length < 3)
+								continue;
+							foreach (string editorPath in typeExts[2].Split (','))//comma separated list of supported editor path.
+								App.AddSupportedEditor (clientClass, editorPath.Trim());
 						}
 					}
 					catch (System.Exception ex)	{

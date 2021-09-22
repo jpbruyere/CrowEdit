@@ -26,15 +26,15 @@ namespace CERoslynPlugin
 		public static void SetTokenType (this Token tok, CSTokenType type) => tok.Type = (TokenType)type;
 	}*/
 	public class CSDocument : TextDocument {
-		
+
 		static CSDocument () {
 			App.GetService<RoslynService> ()?.Start ();
 		}
 
 		CSharpSyntaxTree tree;
-		public CSDocument (string fullPath)	: base (fullPath) {
+		public CSDocument (string fullPath, string editorPath)	: base (fullPath, editorPath) {
 
-			//tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);			
+			//tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);
 		}
 
 		#region SourceDocument abstract class implementation
@@ -52,12 +52,12 @@ namespace CERoslynPlugin
 		}*/
 		#endregion
 
-		
+
 
 		/*ProjectCollection tree;
 		public CSDocument (string fullPath)	: base (fullPath) {
-			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);			
+			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);
 		}*/
-		
-	}	
+
+	}
 }
