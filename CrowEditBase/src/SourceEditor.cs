@@ -214,6 +214,22 @@ namespace Crow
 				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
 			}
 		}
+		protected override void updateHoverLocation (Point mouseLocalPos) {
+			int hoverLine = (int)Math.Min (Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ (fe.Ascent + fe.Descent))), lines.Count - 1);
+			int scrollLine = (int)Math.Ceiling((double)ScrollY / (fe.Ascent + fe.Descent));
+			/*if (hoverLine > scrollLine + visibleLines)
+				ScrollY = (int)((double)(hoverLine - visibleLines) * (fe.Ascent + fe.Descent));*/
+			NotifyValueChanged("MouseY", mouseLocalPos.Y + ScrollY);
+			NotifyValueChanged("ScrollY", ScrollY);
+			NotifyValueChanged("VisibleLines", visibleLines);
+			NotifyValueChanged("HoverLine", hoverLine);
+			NotifyValueChanged("ScrollLine", hoverLine);
+			hoverLoc = new CharLocation (hoverLine, -1, mouseLocalPos.X + ScrollX - leftMargin);
+			using (Context gr = new Context (IFace.surf)) {
+				setFontForContext (gr);
+				updateLocation (gr, ClientRectangle.Width, ref hoverLoc);
+			}
+		}
 		protected override void updateMaxScrolls (LayoutingType layout) {
 			updateMargin();
 			Rectangle cb = ClientRectangle;
@@ -253,7 +269,7 @@ namespace Crow
 				double lineNumWidth = gr.TextExtents (lines.Count.ToString()).Width;
 
 				Rectangle cb = ClientRectangle;
-				RectangleD marginRect = new RectangleD (cb.X, cb.Y, leftMargin - leftMarginRightGap, lineHeight);
+				RectangleD marginRect = new RectangleD (cb.X + ScrollX, cb.Y, leftMargin - leftMarginRightGap, lineHeight);
 				/*gr.SetSource (App.MarginBackground);
 				gr.Rectangle (marginRect);
 				gr.Fill ();*/
@@ -263,7 +279,7 @@ namespace Crow
 				CharLocation selStart = default, selEnd = default;
 				bool selectionNotEmpty = false;
 
-				if (HasFocus) {
+				//if (HasFocus) {
 					if (currentLoc?.Column < 0) {
 						updateLocation (gr, cb.Width, ref currentLoc);
 						NotifyValueChanged ("CurrentColumn", CurrentColumn);
@@ -301,7 +317,7 @@ namespace Crow
 						}
 					} else
 						IFace.forceTextCursor = true;
-				}
+				//}
 
 				double spacePixelWidth = gr.TextExtents (" ").XAdvance;
 				int x = 0, y = 0;
@@ -309,9 +325,6 @@ namespace Crow
 
 				Foreground.SetAsSource (IFace, gr);
 				gr.Translate (-ScrollX, -ScrollY);
-
-
-
 
 				ReadOnlySpan<char> sourceBytes = doc.Source.AsSpan();
 				Span<byte> bytes = stackalloc byte[128];
@@ -325,13 +338,13 @@ namespace Crow
 
 				for (int i = 0; i < lines.Count; i++) {
 					//if (!cancelLinePrint (lineHeight, lineHeight * y, cb.Height)) {
+					double pixY = lineHeight * y + cb.Top;
 
 					if (multilineToken) {
-						if (tok.End < lines[i].End) {//last incomplete line of multiline token
+						if (tok.End < lines[i].End)//last incomplete line of multiline token
 							buff = sourceBytes.Slice (lines[i].Start, tok.End - lines[i].Start);
-						} else {//print full line
+						else//print full line
 							buff = sourceBytes.Slice (lines[i].Start, lines[i].Length);
-						}
 					}
 
 					while (tok.Start < lines[i].End) {
@@ -354,7 +367,7 @@ namespace Crow
 						if (encodedBytes > 0) {
 							bytes[encodedBytes++] = 0;
 							gr.TextExtents (bytes.Slice (0, encodedBytes), out extents);
-							gr.MoveTo (pixX, lineHeight * y + fe.Ascent);
+							gr.MoveTo (pixX, pixY + fe.Ascent);
 							gr.ShowText (bytes.Slice (0, encodedBytes));
 							pixX += extents.XAdvance;
 							x += buff.Length;
@@ -372,18 +385,17 @@ namespace Crow
 						tok = doc.Tokens[tokPtr];
 					}
 
-					RectangleD lineRect = new RectangleD (cb.X,	lineHeight * y + cb.Top, pixX, lineHeight);
+					RectangleD lineRect = new RectangleD (cb.X, pixY, pixX - cb.X, lineHeight);
 					if (selectionNotEmpty) {
 						RectangleD selRect = lineRect;
 
 						if (i >= selStart.Line && i <= selEnd.Line) {
 							if (selStart.Line == selEnd.Line) {
-								selRect.X = selStart.VisualCharXPosition + cb.X;
+								selRect.X += selStart.VisualCharXPosition;
 								selRect.Width = selEnd.VisualCharXPosition - selStart.VisualCharXPosition;
 							} else if (i == selStart.Line) {
-								double newX = selStart.VisualCharXPosition + cb.X;
-								selRect.Width -= (newX - selRect.X) - 10.0;
-								selRect.X = newX;
+								selRect.X += selStart.VisualCharXPosition;
+								selRect.Width -= selStart.VisualCharXPosition - 10.0;
 							} else if (i == selEnd.Line)
 								selRect.Width = selEnd.VisualCharXPosition - selRect.X + cb.X;
 							else
@@ -458,5 +470,35 @@ namespace Crow
 			}
 
 		}
+		protected override RectangleD? computeTextCursor (Rectangle cursor) {
+			Rectangle cb = ClientRectangle;
+			cursor -= new Point (ScrollX, ScrollY);
+			cursor.X += leftMargin;
+
+			if (autoAdjustScroll) {
+				autoAdjustScroll = false;
+				int goodMsrs = 0;
+				if (cursor.Left < leftMargin)
+					ScrollX += cursor.Left - leftMargin;
+				else if (cursor.X > cb.Width)
+					ScrollX += cursor.X - cb.Width + 5;
+				else
+					goodMsrs++;
+
+				if (cursor.Y < 0)
+					ScrollY += cursor.Y;
+				else if (cursor.Bottom > cb.Height)
+					ScrollY += cursor.Bottom - cb.Height;
+				else
+					goodMsrs++;
+
+				if (goodMsrs < 2)
+					return null;
+			} else if (cursor.Right < 0 || cursor.X > cb.Width || cursor.Y < 0 || cursor.Bottom > cb.Height)
+				return null;
+
+			return cursor;
+		}
+
 	}
 }

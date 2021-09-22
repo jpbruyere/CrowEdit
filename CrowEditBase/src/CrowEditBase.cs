@@ -312,8 +312,7 @@ namespace CrowEditBase
 			<ListItem IsVisible='{IsSelected}' IsSelected='{²IsSelected}' Selected=""{/tb.HasFocus='true'}"">
 				<VerticalStack Spacing='0'>
 					<HorizontalStack Spacing='0'>
-						<Editor Name='tb' Font='consolas, 12' Focusable='true' Height='Stretched' Width='Stretched'
-								Margin='50' ClipToClientRect='true'
+						<Editor Name='tb' Font='consolas, 12' Margin='5'
 								Document='{}' TextChanged='onTextChanged'/>
 						<ScrollBar Value='{²../tb.ScrollY}'
 								LargeIncrement='{../tb.PageHeight}' SmallIncrement='1'
@@ -322,9 +321,8 @@ namespace CrowEditBase
 					<ScrollBar Style='HScrollBar' Value='{²../tb.ScrollX}'
 							LargeIncrement='{../tb.PageWidth}' SmallIncrement='1'
 							CursorRatio='{../tb.ChildWidthRatio}' Maximum='{../tb.MaxScrollX}' />
-					<HorizontalStack Height='Fit'>
+					<HorizontalStack Height='Fit' Spacing='3'>
 						<Widget Width='Stretched'/>
-						<Widget Height='5' Width='10'/>
 						<Label Text='Line:' Foreground='Grey'/>
 						<Label Text='{../../tb.CurrentLine}' Margin='3'/>
 						<Label Text='col:' Foreground='Grey'/>

@@ -840,8 +840,8 @@ namespace Crow
 
 
 		#region textBox
-		bool autoAdjustScroll = false;//if scrollXY is changed directly, dont try adjust scroll to cursor
-		internal RectangleD? computeTextCursor (Rectangle cursor) {
+		protected bool autoAdjustScroll = false;//if scrollXY is changed directly, dont try adjust scroll to cursor
+		protected virtual RectangleD? computeTextCursor (Rectangle cursor) {
 			Rectangle cb = ClientRectangle;
 			cursor -= new Point (ScrollX, ScrollY);
 

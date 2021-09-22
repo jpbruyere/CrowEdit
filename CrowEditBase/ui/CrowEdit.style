@@ -21,11 +21,14 @@ TreeItemBackground			= "Transparent";
 //TreeItemHighlight			= "
 
 Editor {
+	Focusable="true";
+	Height="Stretched";
+	Width="Stretched";
 	Background="White";
 	Foreground="Black";
 	MouseWheelSpeed = "20";
 	BubbleEvents ="None";
-	ClipToClientRect = "false";
+	ClipToClientRect = "true";
 }
 
 icon {
