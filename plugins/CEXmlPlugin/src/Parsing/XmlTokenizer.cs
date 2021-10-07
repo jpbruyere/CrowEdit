@@ -80,6 +80,7 @@ namespace CrowEdit.Xml
 									addTok (ref reader, XmlTokenType.BlockComment);
 									reader.Advance (3);
 									addTok (ref reader, XmlTokenType.BlockCommentEnd);
+									break;
 								} else
 									reader.Read ();
 							}

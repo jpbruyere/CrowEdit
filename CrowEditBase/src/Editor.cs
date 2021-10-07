@@ -43,17 +43,6 @@ namespace Crow
 			ContextCommands = new CommandGroup (CMDCut, CMDCopy, CMDPaste);
 		}
 
-		/*protected override CharLocation? SelectionStart {
-			get => base.SelectionStart;
-			set {
-				if (SelectionStart == value)
-					return;
-				base.SelectionStart = value;
-				CMDCopy.CanExecute = CMDCut.CanExecute = !SelectionIsEmpty;
-			}
-		}*/
-
-
 		public TextDocument Document {
 			get => document;
 			set {
@@ -107,7 +96,7 @@ namespace Crow
 				CMDCopy.CanExecute = CMDCut.CanExecute = !SelectionIsEmpty;
 			}
 		}
-		public virtual int CurrentLine {
+		public int CurrentLine {
 			get => currentLoc.HasValue ? currentLoc.Value.Line : 0;
 			set {
 				if (currentLoc?.Line == value)
@@ -118,7 +107,7 @@ namespace Crow
 				CMDCopy.CanExecute = CMDCut.CanExecute = !SelectionIsEmpty;
 			}
 		}
-		public virtual int CurrentColumn {
+		public int CurrentColumn {
 			get => currentLoc.HasValue ? currentLoc.Value.Column < 0 ? 0 : currentLoc.Value.Column : 0;
 			set {
 				if (CurrentColumn == value)
@@ -475,13 +464,14 @@ namespace Crow
 
 			gr.Translate (ScrollX, ScrollY);
 		}
-		protected int getLineIndex (Point mouseLocalPos) =>
+		protected int getLineIndexFromMousePosition (Point mouseLocalPos) =>
 			(int)Math.Min (Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ lineHeight)), visualLineCount - 1);
 		protected int getVisualLineIndex (Point mouseLocalPos) =>
 			(int)Math.Min (Math.Max (0, Math.Floor (mouseLocalPos.Y / lineHeight)), visibleLines - 1);
+		protected virtual int visualCurrentLine => CurrentLoc.HasValue ? CurrentLoc.Value.Line : 0;
 
 		protected virtual void updateHoverLocation (Point mouseLocalPos) {
-			int hoverLine = getLineIndex (mouseLocalPos);
+			int hoverLine = getLineIndexFromMousePosition (mouseLocalPos);
 			NotifyValueChanged("MouseY", mouseLocalPos.Y + ScrollY);
 			NotifyValueChanged("ScrollY", ScrollY);
 			NotifyValueChanged("VisibleLines", visibleLines);
@@ -494,7 +484,6 @@ namespace Crow
 		}
 		protected virtual bool cancelLinePrint (double lineHeght, double y, int clientHeight) => false;
 		RectangleD? textCursor = null;
-		protected virtual int visualCurrentLine => CurrentLoc.HasValue ? CurrentLoc.Value.Line : 0;
 
 		public virtual bool DrawCursor (Context ctx, out Rectangle rect) {
 			if (CurrentLoc == null) {
@@ -659,11 +648,6 @@ namespace Crow
 
 			(IFace as CrowEditBase.CrowEditBase).CurrentEditor = this;
 		}
-		/*protected override void onUnfocused (object sender, EventArgs e)
-		{
-			base.onUnfocused (sender, e);
-			RegisterForRedraw ();
-		}*/
 		public override void onMouseEnter (object sender, MouseMoveEventArgs e) {
 			base.onMouseEnter (sender, e);
 			if (!Focusable)

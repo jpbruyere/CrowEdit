@@ -17,6 +17,7 @@ namespace CrowEditBase
 		public override SyntaxRootNode Root => this;
 		public override bool IsFoldable => false;
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;
+		public override void UnfoldToTheTop() {}
 	}
 	public class SyntaxNode {
 		public SyntaxNode Parent { get; private set; }
@@ -25,7 +26,10 @@ namespace CrowEditBase
 		public virtual bool IsComplete => EndToken.HasValue;
 		public virtual bool IsFoldable => Parent.StartLine != StartLine && lineCount > 1;
 		public virtual SyntaxRootNode Root => Parent.Root;
-
+		public virtual void UnfoldToTheTop () {
+			isFolded = false;
+			Parent.UnfoldToTheTop ();
+		}
 
 		List<SyntaxNode> children = new List<SyntaxNode> ();
 		public IEnumerable<SyntaxNode> Children => children;
@@ -50,19 +54,6 @@ namespace CrowEditBase
 				return null;
 			}
 		}
-		/*public virtual int lineCount2 {
-			get {
-				SyntaxNode ns = NextSibling;
-				if (ns == null)
-					return Parent.StartLine + Parent.lineCount2 - StartLine;
-				return ns.StartLine - StartLine;
-			}
-		}*/
-		/*public virtual int FoldedLineCount {
-			get {
-
-			}
-		}*/
 		public virtual SyntaxNode NextSiblingOrParentsNextSibling
 			=> NextSibling ?? Parent.NextSiblingOrParentsNextSibling;
 		public IEnumerable<SyntaxNode> FoldableNodes {
