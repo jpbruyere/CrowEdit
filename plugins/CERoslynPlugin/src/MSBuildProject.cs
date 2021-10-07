@@ -154,6 +154,8 @@ namespace CERoslynPlugin
 
 				printEvaluatedProperties (result.ProjectStateAfterBuild);
 
+				var test = result.ProjectStateAfterBuild.GetItems ("Reference");
+
 			//}
 		}
 		public override string Icon {

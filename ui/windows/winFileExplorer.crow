@@ -3,9 +3,9 @@
 	<VerticalStack  Spacing="0">
 		<HorizontalStack Height="Fit" Spacing="0" Margin="2" >
 			<Image Margin="2" Width="16" Height="16" Path="#Crow.Icons.level-up.svg" MouseClick="goUpDirClick"
-						 Background="Jet" MouseEnter="{Background=Grey}" MouseLeave="{Background=Jet}" />			
+						 Background="Jet" MouseEnter="{Background=Grey}" MouseLeave="{Background=Jet}" />
 			<TextBox Text="{²CurrentDir}" Margin="1"/>
-		</HorizontalStack>		
+		</HorizontalStack>
 		<DirectoryView Margin="0" Name="dv" CurrentDirectory="{CurrentDir}" SelectedItemChanged="Dv_SelectedItemChanged" >
 			<Template>
 				<TreeView IsRoot="true" Name="treeView" Data="{./FileSystemEntries}" Background="{./Background}"
@@ -13,7 +13,7 @@
 					<ItemTemplate DataType="System.IO.FileInfo">
 						<ListItem CornerRadius="2" Margin="0" Height="Fit" Width="Stretched"
 								MouseDoubleClick="OpenWithCrowEdit"
-								ContextCommands="{GetCommands}" 
+								ContextCommands="{GetCommands}"
 								Selected="{Background=${ControlHighlight}}"
 								Unselected="{Background=Transparent}">
 							<HorizontalStack>
@@ -57,7 +57,7 @@
 					</ItemTemplate>
 				</TreeView>
 			</Template>
-		</DirectoryView>		
+		</DirectoryView>
 	</VerticalStack>
 </DockWindow>
 

@@ -31,13 +31,13 @@ namespace CrowEditBase
 			Type = type;
 			Start = start;
 			Length = length;
-		}		
+		}
 
 		public int CompareTo([AllowNull] Token other)
 			=> Start - other.Start;
 		public bool Equals([AllowNull] Token other)
 			=> Type == other.Type && Start == other.Start && Length == other.Length;
-		public override bool Equals(object obj) 
+		public override bool Equals(object obj)
 			=> obj is Token other ? Equals (other) : false;
 		public override int GetHashCode() => HashCode.Combine (Type, Start, Length);
 		public override string ToString() => $"{Type}:{Start},{Length};";

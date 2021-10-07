@@ -16,7 +16,7 @@ using Crow;
 
 
 namespace NetcoreDbgPlugin
-{	
+{
 	public class NetcoreDbgService : Service {
 		public NetcoreDbgService () : base () {
 		}

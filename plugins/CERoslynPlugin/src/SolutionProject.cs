@@ -111,6 +111,7 @@ namespace CERoslynPlugin
 
 			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (FullPath) + Path.DirectorySeparatorChar);
 			projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
+			projectCollection.SetGlobalProperty ("TargetFramework", "netcoreapp3.1");
 
 			//IDE.ProgressNotify (10);
 
@@ -168,6 +169,11 @@ namespace CERoslynPlugin
 			}
 
 			IsLoaded = true;
+		}
+
+		void build (params string[] targets) {
+			BuildRequestData buildRequest = new BuildRequestData (FullPath, null, "Current", targets, null);
+			BuildResult buildResult = BuildManager.DefaultBuildManager.Build (buildParams, buildRequest);
 		}
 	}
 }

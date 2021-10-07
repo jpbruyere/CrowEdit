@@ -26,11 +26,11 @@ namespace CERoslynPlugin
 				if (eventSource != null)
 					registerHandles ();
 			}
-		} 
+		}
 		public string Parameters { get; set; }
 
 		public ConsoleLogger (LoggerVerbosity verbosity = LoggerVerbosity.Normal)
-		{			
+		{
 			this.verbosity = verbosity;
 		}
 		public void Initialize (IEventSource eventSource) {
@@ -105,7 +105,7 @@ namespace CERoslynPlugin
 			Console.WriteLine (e.Message);
 		}
 
-		private void EventSource_TargetFinished (object sender, TargetFinishedEventArgs e) {			
+		private void EventSource_TargetFinished (object sender, TargetFinishedEventArgs e) {
 			Console.WriteLine (e.Message);
 		}
 
@@ -127,7 +127,7 @@ namespace CERoslynPlugin
 			if (e.Importance != MessageImportance.Low)
 				Console.WriteLine (e.Message);
 		}
-		private void EventSource_MessageRaised_All (object sender, BuildMessageEventArgs e) {			
+		private void EventSource_MessageRaised_All (object sender, BuildMessageEventArgs e) {
 			Console.WriteLine (e.Message);
 		}
 		void EventSource_ProjectStarted (object sender, ProjectStartedEventArgs e)

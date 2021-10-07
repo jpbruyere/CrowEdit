@@ -1,0 +1,16 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Netcore Debugger"  Width="Fit" Height="Fit" Resizable="false">
+	<Template>
+		<Border Name="Content" Name="MoveHandle" Margin="5"/>
+	</Template>
+		<HorizontalStack Fit="true">
+			<Button Style="IcoBut" Command="{CMDDebugStart}"/>
+			<Button Style="IcoBut" Command="{CMDDebugPause}"/>
+			<Button Style="IcoBut" Command="{CMDDebugStop}"/>
+			<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
+			<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
+			<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
+	</VerticalStack>
+</DockWindow>
+
+

@@ -16,8 +16,6 @@ namespace CECrowPlugin {
 		}
 
 		States curState;
-		int startOfTok;
-
 
 		public StyleTokenizer  () {}
 
@@ -42,48 +40,11 @@ namespace CECrowPlugin {
 			}
 			return false;
 		}
-		protected List<Token> Toks;
 
-		void skipWhiteSpaces (ref SpanCharReader reader) {
-			while(!reader.EndOfSpan) {
-				switch (reader.Peak) {
-					case '\x85':
-					case '\x2028':
-					case '\xA':
-						reader.Read();
-						addTok (ref reader, StyleTokenType.LineBreak);
-						break;
-					case '\xD':
-						reader.Read();
-						if (reader.IsNextCharIn ('\xA', '\x85'))
-							reader.Read();
-						addTok (ref reader, StyleTokenType.LineBreak);
-						break;
-					case '\x20':
-					case '\x9':
-						char c = reader.Read();
-						while (reader.TryPeak (c))
-							reader.Read();
-						addTok (ref reader, c == '\x20' ? StyleTokenType.WhiteSpace : StyleTokenType.Tabulation);
-						break;
-					default:
-						return;
-				}
-			}
-		}
-		void addTok (ref SpanCharReader reader, Enum tokType) {
-			if (reader.CurrentPosition == startOfTok)
-				return;
-			Toks.Add (new Token((TokenType)tokType, startOfTok, reader.CurrentPosition));
-			startOfTok = reader.CurrentPosition;
-		}
 		public override Token[] Tokenize (string source) {
-			SpanCharReader reader = new SpanCharReader(source);
+			SpanCharReader reader = initParsing (source);
 
-			startOfTok = 0;
-			int curObjectLevel = 0;
 			curState = States.classNames;
-			Toks = new List<Token>(100);
 
 			while(!reader.EndOfSpan) {
 

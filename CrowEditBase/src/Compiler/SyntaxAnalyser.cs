@@ -22,5 +22,19 @@ namespace CrowEditBase
 			this.source = source;
 		}
 		public abstract void Process ();
+		protected SyntaxNode currentNode;
+
+		/// <summary>
+		/// set current node endToken and line count and set current to current.parent.
+		/// </summary>
+		/// <param name="endToken">The final token of this node</param>
+		/// <param name="endLine">the endline number of this node</param>
+		protected void storeCurrentNode (Token endToken, int endLine) {
+			currentNode.EndToken = endToken;
+			currentNode.EndLine = endLine;
+			currentNode = currentNode.Parent;
+		}
+		protected void setCurrentNodeEndLine (int endLine)
+			=> currentNode.EndLine = endLine;
 	}
 }

@@ -129,7 +129,8 @@ namespace CrowEdit
 				new ActionCommand("Projects", () => LoadWindow ("#CrowEdit.ui.windows.winProjects.crow", this)),
 				new ActionCommand("Logs", () => LoadWindow ("#CrowEdit.ui.windows.winLogs.crow", this), "#icons.log.svg"),
 				new ActionCommand("Services", () => LoadWindow ("#CrowEdit.ui.windows.winServices.crow", this), "#icons.services.svg"),
-				new ActionCommand("Plugins", () => LoadWindow ("#CrowEdit.ui.windows.winPlugins.crow", this), "#icons.plugins.svg")
+				new ActionCommand("Plugins", () => LoadWindow ("#CrowEdit.ui.windows.winPlugins.crow", this), "#icons.plugins.svg"),
+				new ActionCommand("Syntax Tree", () => LoadWindow ("#CrowEdit.ui.windows.winSyntaxExplorer.crow", this), "#icons.plugins.svg")
 			);
 			CMDHelp = new ActionCommand("Help", () => System.Diagnostics.Debug.WriteLine("help"), "#icons.question.svg");
 

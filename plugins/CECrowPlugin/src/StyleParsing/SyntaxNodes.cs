@@ -10,12 +10,9 @@ using CrowEditBase;
 namespace CECrowPlugin
 {
 
-	public class StyleRootSyntax : SyntaxNode {
-		internal readonly StyleDocument source;
-		public override SyntaxNode Root => this;
+	public class StyleRootSyntax : SyntaxRootNode {
 		public StyleRootSyntax (StyleDocument source)
-			: base (source.Tokens.FirstOrDefault (), source.Tokens.LastOrDefault ()) {
-			this.source = source;
+			: base (source) {
 		}
 	}
 
@@ -25,7 +22,8 @@ namespace CECrowPlugin
 		public Token? ValueOpenToken { get; internal set; }
 		public Token? ValueCloseToken { get; internal set; }
 		public Token? ValueToken { get; internal set; }
-		public AttributeSyntax (Token startTok) : base  (startTok) {}
-		public override bool IsComplete => base.IsComplete & NameToken.HasValue & EqualToken.HasValue & ValueToken.HasValue & ValueOpenToken.HasValue & ValueCloseToken.HasValue;
+		public AttributeSyntax (int startLine, Token startTok) : base  (startLine, startTok) {}
+		public override bool IsComplete => base.IsComplete & NameToken.HasValue & EqualToken.HasValue &
+			ValueToken.HasValue & ValueOpenToken.HasValue & ValueCloseToken.HasValue;
 	}
 }

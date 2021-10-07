@@ -39,13 +39,13 @@ namespace NetcoreDbgPlugin
 			{
 				if (base.Project == value || !(value is MSBuildProject msbProj))
 					return;
-				base.Project = value;				
+				base.Project = value;
 			}
 		}
 		void initDebugSession () {
 			if (CurrentState != Status.Init || msbProject == null)
 				return;
-			
+
 			bool result = procdbg.Start();
 
 			procdbg.BeginOutputReadLine();
@@ -141,7 +141,7 @@ namespace NetcoreDbgPlugin
 		}
 		public override void Stop()
 		{
-			CreateNewRequest($"-exec-abort");			
+			CreateNewRequest($"-exec-abort");
 		}
 
 		public override void StepIn()
@@ -202,10 +202,10 @@ namespace NetcoreDbgPlugin
 		private void Procdbg_Exited(object sender, EventArgs e)
 		{
 			DebuggerLog.Add("GDB process Terminated.");
-			
+
 			CurrentState = Status.Init;
 		}
-		
+
 		void getStackFrames(ThreadInfo thread = null)
 		{
 			if (thread == null)
@@ -219,7 +219,7 @@ namespace NetcoreDbgPlugin
 		}
 		void updateWatches () {
 			foreach (Watch w in Watches)
-				w.UpdateValue ();			
+				w.UpdateValue ();
 		}
 
 		void tryGoTo(StackFrame frame)
@@ -255,7 +255,7 @@ namespace NetcoreDbgPlugin
 
 		void Procdbg_ErrorDataReceived(object sender, System.Diagnostics.DataReceivedEventArgs e) {
 			DebuggerLog.Add($"-> Error: {e.Data}");
-		}		
+		}
 
 		void Procdbg_OutputDataReceived(object sender, System.Diagnostics.DataReceivedEventArgs e) {
 			if (string.IsNullOrEmpty(e.Data))
@@ -328,7 +328,7 @@ namespace NetcoreDbgPlugin
 						} else if (request is Request<BreakPoint> bpReq) {
 							BreakPoint bp = bpReq.RequestObject;
 							bp.Update (obj["bkpt"] as MITupple);
-							
+
 						} else
 							DebuggerLog.Add($"=> request result not handled: {request}");
 					}
@@ -362,7 +362,7 @@ namespace NetcoreDbgPlugin
 						DebuggerLog.Add($"Stopped reason:{reason}");
 
 						StackFrame frame = new StackFrame(obj["frame"] as MITupple);
-						if (reason == "breakpoint-hit") {							
+						if (reason == "breakpoint-hit") {
 							BreakPoint bp = (BreakPoint)BreakPoints.FirstOrDefault (bk=>bk.Index == int.Parse (obj.GetAttributeValue ("bkptno")));
 							bp.UpdateLocation (frame);
 						}
@@ -404,9 +404,9 @@ namespace NetcoreDbgPlugin
 			CreateNewRequest (new Request<Watch> (w, $"-var-create {w.Name} {w.Expression} {strThread} {strLevel}"));
 		}
 		public void WatchChildrenRequest(Watch w)
-		{			
+		{
 			string strThread = CurrentThread == null ? "" : $"--thread {CurrentThread.Id}";
-			string strLevel = CurrentFrame == null ? "" : $"--frame {CurrentFrame.Level}";			
+			string strLevel = CurrentFrame == null ? "" : $"--frame {CurrentFrame.Level}";
 			CreateNewRequest (new Request<Watch> (w, $"-var-list-children 1 {w.Name} {strThread} {strLevel}"));
 		}
 

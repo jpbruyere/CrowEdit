@@ -13,7 +13,7 @@
 				CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />
 		<HorizontalStack Height="Fit" Spacing='3'>
 			<Widget Width="Stretched"/>
-			<!--<Label Text="MouseY:" Foreground="Grey"/>
+			<Label Text="MouseY:" Foreground="Grey"/>
 			<Label Text="{../../tb.MouseY}" Margin="3"/>
 			<Label Text="VisibleLines:" Foreground="Grey"/>
 			<Label Text="{../../tb.VisibleLines}" Margin="3"/>
@@ -24,7 +24,7 @@
 			<Label Text="ScrollLine:" Foreground="Grey"/>
 			<Label Text="{../../tb.ScrollLine}" Margin="3"/>
 			<Label Text="HoverLine:" Foreground="Grey"/>
-			<Label Text="{../../tb.HoverLine}" Margin="3"/>-->
+			<Label Text="{../../tb.HoverLine}" Margin="3"/>
 			<Label Text="Line:" Foreground="Grey"/>
 			<Label Text="{../../tb.CurrentLine}" Margin="3"/>
 			<Label Text="Col:" Foreground="Grey"/>

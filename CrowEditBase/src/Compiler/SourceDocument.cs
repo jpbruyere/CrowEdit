@@ -16,10 +16,13 @@ namespace CrowEditBase
 		}
 		protected Token[] tokens;
 		protected SyntaxNode RootNode;
+		protected LineCollection lines;
 		protected Token currentToken;
 		protected SyntaxNode currentNode;
 
 		public Token[] Tokens => tokens;
+		public SyntaxNode SyntaxRootNode => RootNode;
+		public LineCollection Lines => lines;
 		public Token FindTokenIncludingPosition (int pos) {
 			if (pos == 0 || tokens == null || tokens.Length == 0)
 				return default;
@@ -27,12 +30,27 @@ namespace CrowEditBase
 
 			return idx == 0 ? tokens[0] : idx < 0 ? tokens[~idx - 1] : tokens[idx - 1];
 		}
-		public SyntaxNode FindNodeIncludingPosition (int pos) {
+		public int FindTokenIndexIncludingPosition (int pos) {
+			if (pos == 0 || tokens == null || tokens.Length == 0)
+				return default;
+			int idx = Array.BinarySearch (tokens, 0, tokens.Length, new  Token () {Start = pos});
+
+			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx - 1;
+		}
+		/// <summary>
+		/// if outermost is true, return oldest ancestor exept root node, useful for folding.
+		/// </summary>
+		public SyntaxNode FindNodeIncludingPosition (int pos, bool outerMost = false) {
 			if (RootNode == null)
 				return null;
 			if (!RootNode.Contains (pos))
 				return null;
-			return RootNode.FindNodeIncludingPosition (pos);
+			SyntaxNode sn = RootNode.FindNodeIncludingPosition (pos);
+			if (outerMost) {
+				while (sn.Parent != RootNode && sn.StartToken.Start == sn.Parent.StartToken.Start)
+					sn = sn.Parent;
+			}
+			return sn;
 		}
 		public T FindNodeIncludingPosition<T> (int pos) {
 			if (RootNode == null)
@@ -77,14 +95,14 @@ namespace CrowEditBase
 			tokens = tokenizer.Tokenize (Source);
 
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
-			Stopwatch sw = Stopwatch.StartNew ();
+			//Stopwatch sw = Stopwatch.StartNew ();
 			syntaxAnalyser.Process ();
-			sw.Stop();
+			//sw.Stop();
 			RootNode = syntaxAnalyser.Root;
 
-			Console.WriteLine ($"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
+			/*Console.WriteLine ($"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
 			foreach (SyntaxException ex in syntaxAnalyser.Exceptions)
-				Console.WriteLine ($"{ex}");
+				Console.WriteLine ($"{ex}");*/
 
 				/*foreach (Token t in Tokens)
 					Console.WriteLine ($"{t,-40} {Source.AsSpan(t.Start, t.Length).ToString()}");

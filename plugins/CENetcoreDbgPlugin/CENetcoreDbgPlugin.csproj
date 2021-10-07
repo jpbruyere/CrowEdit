@@ -4,14 +4,14 @@
 		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
-	
+
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
 		<EmbeddedResource Include="ui\**\*.*" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="../CERoslynPlugin\CERoslynPlugin.csproj" />		
+		<ProjectReference Include="../CERoslynPlugin\CERoslynPlugin.csproj" />
 	</ItemGroup>
 
-	
+
 </Project>

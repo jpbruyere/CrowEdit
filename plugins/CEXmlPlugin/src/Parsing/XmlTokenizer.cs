@@ -24,8 +24,6 @@ namespace CrowEdit.Xml
 		}
 
 		States curState;
-		int startOfTok;
-
 
 		public XmlTokenizer  () {}
 		bool readName (ref SpanCharReader reader) {
@@ -43,48 +41,12 @@ namespace CrowEdit.Xml
 			}
 			return false;
 		}
-		protected List<Token> Toks;
 
-		void skipWhiteSpaces (ref SpanCharReader reader) {
-			while(!reader.EndOfSpan) {
-				switch (reader.Peak) {
-					case '\x85':
-					case '\x2028':
-					case '\xA':
-						reader.Read();
-						addTok (ref reader, XmlTokenType.LineBreak);
-						break;
-					case '\xD':
-						reader.Read();
-						if (reader.IsNextCharIn ('\xA', '\x85'))
-							reader.Read();
-						addTok (ref reader, XmlTokenType.LineBreak);
-						break;
-					case '\x20':
-					case '\x9':
-						char c = reader.Read();
-						while (reader.TryPeak (c))
-							reader.Read();
-						addTok (ref reader, c == '\x20' ? XmlTokenType.WhiteSpace : XmlTokenType.Tabulation);
-						break;
-					default:
-						return;
-				}
-			}
-		}
-		void addTok (ref SpanCharReader reader, Enum tokType) {
-			if (reader.CurrentPosition == startOfTok)
-				return;
-			Toks.Add (new Token((TokenType)tokType, startOfTok, reader.CurrentPosition));
-			startOfTok = reader.CurrentPosition;
-		}
 		public override Token[] Tokenize (string source) {
-			SpanCharReader reader = new SpanCharReader(source);
+			SpanCharReader reader = initParsing (source);
 
-			startOfTok = 0;
 			int curObjectLevel = 0;
 			curState = States.Init;
-			Toks = new List<Token>(100);
 
 			while(!reader.EndOfSpan) {
 
@@ -107,13 +69,19 @@ namespace CrowEdit.Xml
 						if (reader.TryPeak ("--")) {
 							reader.Advance (2);
 							addTok (ref reader, XmlTokenType.BlockCommentStart);
-							if (reader.TryReadUntil ("-->")) {
-								addTok (ref reader, XmlTokenType.BlockComment);
-								reader.Advance (3);
-								addTok (ref reader, XmlTokenType.BlockCommentEnd);
-							} else if (reader.TryPeak ("-->")) {
-								reader.Advance (3);
-								addTok (ref reader, XmlTokenType.BlockCommentEnd);
+							while (!reader.EndOfSpan) {
+								if (reader.Eol()) {
+									addTok (ref reader, XmlTokenType.BlockComment);
+									reader.ReadEol();
+									addTok (ref reader, XmlTokenType.LineBreak);
+									continue;
+								}
+								if (reader.TryPeak ("-->")) {
+									addTok (ref reader, XmlTokenType.BlockComment);
+									reader.Advance (3);
+									addTok (ref reader, XmlTokenType.BlockCommentEnd);
+								} else
+									reader.Read ();
 							}
 						} else {
 							addTok (ref reader, XmlTokenType.DTDObjectOpen);
