@@ -23,15 +23,16 @@ namespace CrowEditBase
 		}
 		public abstract void Process ();
 		protected SyntaxNode currentNode;
+		protected int currentLine, tokIdx;
 
 		/// <summary>
 		/// set current node endToken and line count and set current to current.parent.
 		/// </summary>
 		/// <param name="endToken">The final token of this node</param>
 		/// <param name="endLine">the endline number of this node</param>
-		protected void storeCurrentNode (Token endToken, int endLine) {
-			currentNode.EndToken = endToken;
-			currentNode.EndLine = endLine;
+		protected void storeCurrentNode (int endTokenOffsetFromCurrentTokIdx = 0) {
+			currentNode.LastTokenOffset = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
+			currentNode.EndLine = currentLine;
 			currentNode = currentNode.Parent;
 		}
 		protected void setCurrentNodeEndLine (int endLine)

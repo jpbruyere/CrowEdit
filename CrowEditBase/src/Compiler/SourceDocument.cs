@@ -47,7 +47,7 @@ namespace CrowEditBase
 				return null;
 			SyntaxNode sn = RootNode.FindNodeIncludingPosition (pos);
 			if (outerMost) {
-				while (sn.Parent != RootNode && sn.StartToken.Start == sn.Parent.StartToken.Start)
+				while (sn.Parent != RootNode && sn.Span.Start == sn.Parent.Span.Start)
 					sn = sn.Parent;
 			}
 			return sn;

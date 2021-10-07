@@ -14,38 +14,34 @@ namespace CrowEdit.Xml
 		}
 	}
 	public class ProcessingInstructionSyntax : SyntaxNode {
-		public Token PIStartToken => StartToken;
-		public Token? PIEndToken => EndToken.HasValue && EndToken.Value.GetTokenType() == XmlTokenType.PI_End ? EndToken : null;
-		public Token? NameToken { get; internal set; }
-		public override bool IsComplete => base.IsComplete & NameToken.HasValue;
-		public ProcessingInstructionSyntax (int startLine, Token startTok)
-			: base (startLine, startTok) {
+		internal int? PIOpen, PIClose, name;
+		public override bool IsComplete => base.IsComplete & name.HasValue & PIOpen.HasValue & PIClose.HasValue;
+		public ProcessingInstructionSyntax (int startLine, int tokenBase)
+			: base (startLine, tokenBase) {
 		}
 	}
 
 	public abstract class ElementTagSyntax : SyntaxNode {
-		public Token OpenToken => StartToken;
-		public Token? NameToken { get; internal set; }
-		public Token? CloseToken => EndToken.HasValue && EndToken.Value.GetTokenType() == XmlTokenType.ClosingSign ? EndToken : null;
-		public override bool IsComplete => base.IsComplete & NameToken.HasValue & CloseToken.HasValue;
-		protected ElementTagSyntax (int startLine, Token startTok)
-			: base (startLine, startTok) {
+		internal int? name, close;
+		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
+		protected ElementTagSyntax (int startLine, int tokenBase)
+			: base (startLine, tokenBase) {
 		}
 	}
 	public class ElementStartTagSyntax : ElementTagSyntax {
-		public ElementStartTagSyntax (int startLine, Token startTok)
-			: base (startLine, startTok) {
+		public ElementStartTagSyntax (int startLine, int tokenBase)
+			: base (startLine, tokenBase) {
 		}
 	}
 	public class ElementEndTagSyntax : ElementTagSyntax {
-		public ElementEndTagSyntax (int startLine, Token startTok)
-			: base (startLine, startTok) {
+		public ElementEndTagSyntax (int startLine, int tokenBase)
+			: base (startLine, tokenBase) {
 		}
 	}
 
 	public class EmptyElementSyntax : SyntaxNode {
 		public readonly ElementStartTagSyntax StartTag;
-		public EmptyElementSyntax (ElementStartTagSyntax startNode) : base (startNode.StartLine, startNode.StartToken, startNode.EndToken) {
+		public EmptyElementSyntax (ElementStartTagSyntax startNode) : base (startNode.StartLine, startNode.TokenIndexBase, startNode.LastTokenOffset) {
 			StartTag = startNode;
 			AddChild (StartTag);
 		}
@@ -58,19 +54,21 @@ namespace CrowEdit.Xml
 		public override bool IsComplete => base.IsComplete & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
 
 		public ElementSyntax (ElementStartTagSyntax startTag)
-			: base (startTag.StartLine, startTag.StartToken) {
+			: base (startTag.StartLine, startTag.TokenIndexBase) {
 			StartTag = startTag;
 			AddChild (StartTag);
 		}
 	}
 
 	public class AttributeSyntax : SyntaxNode {
-		public Token? NameToken { get; internal set; }
-		public Token? EqualToken { get; internal set; }
-		public Token? ValueOpenToken { get; internal set; }
-		public Token? ValueCloseToken { get; internal set; }
-		public Token? ValueToken { get; internal set; }
-		public AttributeSyntax (int startLine, Token startTok) : base  (startLine, startTok) {}
-		public override bool IsComplete => base.IsComplete & NameToken.HasValue & EqualToken.HasValue & ValueToken.HasValue & ValueOpenToken.HasValue & ValueCloseToken.HasValue;
+		internal int? name, equal, valueOpen, valueClose, valueTok;
+		/*public Token? NameToken => name.HasValue ? getTokenByIndex (TokenIndexBase + name.Value) : default;
+		public int? EqualToken { get; internal set; }
+		public int? ValueOpenToken { get; internal set; }
+		public int? ValueCloseToken { get; internal set; }
+		public int? ValueToken { get; internal set; }*/
+		public AttributeSyntax (int startLine, int tokenBase)
+			: base (startLine, tokenBase) {}
+		public override bool IsComplete => base.IsComplete & name.HasValue & equal.HasValue & valueTok.HasValue & valueOpen.HasValue & valueClose.HasValue;
 	}
 }

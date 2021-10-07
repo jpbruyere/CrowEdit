@@ -37,8 +37,8 @@ namespace CECrowPlugin
 				notEndOfSource = iter.MoveNext ();
 			}
 			while (currentNode.Parent != null) {
-				if (!currentNode.EndToken.HasValue)
-					storeCurrentNode (previousTok, currentLine);
+				if (!currentNode.LastTokenOffset.HasValue)
+					storeCurrentNode (-1);
 				else
 					currentNode = currentNode.Parent;
 			}

@@ -9,11 +9,12 @@ using Crow.Text;
 namespace CrowEditBase
 {
 	public abstract class SyntaxRootNode : SyntaxNode {
-		protected readonly SourceDocument source;
-		public SyntaxRootNode (SourceDocument source)
-			: base (0, source.Tokens.FirstOrDefault (), source.Tokens.LastOrDefault ()) {
+		internal readonly SourceDocument source;
+		public SyntaxRootNode (SourceDocument source) {
 			this.source = source;
 		}
+		public override int TokenIndexBase => 0;
+		public override int? LastTokenOffset { get => source.Tokens.Length - 1; set {} }
 		public override SyntaxRootNode Root => this;
 		public override bool IsFoldable => false;
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;
@@ -23,14 +24,14 @@ namespace CrowEditBase
 		public SyntaxNode Parent { get; private set; }
 		public int StartLine { get; private set; }
 		public virtual int LineCount => lineCount;
-		public virtual bool IsComplete => EndToken.HasValue;
+		public virtual bool IsComplete => LastTokenOffset.HasValue;
 		public virtual bool IsFoldable => Parent.StartLine != StartLine && lineCount > 1;
 		public virtual SyntaxRootNode Root => Parent.Root;
 		public virtual void UnfoldToTheTop () {
 			isFolded = false;
 			Parent.UnfoldToTheTop ();
 		}
-
+		protected Token getTokenByIndex (int idx) => Root.source.Tokens[idx];
 		List<SyntaxNode> children = new List<SyntaxNode> ();
 		public IEnumerable<SyntaxNode> Children => children;
 		public bool HasChilds => children.Count > 0;
@@ -79,12 +80,14 @@ namespace CrowEditBase
 			}
 		}
 
-		public readonly Token StartToken;
-		public Token? EndToken { get; set; }
-		public SyntaxNode (int startLine, Token tokStart, Token? tokEnd = null) {
+		public virtual int TokenIndexBase { get; private set; }
+		public virtual int? LastTokenOffset { get; set; }
+		internal SyntaxNode () {}
+		public SyntaxNode (int startLine, int tokenBase, int? lastTokenIdx = null) {
 			StartLine = startLine;
-			StartToken = tokStart;
-			EndToken = tokEnd;
+			TokenIndexBase = tokenBase;
+			if (lastTokenIdx.HasValue)
+				LastTokenOffset = lastTokenIdx - tokenBase;
 		}
 		internal bool isFolded;
 		internal int lineCount;
@@ -99,7 +102,8 @@ namespace CrowEditBase
 				/*if (HasChilds) {
 					return new TextSpan (children.First().Span.Start, children.Last().Span.End)
 				}*/
-				return new TextSpan (StartToken.Start, EndToken.HasValue ? EndToken.Value.End : StartToken.End);
+				Token startTok = getTokenByIndex(TokenIndexBase);
+				return new TextSpan (startTok.Start, LastTokenOffset.HasValue ? getTokenByIndex (TokenIndexBase+LastTokenOffset.Value).End : startTok.End);
 
 			}
 		}
@@ -128,14 +132,12 @@ namespace CrowEditBase
 
 			return this is T tt ? tt : default;
 		}
-		public bool Contains (int pos) =>
-			EndToken.HasValue ?
-				StartToken.Start <= pos && EndToken.Value.End >= pos : false;
+		public bool Contains (int pos) => Span.Contains (pos);
 		public void Dump (int level = 0) {
 			Console.WriteLine ($"{new string('\t', level)}{this}");
 			foreach (SyntaxNode node in children)
 				node.Dump (level + 1);
 		}
-		public override string ToString() => $"{this.GetType().Name}: lines:({StartLine},{LineCount}) tokens:{StartToken} -> {EndToken}";
+		public override string ToString() => $"{this.GetType().Name}: lines:({StartLine},{LineCount}) tokens:{TokenIndexBase} -> {LastTokenOffset}";
 	}
 }

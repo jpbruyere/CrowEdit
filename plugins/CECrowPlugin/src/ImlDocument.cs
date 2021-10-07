@@ -50,7 +50,7 @@ namespace CECrowPlugin
 			Console.WriteLine ($"Current Token: {currentToken} Current Node: {currentNode}");
 #endif
 
-			if (currentToken.GetTokenType() == XmlTokenType.ElementOpen)
+			/*if (currentToken.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);
 			if (currentToken.GetTokenType() == XmlTokenType.ElementName)
 				return allWidgetNames.Where (s => s.StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
@@ -110,14 +110,7 @@ namespace CECrowPlugin
 				//else if (currentToken.Type == TokenType.ElementName)
 				//	Suggestions = getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source)).ToList ();
 			} else {
-				/*SyntaxNode curNode = source.FindNodeIncludingPosition (pos);
-				Console.WriteLine ($"Current Node: {curNode}");
-				if (curNode is ElementStartTagSyntax eltStartTag &&
-					(currentToken.Type != TokenType.ClosingSign && currentToken.Type != TokenType.EmptyElementClosing && currentToken.Type != TokenType.Unknown)) {
-					Suggestions = getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source)).ToList ();
-				} else*/
-
-			}
+			}*/
 			return null;
 		}
 		public override TextChange? GetCompletionForCurrentToken (object suggestion, out TextSpan? newSelection) {
