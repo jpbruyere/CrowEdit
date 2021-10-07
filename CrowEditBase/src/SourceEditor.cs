@@ -161,8 +161,7 @@ namespace Crow
 				}
 
 				e.Handled = true;
-			} else if (!e.Handled && HasFocus && e.Button == MouseButton.Left)
-				visualLine = hoverVisualLine;
+			}
 
 			base.onMouseDown (sender, e);
 		}
@@ -189,9 +188,8 @@ namespace Crow
 			updateHoverLocation (mLoc);
 
 			if (mouseIsInMargin) {
-				double lineHeight = fe.Ascent + fe.Descent;
 				Rectangle rFold = new Rectangle (leftMargin - foldMargin - leftMarginRightGap,
-					(int)(lineHeight * hoverVisualLine + lineHeight / 2.0 - foldSize / 2.0) - ScrollY, foldSize, foldSize);
+					(int)(lineHeight * getVisualLine(hoverLoc.Value.Line) + lineHeight / 2.0 - foldSize / 2.0) - ScrollY, foldSize, foldSize);
 				mouseIsInFoldRect = rFold.ContainsOrIsEqual (mLoc);
 				RegisterForRedraw();
 				return;
@@ -205,9 +203,9 @@ namespace Crow
 				RegisterForRedraw ();
 			}
 		}
-		int hoverVisualLine, visualLine;
+		//int hoverVisualLine, visualLine;
 		protected override void updateHoverLocation (Point mouseLocalPos) {
-			hoverVisualLine = getLineIndex (mouseLocalPos);
+			int hoverVisualLine = getLineIndex (mouseLocalPos);
 			int hoverLine = hoverVisualLine + countFoldedLinesUntil (hoverVisualLine);
 			NotifyValueChanged("MouseY", mouseLocalPos.Y + ScrollY);
 			NotifyValueChanged("ScrollY", ScrollY);
@@ -225,6 +223,56 @@ namespace Crow
 				setFontForContext (gr);
 				updateLocation (gr, ClientRectangle.Width, ref hoverLoc);
 			}
+		}
+		int getVisualLine (int absoluteLine) {
+			if (!(Document is SourceDocument doc))
+				return absoluteLine;
+			int foldedLines = 0;
+			IEnumerator<SyntaxNode> foldsEnum = doc.SyntaxRootNode.FoldableNodes.GetEnumerator();
+			bool notEndOfFolds = foldsEnum.MoveNext();
+			while (notEndOfFolds && foldsEnum.Current.StartLine < absoluteLine) {
+				if (foldsEnum.Current.isFolded) {
+					foldedLines += foldsEnum.Current.LineCount - 1;
+					SyntaxNode nextNode = foldsEnum.Current.NextSiblingOrParentsNextSibling;
+					if (nextNode == null)
+						break;
+					notEndOfFolds = foldsEnum.MoveNext();
+					while (notEndOfFolds && foldsEnum.Current.StartLine < nextNode.StartLine)
+						notEndOfFolds = foldsEnum.MoveNext();
+				} else
+					notEndOfFolds = foldsEnum.MoveNext();
+			}
+			return absoluteLine - foldedLines;
+		}
+		int countFoldedLinesUntil (int visualLine) {
+			if (!(Document is SourceDocument doc))
+				return 0;
+			int foldedLines = 0;
+			IEnumerator<SyntaxNode> nodeEnum = doc.SyntaxRootNode.FoldableNodes.GetEnumerator ();
+			if (!nodeEnum.MoveNext())
+				return 0;
+
+			int l = 0;
+			while (l < visualLine + foldedLines) {
+				if (nodeEnum.Current.StartLine == l) {
+					if (nodeEnum.Current.isFolded) {
+						foldedLines += nodeEnum.Current.lineCount - 1;
+						SyntaxNode nextNode = nodeEnum.Current.NextSiblingOrParentsNextSibling;
+						if (nextNode == null || !nodeEnum.MoveNext())
+							return foldedLines;
+
+						while (nodeEnum.Current.StartLine < nextNode.StartLine) {
+							if (!nodeEnum.MoveNext())
+								return foldedLines;
+						}
+
+					} else if (!nodeEnum.MoveNext())
+						return foldedLines;
+				}
+				l ++;
+			}
+			//Console.WriteLine ($"visualLine: {visualLine} foldedLines: {foldedLines}");
+			return foldedLines;
 		}
 
 		public override void onKeyDown(object sender, KeyEventArgs e)
@@ -297,17 +345,27 @@ namespace Crow
 			base.onKeyDown(sender, e);
 		}
 
+		protected override int getAbsoluteLineIndexFromVisualLineMove (int startLine, int visualLineDiff) {
+			int newVl = Math.Min (Math.Max (0, getVisualLine (startLine) + visualLineDiff), visualLineCount - 1);
+			return newVl + countFoldedLinesUntil (newVl);
+		}
+		/*public override bool LineMove (int lineDiff) {
+			CharLocation loc = CurrentLoc.Value;
+			int newLine = getAbsoluteLineIndexFromVisualLineMove (loc.Line, lineDiff);
+			if (newLine == loc.Line)
+				return false;
+			return base.LineMove (newLine - loc.Line);
+		}*/
 
-
-		protected override int lineCount
+		protected override int visualLineCount
 		{
 			get {
 				if (!(Document is SourceDocument doc))
-					return base.lineCount;
+					return base.visualLineCount;
 				return lines.Count - countFoldedLinesUntil (lines.Count);
 			}
 		}
-		protected override int visualCurrentLine => visualLine;
+		protected override int visualCurrentLine => CurrentLoc.HasValue ? getVisualLine (CurrentLoc.Value.Line) : 0;
 		protected override void updateMaxScrolls (LayoutingType layout) {
 			updateMargin();
 			Rectangle cb = ClientRectangle;
@@ -325,36 +383,6 @@ namespace Crow
 			}
 		}
 
-		int countFoldedLinesUntil (int visualLine) {
-			if (!(Document is SourceDocument doc))
-				return 0;
-			int foldedLines = 0;
-			IEnumerator<SyntaxNode> nodeEnum = doc.SyntaxRootNode.FoldableNodes.GetEnumerator ();
-			if (!nodeEnum.MoveNext())
-				return 0;
-
-			int l = 0;
-			while (l < visualLine + foldedLines) {
-				if (nodeEnum.Current.StartLine == l) {
-					if (nodeEnum.Current.isFolded) {
-						foldedLines += nodeEnum.Current.lineCount - 1;
-						SyntaxNode nextNode = nodeEnum.Current.NextSiblingOrParentsNextSibling;
-						if (nextNode == null || !nodeEnum.MoveNext())
-							return foldedLines;
-
-						while (nodeEnum.Current.StartLine < nextNode.StartLine) {
-							if (!nodeEnum.MoveNext())
-								return foldedLines;
-						}
-
-					} else if (!nodeEnum.MoveNext())
-						return foldedLines;
-				}
-				l ++;
-			}
-			//Console.WriteLine ($"visualLine: {visualLine} foldedLines: {foldedLines}");
-			return foldedLines;
-		}
 
 		protected override void drawContent (Context gr) {
 			if (!(Document is SourceDocument doc)) {

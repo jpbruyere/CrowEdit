@@ -180,7 +180,10 @@ namespace Crow
 			}
 		}
 
+		protected double lineHeight => fe.Ascent + fe.Descent;
 
+		protected virtual int getAbsoluteLineIndexFromVisualLineMove (int startLine, int visualLineDiff)
+			=> Math.Min (Math.Max (0, startLine + visualLineDiff), visualLineCount - 1);
 		/// <summary>
 		/// Moves cursor one char to the left.
 		/// </summary>
@@ -191,7 +194,8 @@ namespace Crow
 			if (loc.Column == 0) {
 				if (loc.Line == 0)
 					return false;
-				CurrentLoc = new CharLocation (loc.Line - 1, lines[loc.Line - 1].Length);
+				int newLine = getAbsoluteLineIndexFromVisualLineMove (loc.Line, -1);
+				CurrentLoc = new CharLocation (newLine, lines[newLine].Length);
 			}else
 				CurrentLoc = new CharLocation (loc.Line, loc.Column - 1);
 			return true;
@@ -202,14 +206,15 @@ namespace Crow
 			if (loc.Column == lines[loc.Line].Length) {
 				if (loc.Line == lines.Count - 1)
 					return false;
-				CurrentLoc = new CharLocation (loc.Line + 1, 0);
+				CurrentLoc = new CharLocation (
+					getAbsoluteLineIndexFromVisualLineMove (loc.Line, 1), 0);
 			} else
 				CurrentLoc = new CharLocation (loc.Line, loc.Column + 1);
 			return true;
 		}
 		public bool LineMove (int lineDiff) {
 			CharLocation loc = CurrentLoc.Value;
-			int newLine = Math.Min (Math.Max (0, loc.Line + lineDiff), lines.Count - 1);
+			int newLine = getAbsoluteLineIndexFromVisualLineMove (loc.Line, lineDiff);
 
 			if (newLine == loc.Line)
 				return false;
@@ -227,7 +232,6 @@ namespace Crow
 
 			return true;
 		}
-		protected int visibleLines => (int)((double)ClientRectangle.Height / (fe.Ascent + fe.Descent));
 		public void GotoWordStart(){
 			int pos = lines.GetAbsolutePosition (CurrentLoc.Value);
 			//skip white spaces
@@ -246,7 +250,6 @@ namespace Crow
 				pos++;
 			CurrentLoc = lines.GetLocation (pos);
 		}
-
 		protected void detectLineBreak () {
 			mixedLineBreak = false;
 
@@ -264,7 +267,6 @@ namespace Crow
 				}
 			}
 		}
-
 		protected void getLines () {
 			if (lines == null)
 				lines = new LineCollection (10);
@@ -316,14 +318,20 @@ namespace Crow
 			}
 		}
 		public bool SelectionIsEmpty => selectionStart.HasValue ? Selection.IsEmpty : true;
-
-		protected virtual int lineCount => lines.Count;
+		/// <summary>
+		/// on screen visible line bounded by the client rectangle
+		/// </summary>
+		protected int visibleLines => (int)((double)ClientRectangle.Height / lineHeight);
+		/// <summary>
+		/// total line count
+		/// </summary>
+		protected virtual int visualLineCount => lines.Count;
 
 		protected virtual void measureTextBounds (Context gr) {
 			fe = gr.FontExtents;
 			te = new TextExtents ();
 
-			cachedTextSize.Height = (int)Math.Ceiling ((fe.Ascent + fe.Descent) * Math.Max (1, lineCount));
+			cachedTextSize.Height = (int)Math.Ceiling (lineHeight * Math.Max (1, visualLineCount));
 
 			TextExtents tmp = default;
 			int longestLine = 0;
@@ -468,9 +476,9 @@ namespace Crow
 			gr.Translate (ScrollX, ScrollY);
 		}
 		protected int getLineIndex (Point mouseLocalPos) =>
-			(int)Math.Min (Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ (fe.Ascent + fe.Descent))), lines.Count - 1);
+			(int)Math.Min (Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ lineHeight)), visualLineCount - 1);
 		protected int getVisualLineIndex (Point mouseLocalPos) =>
-			(int)Math.Min (Math.Max (0, Math.Floor (mouseLocalPos.Y / (fe.Ascent + fe.Descent))), visibleLines - 1);
+			(int)Math.Min (Math.Max (0, Math.Floor (mouseLocalPos.Y / lineHeight)), visibleLines - 1);
 
 		protected virtual void updateHoverLocation (Point mouseLocalPos) {
 			int hoverLine = getLineIndex (mouseLocalPos);
@@ -486,7 +494,7 @@ namespace Crow
 		}
 		protected virtual bool cancelLinePrint (double lineHeght, double y, int clientHeight) => false;
 		RectangleD? textCursor = null;
-		protected virtual int visualCurrentLine => CurrentLoc.Value.Line;
+		protected virtual int visualCurrentLine => CurrentLoc.HasValue ? CurrentLoc.Value.Line : 0;
 
 		public virtual bool DrawCursor (Context ctx, out Rectangle rect) {
 			if (CurrentLoc == null) {
@@ -505,8 +513,6 @@ namespace Crow
 				textCursor = null;
 			}
 
-
-			double lineHeight = fe.Ascent + fe.Descent;
 			textCursor = computeTextCursor (new RectangleD (CurrentLoc.Value.VisualCharXPosition, lineHeight * visualCurrentLine, 1.0, lineHeight));
 
 			if (textCursor == null) {
