@@ -31,7 +31,7 @@ namespace CERoslynPlugin
 
 			Load();
 
-			if (Flatten.OfType<MSBuildProject>().Any (msb => msb.IsCrowProject)) {
+			if (FlattenProjetcs.OfType<MSBuildProject>().Any (msb => msb.IsCrowProject)) {
 				Console.WriteLine ("Is crow project!!");
 			}
 		}
@@ -62,28 +62,34 @@ namespace CERoslynPlugin
 			}*/
 		}
 		public override bool ContainsFile (string fullPath) =>
-				FlattenSubProjetcs.Any (f => f.ContainsFile (fullPath));
+				FlattenProjetcs.Any (f => f.ContainsFile (fullPath));
 		public override string Name => Path.GetFileNameWithoutExtension (FullPath);
 		public override string Icon => "#icons.file_type_sln2.svg";
 		public Project StartupProject {
-			get => FlattenSubProjetcs.FirstOrDefault (p => p.FullPath == UserConfig.Get<string> ("StartupProject"));
+			get => FlattenProjetcs.FirstOrDefault (p => p.FullPath == UserConfig.Get<string> ("StartupProject"));
 			set {
 				if (value == StartupProject)
 					return;
 
-				StartupProject?.NotifyValueChanged ("IsStartupProject", false);
+				StartupProject?.NotifyValueChanged ("StatusIcon", (object)StartupProject?.StatusIcon);
 
 				if (value == null)
 					UserConfig.Set ("StartupProject", "");
 				else {
 					UserConfig.Set ("StartupProject", value.FullPath);
-					value.NotifyValueChanged("IsStartupProject", true);
+					value.NotifyValueChanged ("StatusIcon", (object)value.StatusIcon);
 				}
 				NotifyValueChanged ("StartupProject", StartupProject);
 			}
 		}
 
 		public override NodeType NodeType => NodeType.ProjectGroup;
+		public override IEnumerable<Project> FlattenProjetcs {
+			get {
+				foreach (var node in SubProjetcs.SelectMany (sp => sp.FlattenProjetcs))
+					yield return node;
+			}
+		}
 
 		public override void Load () {
 			Dictionary<string,string> globalProperties = new Dictionary<string, string>();
@@ -121,7 +127,8 @@ namespace CERoslynPlugin
 				LogInitialPropertiesAndItems = true,
 				LogTaskInputs = true,
 				UseSynchronousLogging = true,
-				ResetCaches = true
+				ResetCaches = true,
+				DetailedSummary = true
 			};
 
 			//projectCollection.IsBuildEnabled = false;
@@ -169,6 +176,9 @@ namespace CERoslynPlugin
 			}
 
 			IsLoaded = true;
+
+			if (StartupProject is MSBuildProject msbProj)
+				msbProj?.DesignBuild();
 		}
 
 		void build (params string[] targets) {

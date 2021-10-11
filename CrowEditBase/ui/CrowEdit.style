@@ -29,6 +29,7 @@ Editor {
 	MouseWheelSpeed = "20";
 	BubbleEvents ="None";
 	ClipToClientRect = "true";
+	MouseCursor = "ibeam";
 }
 
 icon {

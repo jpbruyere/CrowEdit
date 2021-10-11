@@ -36,9 +36,10 @@
 		</ItemTemplate>
 
 		<!--<ItemTemplate DataType="CERoslynPlugin.MSBuildProject" Data="Childs" Path="#CERoslynPlugin.ui.MSBuildProjectNode.template" />-->
-		<ItemTemplate DataType="CrowEditBase.VirtualNode" Data="Childs" Path="#ui.TreeExpandable.template" />
 
+		<ItemTemplate DataType="CrowEditBase.VirtualNode" Data="Childs" Path="#ui.TreeExpandable.template" />
 		<ItemTemplate DataType="CrowEditBase.Project" Data="Childs" Path="#ui.TreeExpandable.template" />
+
 		<!--<ItemTemplate DataType="CrowEditBase.TreeNode" DataTest="NodeType" Data="Childs" Path="#ui.TreeExpandable.template" />-->
 	</TreeView>
 </DockWindow>

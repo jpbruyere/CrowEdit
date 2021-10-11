@@ -29,6 +29,7 @@ namespace CECrowPlugin
 				if (msbp.IsCrowProject)
 			}*/
 		}
+		protected override Tokenizer CreateTokenizer() => new ImlTokenizer ();
 
 		string[] allWidgetNames = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>typeof(Widget).IsAssignableFrom (t))
 					.Select (s => s.Name).ToArray ();

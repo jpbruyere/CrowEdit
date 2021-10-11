@@ -110,8 +110,8 @@ namespace CrowEdit.Xml
 						addTok (ref reader, XmlTokenType.ElementOpen);
 						if (readName (ref reader)) {
 							addTok (ref reader, XmlTokenType.ElementName);
-							curState = States.StartTag;
 						}
+						curState = States.StartTag;
 					}
 					break;
 				case '?':
@@ -127,12 +127,21 @@ namespace CrowEdit.Xml
 				case '"':
 					char q = reader.Read();
 					addTok (ref reader, XmlTokenType.AttributeValueOpen);
-					if (reader.TryReadUntil (q)) {
-						addTok (ref reader, XmlTokenType.AttributeValue);
-						reader.Advance ();
-						addTok (ref reader, XmlTokenType.AttributeValueClose);
-					} else
-						addTok (ref reader, XmlTokenType.AttributeValue);
+					while (!reader.EndOfSpan) {
+						if (reader.Eol()) {
+							addTok (ref reader, XmlTokenType.AttributeValue);
+							reader.ReadEol();
+							addTok (ref reader, XmlTokenType.LineBreak);
+							continue;
+						}
+						if (reader.TryPeak (q)) {
+							addTok (ref reader, XmlTokenType.AttributeValue);
+							reader.Advance (1);
+							addTok (ref reader, XmlTokenType.AttributeValueClose);
+							break;
+						} else
+							reader.Read ();
+					}
 					break;
 				case '=':
 					reader.Advance();

@@ -14,9 +14,10 @@ namespace CrowEditBase
 		protected Project parent;
 		public abstract bool ContainsFile (string fullPath);
 		public IEnumerable<Project> SubProjetcs => Childs.OfType<Project> ();
-		public IEnumerable<Project> FlattenSubProjetcs {
+		public virtual IEnumerable<Project> FlattenProjetcs {
 			get {
-				foreach (var node in SubProjetcs.SelectMany (sp => sp.FlattenSubProjetcs))
+				yield return this;
+				foreach (var node in SubProjetcs.SelectMany (sp => sp.FlattenProjetcs))
 					yield return node;
 			}
 		}

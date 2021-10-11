@@ -22,9 +22,10 @@
 			IsVisible="{ServiceIsInError}"/>
 		<ListBox Style="ScrollingListBox" Data="{CrowAssemblies}"/>
 		<HorizontalStack Height="Fit" Width="Fit" HorizontalAlignment="Right">
-			<Button Command="{CMDOptions_AddCrowAssembly}"/>
-			<Button Command="{CMDOptions_AddCrowAssembly}"/>
+			<Button Command="{CMDOptions_AddCrowAssembly}" Fit="true"/>
+			
 		</HorizontalStack>
+		<Spinner Caption="Zoom Factor" Value="{²ZoomFactor}" Minimum="0.2" Maximum="4.0" SmallIncrement="0.1" LargeIncrement="0.2"/>
 		<Spinner Caption="Refresh Rate (ms)" Value="{²RefreshRate}" Maximum="1000"/>
 		<Spinner Caption="Max Layout Try" Value="{²MaxLayoutingTries}" Maximum="1000"/>
 		<Spinner Caption="Max Layout Discard" Value="{²MaxDiscardCount}" Maximum="1000"/>

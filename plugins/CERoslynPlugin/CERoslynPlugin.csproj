@@ -2,9 +2,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
-		<EnableDefaultItems>false</EnableDefaultItems>		
+		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
-	
+
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
 		<EmbeddedResource Include="ui\**\*.*" />
@@ -41,7 +41,7 @@
 		</PackageReference>
 	</ItemGroup>
 
-	<ItemGroup>    
+	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.7.*" >
 			<IncludeAssets>all</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
@@ -55,5 +55,5 @@
 			<Visible>False</Visible>
 		</PackageReference>
 		<!--<PackageReference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" />-->
-	</ItemGroup>	
+	</ItemGroup>
 </Project>

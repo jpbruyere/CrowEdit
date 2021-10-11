@@ -23,6 +23,7 @@ using static CrowEditBase.CrowEditBase;
 using Project = CrowEditBase.Project;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System.Threading.Tasks;
 
 namespace CERoslynPlugin
 {
@@ -43,6 +44,7 @@ namespace CERoslynPlugin
 		public CommandGroup CMDSBuild { get; private set; }
 		public Command CMDSetAsStartupProject { get; private set; }
 
+		BuildResult lastBuildResult;
 
 		internal MSBuildProject (SolutionProject solution, ProjectInSolution projectInSolution) : base (projectInSolution.AbsolutePath) {
 			this.projectInSolution = projectInSolution;
@@ -114,22 +116,7 @@ namespace CERoslynPlugin
 				Console.WriteLine (ex);
 			}
 		}
-		void printEvaluatedProperties (ProjectInstance pi) {
-			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine ($"Evaluated Globals properties for {Name}");
-			foreach (ProjectPropertyInstance item in pi.Properties.OrderBy (p => p.Name)) {
-				Console.ForegroundColor = ConsoleColor.White;
-				Console.Write ($"\t{item.Name,-40} = ");
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine ($"{item.EvaluatedValue}");
 
-			}
-			ICollection<ProjectItemInstance> pii = pi.GetItems ("InnerOutput");
-			ProjectRootElement pre = pi.ToProjectRootElement();
-			pre.FullPath = "/home/jp/test.csproj";
-			pre.Save();
-
-		}
 		public override void Unload () {
 			CMDSBuild.ToggleAllCommand (false);
 			if (commands.Contains (CMDSetAsStartupProject))
@@ -150,13 +137,26 @@ namespace CERoslynPlugin
 				BuildRequestData request = new BuildRequestData (pi, targets, null,
 					BuildRequestDataFlags.ProvideProjectStateAfterBuild);
 
-				BuildResult result = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
+				lastBuildResult = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
 
-				printEvaluatedProperties (result.ProjectStateAfterBuild);
+				printEvaluatedProperties (lastBuildResult.ProjectStateAfterBuild);
 
-				var test = result.ProjectStateAfterBuild.GetItems ("Reference");
+				var test = lastBuildResult.ProjectStateAfterBuild.GetItems ("Reference");
+
+				Console.WriteLine (IsCrowProject);
 
 			//}
+		}
+		public async void DesignBuild () {
+			lastBuildResult = await Task.Run (()=> designBuild());
+		}
+		BuildResult designBuild () {
+			string[] targets = {"Build"};
+			BuildManager.DefaultBuildManager.ResetCaches ();
+			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
+			BuildRequestData request = new BuildRequestData (pi, targets, null,
+				BuildRequestDataFlags.ProvideProjectStateAfterBuild);
+			return BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
 		}
 		public override string Icon {
 			get {
@@ -171,7 +171,7 @@ namespace CERoslynPlugin
 
 		public bool IsCrowProject {
 			get {
-				foreach (ProjectItemNode reference in Childs[0].Flatten.OfType<ProjectItemNode>()) {
+				/*foreach (ProjectItemNode reference in Childs[0].Flatten.OfType<ProjectItemNode>()) {
 					switch (reference.NodeType)	{
 						case NodeType.PackageReference:
 							if (reference.Caption == "Crow")
@@ -182,11 +182,15 @@ namespace CERoslynPlugin
 								return true;
 							break;
 					}
+				}*/
+				if (lastBuildResult != null) {
+					var references = lastBuildResult.ProjectStateAfterBuild.GetItems ("Reference");
+					return references.Any (r=>r.GetMetadataValue("PackageName") == "Crow");
 				}
 				return false;
 			}
 		}
-		public bool IsStartupProject => solutionProject.StartupProject == this;
+		public override string StatusIcon => solutionProject.StartupProject == this ? "#icons.startup.svg" : null;
 		public override bool ContainsFile (string fullPath) =>
 			Flatten.OfType<ProjectItemNode> ().Any (f => f.FullPath == fullPath);
 
@@ -328,5 +332,25 @@ namespace CERoslynPlugin
 			}
 			return null;
 		}
+
+
+#region debug
+		void printEvaluatedProperties (ProjectInstance pi) {
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.WriteLine ($"Evaluated Globals properties for {Name}");
+			foreach (ProjectPropertyInstance item in pi.Properties.OrderBy (p => p.Name)) {
+				Console.ForegroundColor = ConsoleColor.White;
+				Console.Write ($"\t{item.Name,-40} = ");
+				Console.ForegroundColor = ConsoleColor.Gray;
+				Console.WriteLine ($"{item.EvaluatedValue}");
+
+			}
+			ICollection<ProjectItemInstance> pii = pi.GetItems ("InnerOutput");
+			ProjectRootElement pre = pi.ToProjectRootElement();
+			pre.FullPath = "/home/jp/test.csproj";
+			pre.Save();
+
+		}
+#endregion
 	}
 }

@@ -38,12 +38,12 @@ namespace CECrowPlugin
 		public bool Terminate;
 		string source;
 		Action delRegisterForRepaint;//call RegisterForRepaint in the container widget (DebugInterfaceWidget)
-		Action<Exception> delSetCurrentException;
+		Action<Exception> delCrowServiceSetCurrentException;
 
 		delegate void GetScreenCoordinateDelegateType(out int x, out int y);
-		GetScreenCoordinateDelegateType delGetScreenCoordinate;
-		Func<IEnumerable<object>> delGetStyling;
-		Func<string, Stream> delGetStreamFromPath;
+		GetScreenCoordinateDelegateType delCrowServiceGetScreenCoordinate;
+		Func<IEnumerable<object>> delCrowServiceGetStyling;
+		Func<string, Stream> delCrowServiceGetStreamFromPath;
 
 		void interfaceThread () {
 			while (!Terminate) {
@@ -73,7 +73,7 @@ namespace CECrowPlugin
 						Monitor.Exit (UpdateMutex);
 					while (Monitor.IsEntered(ClippingMutex))
 						Monitor.Exit (ClippingMutex);*/
-					delSetCurrentException (ex);
+					delCrowServiceSetCurrentException (ex);
 					Console.WriteLine ($"[DbgIFace] {ex}");
 					ClearInterface();
 					Thread.Sleep(1000);
@@ -85,19 +85,23 @@ namespace CECrowPlugin
 				Thread.Sleep (UPDATE_INTERVAL);
 			}
 		}
-		public IntPtr SurfacePointer {
+		public new IntPtr SurfacePointer {
 			get {
 				lock(UpdateMutex)
 					return surf.Handle;
 			}
 		}
-		public void RegisterDebugInterfaceCallback (object w){
-			Type t = w.GetType();
+		public void RegisterDebugInterfaceCallback (object crowService){
+			Type t = crowService.GetType();
 			//delRegisterForRepaint = (Action)Delegate.CreateDelegate(typeof(Action), w, t.GetMethod("RegisterForRepaint"));
-			delSetCurrentException = (Action<Exception>)Delegate.CreateDelegate(typeof(Action<Exception>), w, t.GetProperty("CurrentException").GetSetMethod());
-			delGetScreenCoordinate = (GetScreenCoordinateDelegateType)Delegate.CreateDelegate(typeof(GetScreenCoordinateDelegateType), w, t.GetMethod("GetMouseScreenCoordinates"));
-			delGetStyling = (Func<IEnumerable<object>>)Delegate.CreateDelegate (typeof (Func<IEnumerable<object>>), w, t.GetMethod ("GetStyling"));
-			delGetStreamFromPath = (Func<string, Stream>)Delegate.CreateDelegate (typeof (Func<string, Stream>), w, t.GetMethod ("GetStreamFromPath"));
+			delCrowServiceSetCurrentException = (Action<Exception>)Delegate.CreateDelegate(typeof(Action<Exception>), crowService,
+				t.GetProperty("CurrentException").GetSetMethod(true));
+			delCrowServiceGetScreenCoordinate = (GetScreenCoordinateDelegateType)Delegate.CreateDelegate(typeof(GetScreenCoordinateDelegateType), crowService,
+				t.GetMethod("getMouseScreenCoordinates", BindingFlags.Instance | BindingFlags.NonPublic));
+			delCrowServiceGetStyling = (Func<IEnumerable<object>>)Delegate.CreateDelegate (typeof (Func<IEnumerable<object>>), crowService,
+				t.GetMethod ("getStyling", BindingFlags.Instance | BindingFlags.NonPublic));
+			delCrowServiceGetStreamFromPath = (Func<string, Stream>)Delegate.CreateDelegate (typeof (Func<string, Stream>), crowService,
+				t.GetMethod ("getStreamFromPath", BindingFlags.Instance | BindingFlags.NonPublic));
 		}
 		/*public void ResetDirtyState () {
 			IsDirty = false;
@@ -107,7 +111,7 @@ namespace CECrowPlugin
 				if (source == value)
 					return;
 				source = value;
-				delSetCurrentException(null);
+				delCrowServiceSetCurrentException(null);
 				try
 				{
 					lock (UpdateMutex) {
@@ -121,18 +125,18 @@ namespace CECrowPlugin
 				}
 				catch (IML.InstantiatorException iTorEx)
 				{
-					delSetCurrentException(iTorEx.InnerException);
+					delCrowServiceSetCurrentException(iTorEx.InnerException);
 				}
 				catch (System.Exception ex)
 				{
-					delSetCurrentException(ex);
+					delCrowServiceSetCurrentException(ex);
 				}
 			}
 		}
 		void resetInterface () {
 			ClearInterface();
 			initDictionaries();
-			foreach (object style in delGetStyling ()) {
+			foreach (object style in delCrowServiceGetStyling ()) {
 				if (style is string stylePath)
 					LoadStyle (stylePath);
 				else if (style is Assembly styleAssembly)
@@ -164,7 +168,7 @@ namespace CECrowPlugin
 		}
 		public override void ForceMousePosition()
 		{
-			delGetScreenCoordinate(out int x, out int y);
+			delCrowServiceGetScreenCoordinate(out int x, out int y);
 			Glfw.Glfw3.SetCursorPosition (WindowHandle, x, y);
 		}
 
@@ -178,7 +182,7 @@ namespace CECrowPlugin
 
 		public override Stream GetStreamFromPath(string path)
 		{
-			Stream result = delGetStreamFromPath (path);
+			Stream result = delCrowServiceGetStreamFromPath (path);
 			if (result != null)
 				return result;
 			return base.GetStreamFromPath (path);

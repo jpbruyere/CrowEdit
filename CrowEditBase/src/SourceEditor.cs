@@ -135,8 +135,12 @@ namespace Crow
 				if (currentLoc == value)
 					return;
 				currentLoc = value;
-				if (currentLoc.HasValue)
-					getFoldContainingLine (currentLoc.Value.Line)?.UnfoldToTheTop();
+				if (currentLoc.HasValue) {
+					SyntaxNode fold = getFoldContainingLine (currentLoc.Value.Line);
+					while (fold != null && fold.StartLine == currentLoc.Value.Line)
+						fold = fold.Parent;
+					fold?.UnfoldToTheTop();
+				}
 				NotifyValueChanged ("CurrentLine", CurrentLine);
 				NotifyValueChanged ("CurrentColumn", CurrentColumn);
 				CMDCopy.CanExecute = CMDCut.CanExecute = !SelectionIsEmpty;

@@ -33,7 +33,7 @@ namespace Crow
 				NotifyValueChangedAuto (crowIFaceService);
 			}
 		}
-		Command CMDRefresh;
+		Command CMDRefresh, CMDZoomIn, CMDZoomOut;
 		public DebugInterfaceWidget () : base () {
 			CMDRefresh = new ActionCommand (this, "Refresh",
 				() => {
@@ -43,6 +43,20 @@ namespace Crow
 				},
 				"#icons.refresh.svg",
 				new KeyBinding (Key.F3));
+			CMDZoomIn = new ActionCommand ("Zoom in",
+				() => {
+					if (crowIFaceService != null) {
+						crowIFaceService.ZoomFactor *= 2.0;
+						RegisterForGraphicUpdate ();
+					}
+				}, "#icons.zoom-in.svg");
+			CMDZoomOut = new ActionCommand ("Zoom out",
+				() => {
+					if (crowIFaceService != null) {
+						crowIFaceService.ZoomFactor /= 2.0;
+						RegisterForGraphicUpdate ();
+					}
+				}, "#icons.zoom-out.svg");
 
 			Thread t = new Thread (backgroundThreadFunc);
 			t.IsBackground = true;
@@ -116,13 +130,12 @@ namespace Crow
 				new Command("Load from file", () => loadLogFromDebugLogFilePath ())
 			);*/
 		public CommandGroup WindowCommands => new CommandGroup (
-			CMDRefresh,
+			CMDRefresh, CMDZoomIn, CMDZoomOut,
 			crowIFaceService.CMDStartRecording,
 			crowIFaceService.CMDStopRecording,
 			crowIFaceService.CMDOpenConfig,
 			(Parent.LogicalParent as DockWindow).CMDClose
 		);
-
 
 		protected override void onDraw(Context gr)
 		{

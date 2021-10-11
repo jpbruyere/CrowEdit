@@ -79,7 +79,6 @@ namespace CrowEdit
 			base.OnInitialized ();
 
 			loadPlugins ();
-			reopenLastProjectList ();
 
 			SetWindowIcon ("#Crow.Icons.crow.png");
 
@@ -94,6 +93,8 @@ namespace CrowEdit
 			mainDock = w.FindByName ("mainDock") as DockStack;
 
 			reloadWinConfigs ();
+
+			reopenLastProjectList ();
 
 			reopenLastDocumentList ();
 		}

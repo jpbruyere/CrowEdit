@@ -40,6 +40,7 @@ namespace CrowEditBase
 		public abstract NodeType NodeType { get; }
 		public abstract string Icon { get; }
 		public virtual string IconSub => null;
+		public virtual string StatusIcon => null;
 		public T GetFirstAncestorOfType<T> () where T : TreeNode {
 			TreeNode n = this;
 			while (n.Parent != null && !(n is T))

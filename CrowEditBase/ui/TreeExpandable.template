@@ -27,6 +27,7 @@
 						<Image Style="TreeIcon"
 							Path="{Icon}" SvgSub="{IconSub}"/>
 						<Label Style="TreeLabel" Text="{./Caption}"/>
+						<Image Style="TreeIconSmall" Path="{StatusIcon}" />
 					</HorizontalStack>
 				</Border>
 			</ListItem>

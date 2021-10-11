@@ -95,7 +95,7 @@ namespace CrowEditBase
 		//TODO:flattened project
 		public IEnumerable<Project> FlattenProjects {
 			get {
-				foreach (var node in Projects.SelectMany (child => child.FlattenSubProjetcs))
+				foreach (var node in Projects.SelectMany (child => child.FlattenProjetcs))
 					yield return node;
 			}
 		}

@@ -6,7 +6,7 @@
 			<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}"
 						ItemTemplate="#ui.MenuItem.itmp">
 				<Template>
-					<Popper PopDirection="Bottom" Caption="{Caption}" Width="Fit" 
+					<Popper PopDirection="Bottom" Caption="{Caption}" Width="Fit"
 									MouseEnter="{Background=${ControlHighlight}}"
 									MouseLeave="{Background=Transparent}">
 						<Template>
@@ -17,7 +17,7 @@
 					</Popper>
 				</Template>
 			</MenuItem>
-		</ItemTemplate>	
+		</ItemTemplate>
 	</Menu>
 	<DockStack Name="mainDock"  RootDataLevel="true" Background="DarkGrey"/>
 </VerticalStack>

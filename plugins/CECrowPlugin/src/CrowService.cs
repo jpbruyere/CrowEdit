@@ -65,13 +65,34 @@ namespace Crow
 
 
 		}
-
-
+		#region Commands
 		public Command CMDStartRecording, CMDStopRecording, CMDRefresh;
 		public Command CMDGotoParentEvent, CMDEventHistoryForward, CMDEventHistoryBackward;
 		public CommandGroup LoggerCommands => new CommandGroup (CMDRefresh, CMDStartRecording, CMDStopRecording);
 		public CommandGroup EventCommands => new CommandGroup(
 				CMDGotoParentEvent, CMDEventHistoryBackward, CMDEventHistoryForward);
+		public ActionCommand CMDOptions_SelectCrowAssemblyLocation => new ActionCommand ("...",
+			() => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
+							ShowFiles='true' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = this;
+			}
+		);
+		public ActionCommand CMDOptions_AddCrowAssembly => new ActionCommand ("Add Assembly with Crow Ressource",
+			() => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Assembly with Crow Ressources' CurrentDirectory='{CrowDbgAssemblyLocation}'
+							ShowFiles='true' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => {
+					crowAssemblies.Add ((sender as FileDialog).SelectedFileFullPath);
+					saveCrowAssemblies ();
+				};
+				dlg.DataSource = this;
+			}
+		);
+
 		void initCommands ()
 		{
 			App.ViewCommands.Add (
@@ -84,11 +105,15 @@ namespace Crow
 			CMDEventHistoryBackward = new ActionCommand("back.", currentEventHistoryGoBack, "#icons.previous.svg", false);
 			CMDEventHistoryForward = new ActionCommand("forw.", currentEventHistoryGoForward, "#icons.forward-arrow.svg", false);
 		}
+		#endregion
+
 		public void LoadIML (string imlSource) {
 			if (CurrentState == Status.Running)
 				delSetSource (imlSource);
 		}
 		Exception currentException;
+		public string ErrorMessage = "";
+		public bool ServiceIsInError;
 		object dbgIFace;
 		AssemblyLoadContext crowLoadCtx;
 		Assembly crowAssembly, thisAssembly;
@@ -107,6 +132,9 @@ namespace Crow
 		Func<IntPtr> delGetSurfacePointer;
 		Action<string> delSetSource;
 		Action delReloadIml;
+		Func<double> delGetZoomFactor;
+		Action<double> delSetZoomFactor;
+
 
 		FieldInfo fiDbg_IncludeEvents, fiDbg_DiscardEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount;
 		#endregion
@@ -146,7 +174,7 @@ namespace Crow
 		public bool PreviewHasError => currentException != null;
 		public Exception CurrentException {
 			get => currentException;
-			set {
+			private set {
 				if (currentException == value)
 					return;
 				currentException = value;
@@ -216,32 +244,38 @@ namespace Crow
 				NotifyValueChanged (value);
 			}
 		}
-		public string ErrorMessage = "";
-		public bool ServiceIsInError;
 		void updateCrowDebuggerState (string errorMsg = null) {
 			ErrorMessage = errorMsg;
 			ServiceIsInError = errorMsg != null;
 			NotifyValueChanged ("ServiceErrorMessage", (object)ErrorMessage);
 			NotifyValueChanged ("ServiceIsInError",  ServiceIsInError);
 		}
-		public void GetMouseScreenCoordinates (out int x, out int y) {
+
+		#region DesignInterface callbacks
+		//those methods are called by designed interface
+		void getMouseScreenCoordinates (out int x, out int y) {
 			x = mouseScreenPos.X;
 			y = mouseScreenPos.Y;
 		}
-		void saveCrowAssemblies () {
-			if (crowAssemblies.Count > 0)
-				Configuration.Global.Set ("CrowAssemblies", crowAssemblies.Aggregate ((a, b)=> $"{a};{b}"));
-			else
-				Configuration.Global.Set ("CrowAssemblies", "");
+		IEnumerable<object> getStyling () {
+			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
+				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
+					foreach (var style in csprj.Flatten.OfType<CERoslynPlugin.ProjectItemNode>()
+						.Where (pin=>pin.NodeType == NodeType.EmbeddedResource && pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase)))
+						yield return style.FullPath;
+				}
+			}
+			yield return crowAssembly;
 		}
-		void loadCrowAssemblies () {
-			crowAssemblies.Clear ();
-			if (!Configuration.Global.TryGet<string> ("CrowAssemblies", out string assemblies))
-				return;
-			foreach (string a in assemblies.Split (';'))
-				crowAssemblies.Add (a);
+		Stream getStreamFromPath (string path) {
+			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
+				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
+					return csprj.GetStreamFromTargetPath (path);
+				}
+			}
+			return null;
 		}
-
+		#endregion
 		public override void Start()
 		{
 			if (CurrentState == Status.Running)
@@ -315,6 +349,11 @@ namespace Crow
 											dbgIFace, dbgIfaceType.GetProperty("Source").GetSetMethod());
 				delReloadIml = (Action)Delegate.CreateDelegate(typeof(Action), dbgIFace, dbgIfaceType.GetMethod("ReloadIml"));
 
+				delGetZoomFactor = (Func<double>)Delegate.CreateDelegate(typeof(Func<double>),
+											dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetGetMethod());
+				delSetZoomFactor = (Action<double>)Delegate.CreateDelegate(typeof(Action<double>),
+											dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetSetMethod());
+
 				fiDbgIFace_IsDirty = dbgIfaceType.GetField("IsDirty");
 				fiDbgIFace_MaxLayoutingTries = dbgIfaceType.GetField("MaxLayoutingTries", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 				fiDbgIFace_MaxDiscardCount = dbgIfaceType.GetField("MaxDiscardCount", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
@@ -335,6 +374,8 @@ namespace Crow
 				CurrentState = Status.Running;
 
 				updateCrowDebuggerState();
+
+				delSetZoomFactor (ZoomFactor);
 		}
 		public override void Stop()
 		{
@@ -348,7 +389,17 @@ namespace Crow
 			CurrentState = Status.Paused;
 		}
 		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
-
+		Project activeSolution;
+		public Project ActiveSolution {
+			get => activeSolution;
+			set {
+				CERoslynPlugin.SolutionProject sol = value as CERoslynPlugin.SolutionProject;
+				if (activeSolution == sol)
+					return;
+				activeSolution = sol;
+				NotifyValueChanged (activeSolution);
+			}
+		}
 		public string CrowDbgAssemblyLocation {
 			get => Configuration.Global.Get<string> ("CrowDbgAssemblyLocation");
 			set {
@@ -358,32 +409,35 @@ namespace Crow
 				NotifyValueChanged(value);
 			}
 		}
+		public double ZoomFactor {
+			get => Configuration.Global.Get<Double> ("CrowPreviewZoomFactor", 1.0);
+			set {
+				if (ZoomFactor == value)
+					return;
+				Configuration.Global.Set<Double> ("CrowPreviewZoomFactor", value);
+				NotifyValueChanged (value);
+				if (CurrentState == Status.Running)
+					delSetZoomFactor (value);
+			}
+		}
 		//assemblies with crow resources in order of loading
 		IList<string> crowAssemblies = new ObservableList<string> ();
 		public IList<string> CrowAssemblies => crowAssemblies;
+		void saveCrowAssemblies () {
+			if (crowAssemblies.Count > 0)
+				Configuration.Global.Set ("CrowAssemblies", crowAssemblies.Aggregate ((a, b)=> $"{a};{b}"));
+			else
+				Configuration.Global.Set ("CrowAssemblies", "");
+		}
+		void loadCrowAssemblies () {
+			crowAssemblies.Clear ();
+			if (!Configuration.Global.TryGet<string> ("CrowAssemblies", out string assemblies))
+				return;
+			foreach (string a in assemblies.Split (';'))
+				crowAssemblies.Add (a);
+		}
 
-		public ActionCommand CMDOptions_SelectCrowAssemblyLocation => new ActionCommand ("...",
-			() => {
-				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
-							ShowFiles='true' ShowHidden='true' />");
-				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
-				dlg.DataSource = this;
-			}
-		);
-		public ActionCommand CMDOptions_AddCrowAssembly => new ActionCommand ("Add Assembly with Crow Ressource",
-			() => {
-				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select Assembly with Crow Ressources' CurrentDirectory='{CrowDbgAssemblyLocation}'
-							ShowFiles='true' ShowHidden='true' />");
-				dlg.OkClicked += (sender, e) => {
-					crowAssemblies.Add ((sender as FileDialog).SelectedFileFullPath);
-					saveCrowAssemblies ();
-				};
-				dlg.DataSource = this;
-			}
-		);
-		
+
 
 		protected override void onStateChange(Status previousState, Status newState)
 		{
@@ -437,7 +491,7 @@ namespace Crow
 				try
 				{
 					mouseScreenPos = _mouseScreenPos;//absolute on screen position.
-					e.Handled = delMouseMove (e.X, e.Y);//DebugInterface local coordinate for mouse.
+					e.Handled = delMouseMove ((int)(e.X / ZoomFactor), (int)(e.Y / ZoomFactor));//DebugInterface local coordinate for mouse.
 				}
 				catch (System.Exception ex)
 				{
@@ -495,24 +549,6 @@ namespace Crow
 				fiDbgIFace_IsDirty.SetValue (dbgIFace, false);
 		}
 		public bool GetDirtyState => IsRunning ? (bool)fiDbgIFace_IsDirty.GetValue (dbgIFace) : false;
-		public IEnumerable<object> GetStyling () {
-			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
-				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
-					foreach (var style in csprj.Flatten.OfType<CERoslynPlugin.ProjectItemNode>()
-						.Where (pin=>pin.NodeType == NodeType.EmbeddedResource && pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase)))
-						yield return style.FullPath;
-				}
-			}
-			yield return crowAssembly;
-		}
-		public Stream GetStreamFromPath (string path) {
-			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
-				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
-					return csprj.GetStreamFromTargetPath (path);
-				}
-			}
-			return null;
-		}
 
 		#region Debug log
 		IList<DbgEvent> events;

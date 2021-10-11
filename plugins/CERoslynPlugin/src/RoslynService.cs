@@ -18,8 +18,17 @@ using Crow;
 namespace CERoslynPlugin
 {
 	public class RoslynService : Service {
-		internal CELogger Logger { get; private set; }
-		public LogLevel LogLevel {
+		CELogger logger;
+		internal CELogger Logger {
+			get => logger;
+			private set {
+				if (logger == value)
+					return;
+				logger = value;
+				NotifyValueChanged (logger);
+			}
+		}
+		/*public LogLevel LogLevel {
 			get => Crow.Configuration.Global.Get<LogLevel>("LogLevel");
 			set {
 				if (LogLevel == value)
@@ -44,7 +53,7 @@ namespace CERoslynPlugin
 				Logger.Verbosity = Microsoft.Build.Framework.LoggerVerbosity.Diagnostic;
 				break;
 			}
-		}
+		}*/
 
 		public RoslynService () : base () {
 			configureDefaultSDKPathes ();
@@ -76,8 +85,10 @@ namespace CERoslynPlugin
 		}
 
 		public override void Start() {
-			Logger = new CELogger ();
-			updateLogLevel ();
+			Logger = new CELogger (
+				Configuration.Global.Get<Microsoft.Build.Framework.LoggerVerbosity> ("CERoslyn.LoggerVerbosity",
+					Microsoft.Build.Framework.LoggerVerbosity.Normal));
+			//updateLogLevel ();
 
 			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (MSBuildRoot, "MSBuild.dll"));
 			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", Path.Combine (MSBuildRoot, "Sdks"));

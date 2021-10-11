@@ -11,7 +11,7 @@
 			<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
 			<Button Command="{CMDOptions_SelectMSBuildRoot}" MinimumSize="0,0"/>
 		</HorizontalStack>
-		<EnumSelector Caption="Log Level" EnumValue="{²LogLevel}" />
+		<EnumSelector DataSource="{Logger}" Caption="Log Level" EnumValue="{²Verbosity}" />
 	</VerticalStack>
 </DockWindow>
 
