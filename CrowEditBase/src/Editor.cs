@@ -57,7 +57,7 @@ namespace Crow
 			}
 		}
 		public event EventHandler<TextChangeEventArgs> TextChanged;
-		public virtual void OnTextChanged(object sender, TextChangeEventArgs e)
+		public void OnTextChanged(object sender, TextChangeEventArgs e)
 		{
 			if (disableTextChangedEvent)
 				return;
@@ -879,7 +879,7 @@ namespace Crow
 			update (new TextChange (selection.Start, selection.Length, IFace.Clipboard));
 		}
 
-		protected void update (TextChange change) {
+		protected virtual void update (TextChange change) {
 
 			OnTextChanged (this, new TextChangeEventArgs (change));
 

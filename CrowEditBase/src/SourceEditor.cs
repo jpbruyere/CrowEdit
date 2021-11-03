@@ -56,31 +56,6 @@ namespace Crow
 		}
 		bool suggestionsActive => overlay != null && overlay.IsVisible;
 
-		public override void OnTextChanged(object sender, TextChangeEventArgs e)
-		{
-			if (disableTextChangedEvent)
-				return;
-
-			base.OnTextChanged(sender, e);
-
-			if (Document is SourceDocument srcdoc)
-				srcdoc.updateCurrentTokAndNode (CurrentLoc.Value);
-
-			if (!disableSuggestions && HasFocus)
-				tryGetSuggestions ();
-
-			RegisterForGraphicUpdate();
-
-			lock (IFace.UpdateMutex) {
-				if (Document is SourceDocument doc) {
-					doc.NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
-					doc.NotifyValueChanged ("SyntaxRootChildNodes", doc.SyntaxRootChildNodes);
-					CurrentNode?.ExpandToTheTop();
-				}
-			}
-			//Console.WriteLine ($"{pos}: {suggestionTok.AsString (_text)} {suggestionTok}");
-		}
-
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc) {
 				IList suggs = srcDoc.GetSuggestions (CurrentLoc.Value);
@@ -784,6 +759,25 @@ namespace Crow
 
 			return cursor;
 		}
+		protected override void update (TextChange change) {
+			base.update (change);
 
+			if (Document is SourceDocument srcdoc)
+				srcdoc.updateCurrentTokAndNode (CurrentLoc.Value);
+
+			if (!disableSuggestions && HasFocus)
+				tryGetSuggestions ();
+
+			RegisterForGraphicUpdate();
+
+			lock (IFace.UpdateMutex) {
+				if (Document is SourceDocument doc) {
+					doc.NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
+					doc.NotifyValueChanged ("SyntaxRootChildNodes", doc.SyntaxRootChildNodes);
+					CurrentNode?.ExpandToTheTop();
+				}
+			}
+			//Console.WriteLine ($"{pos}: {suggestionTok.AsString (_text)} {suggestionTok}");
+		}
 	}
 }
