@@ -25,8 +25,6 @@ namespace Crow
 
 			initCommands ();
 
-			getLines();
-
 			Thread t = new Thread (backgroundThreadFunc);
 			t.IsBackground = true;
 			t.Start ();
@@ -78,7 +76,7 @@ namespace Crow
 		}
 
 		#region Label
-		protected string _text = "";
+
 		int targetColumn = -1;//handle line changes with long->short->long line length sequence.
 
 		protected CharLocation? hoverLoc = null;
@@ -124,18 +122,18 @@ namespace Crow
 		/// </summary>
 		/// <param name="position">Absolute character position in text.</param>
 		public void SetCursorPosition (int position) {
-			CharLocation loc = lines.GetLocation (position);
-			loc.Column = Math.Min (loc.Column, lines[loc.Line].Length);
+			CharLocation loc = document.GetLocation (position);
+			loc.Column = Math.Min (loc.Column, document.GetLine (loc.Line).Length);
 			CurrentLoc = loc;
 		}
 
 		Color selForeground, selBackground;
-		protected LineCollection lines;
+
 		protected bool textMeasureIsUpToDate = false;
-		protected object linesMutex = new object ();
-		protected string LineBreak = null;
+		//protected object linesMutex = new object ();
+
 		protected Size cachedTextSize = default (Size);
-		protected bool mixedLineBreak = false;
+
 
 		protected FontExtents fe;
 		protected TextExtents te;
@@ -185,7 +183,7 @@ namespace Crow
 				if (loc.Line == 0)
 					return false;
 				int newLine = getAbsoluteLineIndexFromVisualLineMove (loc.Line, -1);
-				CurrentLoc = new CharLocation (newLine, lines[newLine].Length);
+				CurrentLoc = new CharLocation (newLine, document.GetLine (newLine).Length);
 			}else
 				CurrentLoc = new CharLocation (loc.Line, loc.Column - 1);
 			return true;
@@ -193,8 +191,8 @@ namespace Crow
 		public bool MoveRight () {
 			targetColumn = -1;
 			CharLocation loc = CurrentLoc.Value;
-			if (loc.Column == lines[loc.Line].Length) {
-				if (loc.Line == lines.Count - 1)
+			if (loc.Column == document.GetLine (loc.Line).Length) {
+				if (loc.Line == document.LinesCount - 1)
 					return false;
 				CurrentLoc = new CharLocation (
 					getAbsoluteLineIndexFromVisualLineMove (loc.Line, 1), 0);
@@ -209,65 +207,20 @@ namespace Crow
 			if (newLine == loc.Line)
 				return false;
 
-			if (loc.Column > lines[newLine].Length) {
+			if (loc.Column > document.GetLine (newLine).Length) {
 				if (targetColumn < 0)
 					targetColumn = loc.Column;
-				CurrentLoc = new CharLocation (newLine, lines[newLine].Length);
+				CurrentLoc = new CharLocation (newLine, document.GetLine (newLine).Length);
 			} else if (targetColumn < 0)
 				CurrentLoc = new CharLocation (newLine, loc.Column);
-			else if (targetColumn > lines[newLine].Length)
-				CurrentLoc = new CharLocation (newLine, lines[newLine].Length);
+			else if (targetColumn > document.GetLine (newLine).Length)
+				CurrentLoc = new CharLocation (newLine, document.GetLine (newLine).Length);
 			else
 				CurrentLoc = new CharLocation (newLine, targetColumn);
 
 			return true;
 		}
-		public void GotoWordStart(){
-			int pos = lines.GetAbsolutePosition (CurrentLoc.Value);
-			//skip white spaces
-			while (pos > 0 && !char.IsLetterOrDigit (_text[pos-1]))
-				pos--;
-			while (pos > 0 && char.IsLetterOrDigit (_text[pos-1]))
-				pos--;
-			CurrentLoc = lines.GetLocation (pos);
-		}
-		public void GotoWordEnd(){
-			int pos = lines.GetAbsolutePosition (CurrentLoc.Value);
-			//skip white spaces
-			while (pos < _text.Length -1 && !char.IsLetterOrDigit (_text[pos]))
-				pos++;
-			while (pos < _text.Length - 1 && char.IsLetterOrDigit (_text[pos]))
-				pos++;
-			CurrentLoc = lines.GetLocation (pos);
-		}
-		protected void detectLineBreak () {
-			mixedLineBreak = false;
 
-			if (lines.Count == 0 || lines[0].LineBreakLength == 0) {
-				LineBreak = Environment.NewLine;
-				return;
-			}
-			LineBreak = _text.GetLineBreak (lines[0]).ToString ();
-
-			for (int i = 1; i < lines.Count; i++) {
-				ReadOnlySpan<char> lb = _text.GetLineBreak (lines[i]);
-				if (!lb.SequenceEqual (LineBreak)) {
-					mixedLineBreak = true;
-					break;
-				}
-			}
-		}
-		protected void getLines () {
-			if (lines == null)
-				lines = new LineCollection (10);
-			else
-				lines.Clear ();
-
-			if (string.IsNullOrEmpty (_text))
-				lines.Add (new TextLine (0, 0, 0));
-			else
-				lines.Update (_text);
-		}
 		/// <summary>
 		/// Current Selected text span. May be used to set current position, or current selection.
 		/// </summary>
@@ -276,8 +229,8 @@ namespace Crow
 				if (value.IsEmpty)
 					selectionStart = null;
 				else
-					selectionStart = lines.GetLocation (value.Start);
-				CurrentLoc = lines.GetLocation (value.End);
+					selectionStart = document.GetLocation (value.Start);
+				CurrentLoc = document.GetLocation (value.End);
 			}
 			get {
 				if (CurrentLoc == null)
@@ -298,13 +251,13 @@ namespace Crow
 						selEnd = CurrentLoc.Value;
 					}
 				}
-				return new TextSpan (lines.GetAbsolutePosition (selStart), lines.GetAbsolutePosition (selEnd));
+				return new TextSpan (document.GetAbsolutePosition (selStart), document.GetAbsolutePosition (selEnd));
 			}
 		}
 		public string SelectedText {
 			get {
 				TextSpan selection = Selection;
-				return selection.IsEmpty ? "" : _text.AsSpan (selection.Start, selection.Length).ToString ();
+				return selection.IsEmpty ? "" : document.GetText (selection).ToString ();
 			}
 		}
 		public bool SelectionIsEmpty => selectionStart.HasValue ? Selection.IsEmpty : true;
@@ -315,33 +268,40 @@ namespace Crow
 		/// <summary>
 		/// total line count
 		/// </summary>
-		protected virtual int visualLineCount => lines.Count;
+		protected virtual int visualLineCount => document.LinesCount;
 
 		protected virtual void measureTextBounds (Context gr) {
 			fe = gr.FontExtents;
 			te = new TextExtents ();
 
-			cachedTextSize.Height = (int)Math.Ceiling (lineHeight * Math.Max (1, visualLineCount));
+			document.EnterReadLock();
+			try {
 
-			TextExtents tmp = default;
-			int longestLine = 0;
-			for (int i = 0; i < lines.Count; i++) {
-				if (lines[i].LengthInPixel < 0) {
-					if (lines[i].Length == 0)
-						lines.UpdateLineLengthInPixel (i, 0);// (int)Math.Ceiling (fe.MaxXAdvance);
-					else {
-						gr.TextExtents (_text.GetLine (lines[i]), App.TabulationSize, out tmp);
-						lines.UpdateLineLengthInPixel (i, (int)Math.Ceiling (tmp.XAdvance));
+				cachedTextSize.Height = (int)Math.Ceiling (lineHeight * Math.Max (1, visualLineCount));
+
+				TextExtents tmp = default;
+				int longestLine = 0;
+				for (int i = 0; i < document.LinesCount; i++) {
+					TextLine l = document.GetLine (i);
+					if (l.LengthInPixel < 0) {
+						if (l.Length == 0)
+							l.LengthInPixel = 0;// (int)Math.Ceiling (fe.MaxXAdvance);
+						else {
+							gr.TextExtents (document.GetText (l), App.TabulationSize, out tmp);
+							l.LengthInPixel = (int)Math.Ceiling (tmp.XAdvance);
+						}
 					}
+					if (l.LengthInPixel > document.GetLine (longestLine).LengthInPixel)
+						longestLine = i;
 				}
-				if (lines[i].LengthInPixel > lines[longestLine].LengthInPixel)
-					longestLine = i;
-			}
-			cachedTextSize.Width = lines[longestLine].LengthInPixel;
-			textMeasureIsUpToDate = true;
+				cachedTextSize.Width = document.GetLine (longestLine).LengthInPixel;
+				textMeasureIsUpToDate = true;
 
-			updateMaxScrolls (LayoutingType.Height);
-			updateMaxScrolls (LayoutingType.Width);
+				updateMaxScrolls (LayoutingType.Height);
+				updateMaxScrolls (LayoutingType.Width);
+			} finally {
+				document.ExitReadLock ();
+			}
 		}
 		protected virtual void drawContent (Context gr) {
 			gr.Translate (-ScrollX, -ScrollY);
@@ -353,114 +313,120 @@ namespace Crow
 			CharLocation selStart = default, selEnd = default;
 			bool selectionNotEmpty = false;
 
-			//if (HasFocus) {
-				if (currentLoc?.Column < 0) {
-					updateLocation (gr, cb.Width, ref currentLoc);
-					NotifyValueChanged ("CurrentColumn", CurrentColumn);
-				} else
-					updateLocation (gr, cb.Width, ref currentLoc);
-				if (selectionStart.HasValue) {
-					updateLocation (gr, cb.Width, ref selectionStart);
-					if (CurrentLoc.Value != selectionStart.Value)
-						selectionNotEmpty = true;
-				}
-				if (selectionNotEmpty) {
-					if (CurrentLoc.Value.Line < selectionStart.Value.Line) {
-						selStart = CurrentLoc.Value;
-						selEnd = selectionStart.Value;
-					} else if (CurrentLoc.Value.Line > selectionStart.Value.Line) {
-						selStart = selectionStart.Value;
-						selEnd = CurrentLoc.Value;
-					} else if (CurrentLoc.Value.Column < selectionStart.Value.Column) {
-						selStart = CurrentLoc.Value;
-						selEnd = selectionStart.Value;
-					} else {
-						selStart = selectionStart.Value;
-						selEnd = CurrentLoc.Value;
+			document.EnterReadLock();
+			try {
+				//if (HasFocus) {
+					if (currentLoc?.Column < 0) {
+						updateLocation (gr, cb.Width, ref currentLoc);
+						NotifyValueChanged ("CurrentColumn", CurrentColumn);
+					} else
+						updateLocation (gr, cb.Width, ref currentLoc);
+					if (selectionStart.HasValue) {
+						updateLocation (gr, cb.Width, ref selectionStart);
+						if (CurrentLoc.Value != selectionStart.Value)
+							selectionNotEmpty = true;
 					}
-				} else
-					IFace.forceTextCursor = true;
-			//}
-
-			if (!string.IsNullOrEmpty (_text)) {
-				Foreground?.SetAsSource (IFace, gr);
-
-				TextExtents extents;
-				Span<byte> bytes = stackalloc byte[128];
-				double y = 0;
-
-				for (int i = 0; i < lines.Count; i++) {
-					if (!cancelLinePrint (lineHeight, y, cb.Height)) {
-						int encodedBytes = -1;
-						if (lines[i].Length > 0) {
-							int size = lines[i].Length * 4 + 1;
-							if (bytes.Length < size)
-								bytes = size > 512 ? new byte[size] : stackalloc byte[size];
-
-							encodedBytes = Crow.Text.Encoding.ToUtf8 (_text.GetLine (lines[i]), bytes);
-							bytes[encodedBytes++] = 0;
-
-							if (lines[i].LengthInPixel < 0) {
-								gr.TextExtents (bytes.Slice (0, encodedBytes), out extents);
-								lines.UpdateLineLengthInPixel (i, (int)extents.XAdvance);
-							}
+					if (selectionNotEmpty) {
+						if (CurrentLoc.Value.Line < selectionStart.Value.Line) {
+							selStart = CurrentLoc.Value;
+							selEnd = selectionStart.Value;
+						} else if (CurrentLoc.Value.Line > selectionStart.Value.Line) {
+							selStart = selectionStart.Value;
+							selEnd = CurrentLoc.Value;
+						} else if (CurrentLoc.Value.Column < selectionStart.Value.Column) {
+							selStart = CurrentLoc.Value;
+							selEnd = selectionStart.Value;
+						} else {
+							selStart = selectionStart.Value;
+							selEnd = CurrentLoc.Value;
 						}
+					} else
+						IFace.forceTextCursor = true;
+				//}
 
-						RectangleD lineRect = new RectangleD (
-							(int)cb.X,
-							y + cb.Top, lines[i].LengthInPixel, lineHeight);
+				if (document.Lenght > 0) {
+					Foreground?.SetAsSource (IFace, gr);
 
-						if (encodedBytes > 0) {
-							gr.MoveTo (lineRect.X, lineRect.Y + fe.Ascent);
-							gr.ShowText (bytes.Slice (0, encodedBytes));
-						}
-						/********** DEBUG TextLineCollection *************
-						gr.SetSource (Colors.Red);
-						gr.SetFontSize (9);
-						gr.MoveTo (700, lineRect.Y + fe.Ascent);
-						gr.ShowText ($"({lines[i].Start}, {lines[i].End}, {lines[i].EndIncludingLineBreak})");
-						gr.SetFontSize (Font.Size);
-						Foreground.SetAsSource (IFace, gr);
-						********** DEBUG TextLineCollection *************/
+					TextExtents extents;
+					Span<byte> bytes = stackalloc byte[128];
+					double y = 0;
 
-						if (selectionNotEmpty) {
-							RectangleD selRect = lineRect;
+					for (int i = 0; i < document.LinesCount; i++) {
+						if (!cancelLinePrint (lineHeight, y, cb.Height)) {
+							int encodedBytes = -1;
+							TextLine l = document.GetLine (i);
+							if (l.Length > 0) {
+								int size = l.Length * 4 + 1;
+								if (bytes.Length < size)
+									bytes = size > 512 ? new byte[size] : stackalloc byte[size];
 
-							if (i >= selStart.Line && i <= selEnd.Line) {
-								if (selStart.Line == selEnd.Line) {
-									selRect.X = selStart.VisualCharXPosition + cb.X;
-									selRect.Width = selEnd.VisualCharXPosition - selStart.VisualCharXPosition;
-								} else if (i == selStart.Line) {
-									double newX = selStart.VisualCharXPosition + cb.X;
-									selRect.Width -= (newX - selRect.X) - 10.0;
-									selRect.X = newX;
-								} else if (i == selEnd.Line) {
-									selRect.Width = selEnd.VisualCharXPosition - selRect.X + cb.X;
-								} else
-									selRect.Width += 10.0;
-							} else {
-								y += lineHeight;
-								continue;
+								encodedBytes = Crow.Text.Encoding.ToUtf8 (document.GetText (l), bytes);
+								bytes[encodedBytes++] = 0;
+
+								if (l.LengthInPixel < 0) {
+									gr.TextExtents (bytes.Slice (0, encodedBytes), out extents);
+									l.LengthInPixel = (int)extents.XAdvance;
+								}
 							}
 
-							gr.SetSource (selBackground);
-							gr.Rectangle (selRect);
-							if (encodedBytes < 0)
-								gr.Fill ();
-							else {
-								gr.FillPreserve ();
-								gr.Save ();
-								gr.Clip ();
-								gr.SetSource (SelectionForeground);
+							RectangleD lineRect = new RectangleD (
+								(int)cb.X,
+								y + cb.Top, l.LengthInPixel, lineHeight);
+
+							if (encodedBytes > 0) {
 								gr.MoveTo (lineRect.X, lineRect.Y + fe.Ascent);
 								gr.ShowText (bytes.Slice (0, encodedBytes));
-								gr.Restore ();
 							}
+							/********** DEBUG TextLineCollection *************
+							gr.SetSource (Colors.Red);
+							gr.SetFontSize (9);
+							gr.MoveTo (700, lineRect.Y + fe.Ascent);
+							gr.ShowText ($"({lines[i].Start}, {lines[i].End}, {lines[i].EndIncludingLineBreak})");
+							gr.SetFontSize (Font.Size);
 							Foreground.SetAsSource (IFace, gr);
+							********** DEBUG TextLineCollection *************/
+
+							if (selectionNotEmpty) {
+								RectangleD selRect = lineRect;
+
+								if (i >= selStart.Line && i <= selEnd.Line) {
+									if (selStart.Line == selEnd.Line) {
+										selRect.X = selStart.VisualCharXPosition + cb.X;
+										selRect.Width = selEnd.VisualCharXPosition - selStart.VisualCharXPosition;
+									} else if (i == selStart.Line) {
+										double newX = selStart.VisualCharXPosition + cb.X;
+										selRect.Width -= (newX - selRect.X) - 10.0;
+										selRect.X = newX;
+									} else if (i == selEnd.Line) {
+										selRect.Width = selEnd.VisualCharXPosition - selRect.X + cb.X;
+									} else
+										selRect.Width += 10.0;
+								} else {
+									y += lineHeight;
+									continue;
+								}
+
+								gr.SetSource (selBackground);
+								gr.Rectangle (selRect);
+								if (encodedBytes < 0)
+									gr.Fill ();
+								else {
+									gr.FillPreserve ();
+									gr.Save ();
+									gr.Clip ();
+									gr.SetSource (SelectionForeground);
+									gr.MoveTo (lineRect.X, lineRect.Y + fe.Ascent);
+									gr.ShowText (bytes.Slice (0, encodedBytes));
+									gr.Restore ();
+								}
+								Foreground.SetAsSource (IFace, gr);
+							}
 						}
+						y += lineHeight;
 					}
-					y += lineHeight;
 				}
+			} finally {
+				document.ExitReadLock ();
 			}
 
 			gr.Translate (ScrollX, ScrollY);
@@ -493,13 +459,13 @@ namespace Crow
 			}
 			if (!CurrentLoc.Value.HasVisualX) {
 				setFontForContext (ctx);
-				lock (linesMutex) {
-					if (currentLoc?.Column < 0) {
-						updateLocation (ctx, ClientRectangle.Width, ref currentLoc);
-						NotifyValueChanged ("CurrentColumn", CurrentColumn);
-					} else
-						updateLocation (ctx, ClientRectangle.Width, ref currentLoc);
-				}
+
+				if (currentLoc?.Column < 0) {
+					updateLocation (ctx, ClientRectangle.Width, ref currentLoc);
+					NotifyValueChanged ("CurrentColumn", CurrentColumn);
+				} else
+					updateLocation (ctx, ClientRectangle.Width, ref currentLoc);
+
 				textCursor = null;
 			}
 
@@ -510,6 +476,7 @@ namespace Crow
 				return false;
 			}
 			//}
+
 			Rectangle c = ScreenCoordinates (textCursor.Value + Slot.Position + ClientRectangle.Position);
 			ctx.ResetClip ();
 			Foreground.SetAsSource (IFace, ctx, c);
@@ -528,8 +495,8 @@ namespace Crow
 			//Console.WriteLine ($"updateLocation: {loc} text:{_text.Length}");
 			if (loc.HasVisualX)
 				return;
-			TextLine ls = lines[loc.Line];
-			ReadOnlySpan<char> curLine = _text.GetLine (ls);
+			TextLine ls = document.GetLine (loc.Line);
+			ReadOnlySpan<char> curLine = document.GetText (ls);
 			double cPos = 0;
 
 			if (loc.Column >= 0) {
@@ -581,7 +548,7 @@ namespace Crow
 			base.OnLayoutChanges (layoutType);
 			updateMaxScrolls (layoutType);
 		}
-		public override bool UpdateLayout (LayoutingType layoutType) {
+		/*public override bool UpdateLayout (LayoutingType layoutType) {
 			if ((LayoutingType.Sizing | layoutType) != LayoutingType.None) {
 				if (!System.Threading.Monitor.TryEnter (linesMutex))
 					return false;
@@ -592,14 +559,11 @@ namespace Crow
 			} finally {
 				System.Threading.Monitor.Exit (linesMutex);
 			}
-		}
+		}*/
 		public override int measureRawSize(LayoutingType lt)
 		{
 			DbgLogger.StartEvent(DbgEvtType.GOMeasure, this, lt);
 			try {
-				if ((bool)lines?.IsEmpty)
-					getLines ();
-
 				if (!textMeasureIsUpToDate) {
 					using (Context gr = new Context (IFace.surf)) {
 						setFontForContext (gr);
@@ -611,7 +575,10 @@ namespace Crow
 				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
 			}
 		}
-
+		public override void Paint (Context ctx) {
+			base.Paint (ctx);
+			IFace.forceTextCursor = true;
+		}
 		protected override void onDraw (Context gr)
 		{
 			//base.onDraw (gr);
@@ -619,8 +586,7 @@ namespace Crow
 			setFontForContext (gr);
 
 			if (!textMeasureIsUpToDate) {
-				lock (linesMutex)
-					measureTextBounds (gr);
+				measureTextBounds (gr);
 			}
 
 			if (ClipToClientRect) {
@@ -629,8 +595,7 @@ namespace Crow
 				gr.Clip ();
 			}
 
-			lock (linesMutex)
-				drawContent (gr);
+			drawContent (gr);
 
 			if (ClipToClientRect)
 				gr.Restore ();
@@ -708,128 +673,144 @@ namespace Crow
 			if (e.Button != MouseButton.Left || !HasFocus)
 				return;
 
-			GotoWordStart ();
-			selectionStart = CurrentLoc;
-			GotoWordEnd ();
+			selectionStart = document.GetWordStart (CurrentLoc.Value);
+			CurrentLoc = document.GetWordEnd (CurrentLoc.Value);
 			RegisterForRedraw ();
 		}
 		#endregion
 
 		#region Keyboard handling
+		public override void onKeyPress (object sender, KeyPressEventArgs e) {
+			base.onKeyPress (sender, e);
+
+			TextSpan selection = Selection;
+			update (new TextChange (selection.Start, selection.Length, e.KeyChar.ToString ()));
+
+			/*Insert (e.KeyChar.ToString());
+
+			SelRelease = -1;
+			SelBegin = new Point(CurrentColumn, SelBegin.Y);
+
+			RegisterForGraphicUpdate();*/
+		}
 		public override void onKeyDown (object sender, KeyEventArgs e) {
 			Key key = e.Key;
 			TextSpan selection = Selection;
-			switch (key) {
-			case Key.Backspace:
-				if (selection.IsEmpty) {
-					if (selection.Start == 0)
-						return;
-					if (CurrentLoc.Value.Column == 0) {
-						int lbLength = lines[CurrentLoc.Value.Line - 1].LineBreakLength;
-						update (new TextChange (selection.Start - lbLength, lbLength, ""));
-					}else
-						update (new TextChange (selection.Start - 1, 1, ""));
-				} else
-					update (new TextChange (selection.Start, selection.Length, ""));
-				break;
-			case Key.Delete:
-				if (selection.IsEmpty) {
-					if (selection.Start == _text.Length)
-						return;
-					if (CurrentLoc.Value.Column >= lines[CurrentLoc.Value.Line].Length)
-						update (new TextChange (selection.Start, lines[CurrentLoc.Value.Line].LineBreakLength, ""));
+
+			/*document.EnterReadLock();
+			try {*/
+				switch (key) {
+				case Key.Backspace:
+					if (selection.IsEmpty) {
+						if (selection.Start == 0)
+							return;
+						if (CurrentLoc.Value.Column == 0) {
+							int lbLength = document.GetLine (CurrentLoc.Value.Line - 1).LineBreakLength;
+							update (new TextChange (selection.Start - lbLength, lbLength, ""));
+						}else
+							update (new TextChange (selection.Start - 1, 1, ""));
+					} else
+						update (new TextChange (selection.Start, selection.Length, ""));
+					break;
+				case Key.Delete:
+					if (selection.IsEmpty) {
+						if (selection.Start == document.Lenght)
+							return;
+						if (CurrentLoc.Value.Column >= document.GetLine (CurrentLoc.Value.Line).Length)
+							update (new TextChange (selection.Start, document.GetLine (CurrentLoc.Value.Line).LineBreakLength, ""));
+						else
+							update (new TextChange (selection.Start, 1, ""));
+					} else {
+						if (e.Modifiers == Modifier.Shift)
+							IFace.Clipboard = SelectedText;
+						update (new TextChange (selection.Start, selection.Length, ""));
+					}
+					break;
+				case Key.Insert:
+					if (e.Modifiers.HasFlag (Modifier.Shift))
+						Paste ();
+					else if (e.Modifiers.HasFlag (Modifier.Control))
+						Copy ();
+					break;
+				case Key.KeypadEnter:
+				case Key.Enter:
+					update (new TextChange (selection.Start, selection.Length, document.GetLineBreak ()));
+					break;
+				case Key.Escape:
+					selectionStart = null;
+					CurrentLoc = document.GetLocation (selection.Start);
+					RegisterForRedraw ();
+					break;
+				case Key.Tab:
+					update (new TextChange (selection.Start, selection.Length, App.IndentWithSpace ? new string(' ', App.TabulationSize) : "\t"));
+					break;
+				case Key.PageUp:
+					checkShift (e);
+					LineMove (-visibleLines);
+					RegisterForRedraw ();
+					break;
+				case Key.PageDown:
+					checkShift (e);
+					LineMove (visibleLines);
+					RegisterForRedraw ();
+					break;
+				case Key.Home:
+					targetColumn = -1;
+					checkShift (e);
+					if (e.Modifiers.HasFlag (Modifier.Control))
+						CurrentLoc = new CharLocation (0, 0);
 					else
-						update (new TextChange (selection.Start, 1, ""));
-				} else {
-					if (e.Modifiers == Modifier.Shift)
-						IFace.Clipboard = SelectedText;
-					update (new TextChange (selection.Start, selection.Length, ""));
+						CurrentLoc = new CharLocation (CurrentLoc.Value.Line, 0);
+					RegisterForRedraw ();
+					break;
+				case Key.End:
+					checkShift (e);
+					int l = e.Modifiers.HasFlag (Modifier.Control) ? document.LinesCount - 1 : CurrentLoc.Value.Line;
+					CurrentLoc = new CharLocation (l, document.GetLine (l).Length);
+					RegisterForRedraw ();
+					break;
+				case Key.Left:
+					checkShift (e);
+					if (e.Modifiers.HasFlag (Modifier.Control))
+						CurrentLoc = document.GetWordStart (CurrentLoc.Value);
+					else
+						MoveLeft ();
+					RegisterForRedraw ();
+					break;
+				case Key.Right:
+					checkShift (e);
+					if (e.Modifiers.HasFlag (Modifier.Control))
+						CurrentLoc = document.GetWordEnd (CurrentLoc.Value);
+					else
+						MoveRight ();
+					RegisterForRedraw ();
+					break;
+				case Key.Up:
+					checkShift (e);
+					LineMove (-1);
+					RegisterForRedraw ();
+					break;
+				case Key.Down:
+					checkShift (e);
+					LineMove (1);
+					RegisterForRedraw ();
+					break;
+				case Key.A:
+					if (e.Modifiers.HasFlag (Modifier.Control)) {
+						selectionStart = new CharLocation (0, 0);
+						CurrentLoc = document.EndLocation;
+					}
+					break;
+				default:
+					base.onKeyDown (sender, e);
+					return;
 				}
-				break;
-			case Key.Insert:
-				if (e.Modifiers.HasFlag (Modifier.Shift))
-					Paste ();
-				else if (e.Modifiers.HasFlag (Modifier.Control))
-					Copy ();
-				break;
-			case Key.KeypadEnter:
-			case Key.Enter:
-				if (string.IsNullOrEmpty (LineBreak))
-					detectLineBreak ();
-				update (new TextChange (selection.Start, selection.Length, LineBreak));
-				break;
-			case Key.Escape:
-				selectionStart = null;
-				CurrentLoc = lines.GetLocation (selection.Start);
-				RegisterForRedraw ();
-				break;
-			case Key.Tab:
-				update (new TextChange (selection.Start, selection.Length, App.IndentWithSpace ? new string(' ', App.TabulationSize) : "\t"));
-				break;
-			case Key.PageUp:
-				checkShift (e);
-				LineMove (-visibleLines);
-				RegisterForRedraw ();
-				break;
-			case Key.PageDown:
-				checkShift (e);
-				LineMove (visibleLines);
-				RegisterForRedraw ();
-				break;
-			case Key.Home:
-				targetColumn = -1;
-				checkShift (e);
-				if (e.Modifiers.HasFlag (Modifier.Control))
-					CurrentLoc = new CharLocation (0, 0);
-				else
-					CurrentLoc = new CharLocation (CurrentLoc.Value.Line, 0);
-				RegisterForRedraw ();
-				break;
-			case Key.End:
-				checkShift (e);
-				int l = e.Modifiers.HasFlag (Modifier.Control) ? lines.Count - 1 : CurrentLoc.Value.Line;
-				CurrentLoc = new CharLocation (l, lines[l].Length);
-				RegisterForRedraw ();
-				break;
-			case Key.Left:
-				checkShift (e);
-				if (e.Modifiers.HasFlag (Modifier.Control))
-					GotoWordStart ();
-				else
-					MoveLeft ();
-				RegisterForRedraw ();
-				break;
-			case Key.Right:
-				checkShift (e);
-				if (e.Modifiers.HasFlag (Modifier.Control))
-					GotoWordEnd ();
-				else
-					MoveRight ();
-				RegisterForRedraw ();
-				break;
-			case Key.Up:
-				checkShift (e);
-				LineMove (-1);
-				RegisterForRedraw ();
-				break;
-			case Key.Down:
-				checkShift (e);
-				LineMove (1);
-				RegisterForRedraw ();
-				break;
-			case Key.A:
-				if (e.Modifiers.HasFlag (Modifier.Control)) {
-					selectionStart = new CharLocation (0, 0);
-					CurrentLoc = new CharLocation (lines.Count - 1, lines[lines.Count - 1].Length);
-				}
-				break;
-			default:
-				base.onKeyDown (sender, e);
-				return;
-			}
-			autoAdjustScroll = true;
-			IFace.forceTextCursor = true;
-			e.Handled = true;
+				autoAdjustScroll = true;
+				IFace.forceTextCursor = true;
+				e.Handled = true;
+			/*} finally {
+				document.ExitReadLock ();
+			}*/
 		}
 		#endregion
 		#endregion
@@ -898,48 +879,20 @@ namespace Crow
 			update (new TextChange (selection.Start, selection.Length, IFace.Clipboard));
 		}
 
-		#region Keyboard handling
-		public override void onKeyPress (object sender, KeyPressEventArgs e) {
-			base.onKeyPress (sender, e);
-
-			TextSpan selection = Selection;
-			update (new TextChange (selection.Start, selection.Length, e.KeyChar.ToString ()));
-
-			/*Insert (e.KeyChar.ToString());
-
-			SelRelease = -1;
-			SelBegin = new Point(CurrentColumn, SelBegin.Y);
-
-			RegisterForGraphicUpdate();*/
-		}
-		#endregion
-
 		protected void update (TextChange change) {
 
-			lock (linesMutex) {
-				ReadOnlySpan<char> src = _text.AsSpan ();
-				Span<char> tmp = stackalloc char[src.Length + (change.ChangedText.Length - change.Length)];
-				//Console.WriteLine ($"{Text.Length,-4} {change.Start,-4} {change.Length,-4} {change.ChangedText.Length,-4} tmp:{tmp.Length,-4}");
-				src.Slice (0, change.Start).CopyTo (tmp);
-				change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
-				src.Slice (change.End).CopyTo (tmp.Slice (change.Start + change.ChangedText.Length));
-
-				_text = tmp.ToString ();
-				lines.Update (change);
-				//lines.Update (_text);
-				selectionStart = null;
-
-				CurrentLoc = lines.GetLocation (change.Start + change.ChangedText.Length);
-				textMeasureIsUpToDate = false;
-				IFace.forceTextCursor = true;
-			}
-
 			OnTextChanged (this, new TextChangeEventArgs (change));
+
+			selectionStart = null;
+			CurrentLoc = document.GetLocation (change.Start + change.ChangedText.Length);
+
+			textMeasureIsUpToDate = false;
+			IFace.forceTextCursor = true;
+			autoAdjustScroll = true;
 
 			RegisterForGraphicUpdate ();
 		}
 
 		#endregion
-
 	}
 }

@@ -64,7 +64,7 @@ namespace Crow
 			base.OnTextChanged(sender, e);
 
 			if (Document is SourceDocument srcdoc)
-				srcdoc.updateCurrentTokAndNode (lines.GetAbsolutePosition(CurrentLoc.Value));
+				srcdoc.updateCurrentTokAndNode (CurrentLoc.Value);
 
 			if (!disableSuggestions && HasFocus)
 				tryGetSuggestions ();
@@ -83,7 +83,7 @@ namespace Crow
 
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc) {
-				IList suggs = srcDoc.GetSuggestions (lines.GetAbsolutePosition (CurrentLoc.Value));
+				IList suggs = srcDoc.GetSuggestions (CurrentLoc.Value);
 				if (suggs != null && suggs.Count == 1 && (
 					(suggs[0] is System.Reflection.MemberInfo mi && mi.Name == srcDoc.CurrentTokenString) ||
 					(suggs[0].ToString() == srcDoc.CurrentTokenString)
@@ -164,7 +164,7 @@ namespace Crow
 		void updateMargin () {
 			leftMargin = leftMarginGap;
 			if (App.PrintLineNumbers)
-				leftMargin += (int)Math.Ceiling((double)lines.Count.ToString().Length * fe.MaxXAdvance) + 6;
+				leftMargin += (int)Math.Ceiling((double)(Document == null ? 1 : Document.LinesCount.ToString().Length) * fe.MaxXAdvance) + 6;
 			if (App.FoldingEnabled)
 				leftMargin += foldMargin;
 			leftMargin += leftMarginRightGap;
@@ -183,7 +183,7 @@ namespace Crow
 						fold = fold.Parent;
 					fold?.UnfoldToTheTop();
 					if (Document is SourceDocument doc)
-						doc.updateCurrentTokAndNode (lines.GetAbsolutePosition(currentLoc.Value));
+						doc.updateCurrentTokAndNode (currentLoc.Value);
 				}
 				NotifyValueChanged ("CurrentLine", CurrentLine);
 				NotifyValueChanged ("CurrentColumn", CurrentColumn);
@@ -194,9 +194,6 @@ namespace Crow
 		{
 			DbgLogger.StartEvent(DbgEvtType.GOMeasure, this, lt);
 			try {
-				if ((bool)lines?.IsEmpty)
-					getLines ();
-
 				updateMargin ();
 
 				if (!textMeasureIsUpToDate) {
@@ -286,85 +283,89 @@ namespace Crow
 		{
 			TextSpan selection = Selection;
 
-			if (SelectionIsEmpty) {
-				if (suggestionsActive) {
-					switch (e.Key) {
-					case Key.Escape:
-						hideOverlay ();
-						return;
-					case Key.Left:
-					case Key.Right:
-						hideOverlay ();
-						break;
-					case Key.End:
-					case Key.Home:
-					case Key.Down:
-					case Key.Up:
-					case Key.PageDown:
-					case Key.PageUp:
-						overlay.onKeyDown (this, e);
-						return;
-					case Key.Tab:
-					case Key.Enter:
-					case Key.KeypadEnter:
-						completeToken ();
+			/*Document.EnterReadLock();
+			try {*/
+				if (SelectionIsEmpty) {
+					if (suggestionsActive) {
+						switch (e.Key) {
+						case Key.Escape:
+							hideOverlay ();
+							return;
+						case Key.Left:
+						case Key.Right:
+							hideOverlay ();
+							break;
+						case Key.End:
+						case Key.Home:
+						case Key.Down:
+						case Key.Up:
+						case Key.PageDown:
+						case Key.PageUp:
+							overlay.onKeyDown (this, e);
+							return;
+						case Key.Tab:
+						case Key.Enter:
+						case Key.KeypadEnter:
+							completeToken ();
+							return;
+						}
+					} else if (e.Key == Key.Space && e.Modifiers.HasFlag (Modifier.Control)) {
+						tryGetSuggestions ();
 						return;
 					}
-				} else if (e.Key == Key.Space && e.Modifiers.HasFlag (Modifier.Control)) {
-					tryGetSuggestions ();
+				} else if (e.Key == Key.Tab && !selection.IsEmpty) {
+					int lineStart =  Document.GetLocation (selection.Start).Line;
+					CharLocation locEnd = Document.GetLocation (selection.End);
+					int lineEnd = locEnd.Column == 0 ? Math.Max (0, locEnd.Line - 1) : locEnd.Line;
+
+					disableSuggestions = true;
+
+					if ( e.Modifiers == Modifier.Shift) {
+						for (int l = lineStart; l <= lineEnd; l++) {
+							TextLine li = Document.GetLine (l);
+							if (Document.GetChar (li.Start) == '\t')
+								update (new TextChange (li.Start, 1, ""));
+							else if (Char.IsWhiteSpace (Document.GetChar (li.Start))) {
+								int i = 1;
+								while (i < li.Length && i < App.TabulationSize && Char.IsWhiteSpace (Document.GetChar  (i)))
+									i++;
+								update (new TextChange (li.Start, i, ""));
+							}
+						}
+
+					}else{
+						for (int l = lineStart; l <= lineEnd; l++)
+							update (new TextChange (Document.GetLine (l).Start, 0, "\t"));
+					}
+
+					selectionStart = new CharLocation (lineStart, 0);
+					CurrentLoc = new CharLocation (lineEnd, Document.GetLine (lineEnd).Length);
+
+					disableSuggestions = false;
+
 					return;
 				}
-			} else if (e.Key == Key.Tab && !selection.IsEmpty) {
-				int lineStart = lines.GetLocation (selection.Start).Line;
-				CharLocation locEnd = lines.GetLocation (selection.End);
-				int lineEnd = locEnd.Column == 0 ? Math.Max (0, locEnd.Line - 1) : locEnd.Line;
-
-				disableSuggestions = true;
-
-				if ( e.Modifiers == Modifier.Shift) {
-					for (int l = lineStart; l <= lineEnd; l++) {
-						if (_text[lines[l].Start] == '\t')
-							update (new TextChange (lines[l].Start, 1, ""));
-						else if (Char.IsWhiteSpace (_text[lines[l].Start])) {
-							int i = 1;
-							while (i < lines[l].Length && i < App.TabulationSize && Char.IsWhiteSpace (_text[i]))
-								i++;
-							update (new TextChange (lines[l].Start, i, ""));
-						}
+				if (Document is SourceDocument doc) {
+					switch (e.Key) {
+						case Key.F3:
+							doc.SyntaxRootNode?.Dump();
+							break;
+						case Key.Enter:
+						case Key.KeypadEnter:
+							//doc.updateCurrentTokAndNode (Selection.Start);
+							Console.WriteLine ($"*** Current Token: {doc.CurrentToken} Current Node: {doc.CurrentNode}");
+							update (new TextChange (selection.Start, selection.Length, Document.GetLineBreak ()));
+							autoAdjustScroll = true;
+							IFace.forceTextCursor = true;
+							e.Handled = true;
+							return;
 					}
-
-				}else{
-					for (int l = lineStart; l <= lineEnd; l++)
-						update (new TextChange (lines[l].Start, 0, "\t"));
 				}
 
-				selectionStart = new CharLocation (lineStart, 0);
-				CurrentLoc = new CharLocation (lineEnd, lines[lineEnd].Length);
-
-				disableSuggestions = false;
-
-				return;
-			}
-			if (Document is SourceDocument doc) {
-				switch (e.Key) {
-					case Key.F3:
-						doc.SyntaxRootNode?.Dump();
-						break;
-					case Key.Enter:
-					case Key.KeypadEnter:
-						//doc.updateCurrentTokAndNode (Selection.Start);
-						Console.WriteLine ($"*** Current Token: {doc.CurrentToken} Current Node: {doc.CurrentNode}");
-						if (string.IsNullOrEmpty (LineBreak))
-							detectLineBreak ();
-						update (new TextChange (selection.Start, selection.Length, LineBreak));
-						autoAdjustScroll = true;
-						IFace.forceTextCursor = true;
-						e.Handled = true;
-						return;
-				}
-			}
-
-			base.onKeyDown(sender, e);
+				base.onKeyDown(sender, e);
+			/*} finally {
+				Document.ExitReadLock ();
+			}*/
 		}
 
 
@@ -461,7 +462,7 @@ namespace Crow
 			get {
 				if (!(Document is SourceDocument doc))
 					return base.visualLineCount;
-				return lines.Count - countFoldedLinesUntil (lines.Count);
+				return Document.LinesCount - countFoldedLinesUntil (Document.LinesCount);
 			}
 		}
 		protected override int visualCurrentLine => CurrentLoc.HasValue ? getVisualLine (CurrentLoc.Value.Line) : 0;
@@ -524,7 +525,7 @@ namespace Crow
 				bool printLineNumbers = App.PrintLineNumbers;
 				Color marginBG = App.MarginBackground;
 				Color marginFG = Colors.Ivory;
-				double lineNumWidth = gr.TextExtents (lines.Count.ToString()).Width;
+				double lineNumWidth = gr.TextExtents (Document.LinesCount.ToString()).Width;
 
 				Rectangle cb = ClientRectangle;
 				RectangleD marginRect = new RectangleD (cb.X + ScrollX, cb.Y, leftMargin - leftMarginRightGap, lineHeight);
@@ -546,9 +547,9 @@ namespace Crow
 
 				if (CurrentNode != null) {
 					TextSpan nodeSpan = CurrentNode.Span;
-					nodeStart = lines.GetLocation  (nodeSpan.Start);
+					nodeStart = Document.GetLocation  (nodeSpan.Start);
 					updateLocation (gr, cb.Width, ref nodeStart);
-					nodeEnd = lines.GetLocation  (nodeSpan.End);
+					nodeEnd = Document.GetLocation  (nodeSpan.End);
 					updateLocation (gr, cb.Width, ref nodeEnd);
 				}
 #if DEBUG_NODES
@@ -623,7 +624,7 @@ namespace Crow
 				bool notEndOfNodes = nodeEnum.MoveNext();
 
 				int l = 0;
-				while (l < lines.Count) {
+				while (l < Document.LinesCount) {
 					//if (!cancelLinePrint (lineHeight, lineHeight * y, cb.Height)) {
 
 					bool foldable = false;
@@ -644,7 +645,7 @@ namespace Crow
 
 					//buff = sourceBytes.Slice (lines[l].Start, lines[l].Length);
 
-					while (tok.Start < lines[l].End) {
+					while (tok.Start < Document.GetLine (l).End) {
 						buff = sourceBytes.Slice (tok.Start, tok.Length);
 						gr.SetSource (doc.GetColorForToken (tok.Type));
 
@@ -728,7 +729,7 @@ namespace Crow
 					if (foldable && curNode.isFolded) {
 						TextSpan ns = curNode.Span;
 						l = curNode.StartLine + curNode.LineCount;
-						while (tok.End <= lines[l].Start) {
+						while (tok.End <= Document.GetLine (l).Start) {
 							if (++tokPtr >= doc.Tokens.Length)
 								break;
 							tok = doc.Tokens[tokPtr];

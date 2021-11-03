@@ -20,6 +20,8 @@ namespace CrowEditBase
 
 		string source, origSource;
 		System.Text.Encoding encoding = System.Text.Encoding.UTF8;
+		protected bool mixedLineBreak = false;
+		protected string lineBreak = null;
 
 		public string Source {
 			get => source;
@@ -27,11 +29,15 @@ namespace CrowEditBase
 				if (source == value)
 					return;
 				source = value;
+
+				getLines();
+
 				NotifyValueChanged (source);
 				NotifyValueChanged ("IsDirty", IsDirty);
 				CMDSave.CanExecute = IsDirty;
 			}
 		}
+		protected LineCollection lines;
 
 		public override bool IsDirty => origSource != source;
 				/// dictionnary of object per document client, when not null, client must reload content of document.
@@ -180,7 +186,9 @@ namespace CrowEditBase
 			if (!string.IsNullOrEmpty (change.ChangedText))
 				change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
 			src.Slice (change.End).CopyTo (tmp.Slice (change.Start + change.ChangedText.Length));
-			Source = tmp.ToString ();
+			source = tmp.ToString ();
+
+			lines.Update (change);
 		}
 		protected void applyTextChange (TextChange change, object triggeringEditor = null) {
 			editorRWLock.EnterWriteLock ();
@@ -198,6 +206,151 @@ namespace CrowEditBase
 		}
 		protected void onTextChanged (object sender, TextChangeEventArgs e) {
 			applyTextChange (e.Change, sender);
+		}
+		protected void getLines () {
+			editorRWLock.EnterWriteLock ();
+			if (lines == null)
+				lines = new LineCollection (10);
+			else
+				lines.Clear ();
+
+			if (string.IsNullOrEmpty (source))
+				lines.Add (new TextLine (0, 0, 0));
+			else
+				lines.Update (source);
+			editorRWLock.ExitWriteLock ();
+		}
+		public string GetLineBreak () {
+			editorRWLock.EnterReadLock ();
+			try {
+				if (string.IsNullOrEmpty (lineBreak)) {
+					mixedLineBreak = false;
+
+					if (lines.Count == 0 || lines[0].LineBreakLength == 0)
+						lineBreak = Environment.NewLine;
+					else {
+						lineBreak = source.GetLineBreak (lines[0]).ToString ();
+
+						for (int i = 1; i < lines.Count; i++) {
+							ReadOnlySpan<char> lb = source.GetLineBreak (lines[i]);
+							if (!lb.SequenceEqual (lineBreak)) {
+								mixedLineBreak = true;
+								break;
+							}
+						}
+					}
+				}
+				return lineBreak;
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+		public CharLocation GetLocation (int absolutePosition) {
+			editorRWLock.EnterReadLock ();
+			try {
+				return lines.GetLocation (absolutePosition);
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+		public int GetAbsolutePosition (CharLocation loc) {
+			editorRWLock.EnterReadLock ();
+			try {
+				return lines.GetAbsolutePosition (loc);
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+		public CharLocation EndLocation {
+			get {
+				editorRWLock.EnterReadLock ();
+				try {
+					return new CharLocation (lines.Count - 1, lines[lines.Count - 1].Length);
+				} finally {
+					editorRWLock.ExitReadLock();
+				}
+			}
+		}
+		public int LinesCount {
+			get {
+				editorRWLock.EnterReadLock ();
+				try {
+					return lines.Count;
+				} finally {
+					editorRWLock.ExitReadLock();
+				}
+			}
+		}
+		public int Lenght {
+			get {
+				editorRWLock.EnterReadLock ();
+				try {
+					return source.Length;
+				} finally {
+					editorRWLock.ExitReadLock();
+				}
+			}
+		}
+		public TextLine GetLine (int index) {
+			editorRWLock.EnterReadLock ();
+			try {
+				return lines[index];
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+		public ReadOnlySpan<char> GetText (TextLine line) {
+			editorRWLock.EnterReadLock ();
+			try {
+				return source.GetLine (line);
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+		public ReadOnlySpan<char> GetText (TextSpan span) {
+			editorRWLock.EnterReadLock ();
+			try {
+				return source.AsSpan (span.Start, span.Length);
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+		public char GetChar (int pos){
+			editorRWLock.EnterReadLock ();
+			try {
+				return source[pos];
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+
+		public virtual CharLocation GetWordStart (CharLocation loc) {
+			editorRWLock.EnterReadLock ();
+			try {
+				int pos = lines.GetAbsolutePosition (loc);
+				//skip white spaces
+				while (pos > 0 && !char.IsLetterOrDigit (source[pos-1]))
+					pos--;
+				while (pos > 0 && char.IsLetterOrDigit (source[pos-1]))
+					pos--;
+				return lines.GetLocation (pos);
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
+		}
+		public virtual CharLocation GetWordEnd (CharLocation loc) {
+			editorRWLock.EnterReadLock ();
+			try {
+				int pos = lines.GetAbsolutePosition (loc);
+				//skip white spaces
+				while (pos < Lenght - 1 && !char.IsLetterOrDigit (source[pos]))
+					pos++;
+				while (pos < Lenght - 1 && char.IsLetterOrDigit (source[pos]))
+					pos++;
+				return lines.GetLocation (pos);
+			} finally {
+				editorRWLock.ExitReadLock();
+			}
 		}
 	}
 }

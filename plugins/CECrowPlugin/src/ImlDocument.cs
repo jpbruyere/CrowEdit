@@ -47,10 +47,10 @@ namespace CECrowPlugin
 			Type crowType = IML.Instantiator.GetWidgetTypeFromName (crowTypeName);
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}
-		public override IList GetSuggestions (int pos) {
+		public override IList GetSuggestions (CharLocation loc) {
 			if (tokens.Length == 0)
 				return null;
-			IList sugs = base.GetSuggestions (pos);
+			IList sugs = base.GetSuggestions (loc);
 			if (sugs != null)
 				return sugs;
 

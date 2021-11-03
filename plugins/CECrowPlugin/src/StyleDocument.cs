@@ -24,7 +24,7 @@ namespace CECrowPlugin
 		protected override Tokenizer CreateTokenizer() => new StyleTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new StyleSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (int pos) {
+		public override IList GetSuggestions (CharLocation loc) {
 			/*currentToken = FindTokenIncludingPosition (pos);
 			currentNode = FindNodeIncludingPosition (pos);*/
 			return null;

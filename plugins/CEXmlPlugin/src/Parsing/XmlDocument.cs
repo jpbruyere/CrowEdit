@@ -32,7 +32,7 @@ namespace CrowEdit.Xml
 		protected override Tokenizer CreateTokenizer() => new XmlTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (int pos) {
+		public override IList GetSuggestions (CharLocation loc) {
 			/*currentToken = FindTokenIncludingPosition (pos);
 			currentNode = FindNodeIncludingPosition (pos);*/
 			return null;

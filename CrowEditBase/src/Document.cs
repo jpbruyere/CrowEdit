@@ -31,6 +31,8 @@ namespace CrowEditBase
 		protected ReaderWriterLockSlim editorRWLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 		public void EnterReadLock () => editorRWLock.EnterReadLock ();
 		public void ExitReadLock () => editorRWLock.ExitReadLock ();
+		public void EnterWriteLock () => editorRWLock.EnterWriteLock ();
+		public void ExitWriteLock () => editorRWLock.ExitWriteLock ();
 
 		public abstract bool TryGetState<T> (object client, out T state);
 		public abstract void RegisterClient (object client);

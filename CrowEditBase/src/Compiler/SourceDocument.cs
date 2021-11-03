@@ -17,7 +17,6 @@ namespace CrowEditBase
 		}
 		protected Token[] tokens;
 		protected SyntaxNode RootNode;
-		protected LineCollection lines;
 		protected Token currentToken => currentTokenIndex < 0 ? default : tokens[currentTokenIndex];
 		SyntaxNode currentNode;
 		public SyntaxNode CurrentNode {
@@ -131,7 +130,8 @@ namespace CrowEditBase
 			return true;
 		}
 
-		internal void updateCurrentTokAndNode (int pos) {
+		internal void updateCurrentTokAndNode (CharLocation loc) {
+			int pos = lines.GetAbsolutePosition(loc);
 			if (tokens.Length > 0) {
 				currentTokenIndex = FindTokenIndexIncludingPosition (pos);
 				CurrentNode = FindNodeIncludingSpan (currentToken.Span);
@@ -154,7 +154,7 @@ namespace CrowEditBase
 		}
 		protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
-		public abstract IList GetSuggestions (int pos);
+		public abstract IList GetSuggestions (CharLocation loc);
 
 		/// <summary>
 		/// complete current token with selected item from the suggestion overlay.
