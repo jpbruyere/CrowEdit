@@ -14,29 +14,30 @@ namespace CrowEdit.Xml
 			this.source = source;
 		}
 
-		Token previousTok;
-		Token curTok => source.Tokens[tokIdx];
+		/*public virtual SyntaxNode Process (SyntaxNode startingNode) {
+
+		}*/
 
 		public override void Process () {
 			XmlDocument xmlDoc = source as XmlDocument;
 			Exceptions = new List<SyntaxException> ();
 			currentNode = new IMLRootSyntax (xmlDoc);
-			previousTok = default;
 			currentLine = 0;
-			Token[] toks = source.Tokens;
+			Span<Token> toks = source.Tokens;
 			tokIdx = 0;
 
 			while (tokIdx < toks.Length) {
+				Token curTok = toks[tokIdx];
 				if (curTok.Type == TokenType.LineBreak)
 					currentLine++;
 				else if (!curTok.Type.HasFlag (TokenType.Trivia)) {
 					if (currentNode is ElementStartTagSyntax tag) {
 						if (curTok.GetTokenType() == XmlTokenType.AttributeName) {
 							AttributeSyntax attribute = new AttributeSyntax (currentLine, tokIdx);
-							attribute.name = tokIdx;
+							attribute.name = 0;
 							currentNode = currentNode.AddChild (attribute);
 						} else if (curTok.GetTokenType() == XmlTokenType.ElementName)
-							tag.name = tokIdx;
+							tag.name = tokIdx - tag.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.ClosingSign) {
 							storeCurrentNode ();
 							currentNode.RemoveChild (tag);

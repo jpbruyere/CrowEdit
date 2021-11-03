@@ -1,9 +1,13 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Available Plugins"  Width="200" >
+<DockWindow Caption="Available Plugins"  Width="70%" Height="80%" FreezeDockState="true">
 	<VerticalStack Margin="5">
-		<Label Fit="true" Text="Plugins directory path:" HorizontalAlignment="Left"/>
-		<TextBox Height="Fit" Text="{²PluginsDirecory}" Margin="2"/>
-		<ListBox Data="{Plugins}" >
+		<Label Fit="true" Text="Plugins directory path:"/>
+		<HorizontalStack Height="Fit">
+			<TextBox Height="Fit" Text="{²PluginsDirecory}" Margin="2"/>
+			<Button Command="{CMDOptions_SelectPluginsDirectory}" MinimumSize="0,0"/>
+			<Button Command="{CMDOptions_ResetPluginsDirectory}" MinimumSize="0,0"/>
+		</HorizontalStack>
+		<ListBox Data="{Plugins}" Height="50%">
 			<ItemTemplate>
 				<HorizontalStack Height="Fit">
 					<Label Text="{Name}" Width="Stretched"/>
@@ -15,7 +19,54 @@
 					</ListBox>
 				</HorizontalStack>
 			</ItemTemplate>
-		</ListBox>		
+		</ListBox>
+		<Splitter/>
+		<TreeView IsRoot="true" Name="lbCtxs"  Data="{AllLoadContexts}" UseLoadingThread = 'false' >
+			<ItemTemplate DataType="System.Reflection">
+				<ListItem CornerRadius="2" Margin="0" Height="Fit" Width="Stretched"
+						Selected="{Background=${ControlHighlight}}"
+						Unselected="{Background=Transparent}">
+					<HorizontalStack>
+						<!--<Image Margin="1" Width="14" Height="14" Path="#Crow.Icons.file.svg"/>-->
+						<Label Text="{}" Width="Stretched"/>
+					</HorizontalStack>
+				</ListItem>
+			</ItemTemplate>
+			<ItemTemplate DataType="System.Runtime.Loader.AssemblyLoadContext" Data="Assemblies">
+				<ListItem
+						Selected="{/exp.Background=${ControlHighlight}}"
+						Unselected="{/exp.Background=Transparent}">
+					<Expandable Name="exp" Caption="{}" MouseDoubleClick="/onClickForExpand" BubbleEvents="All">
+						<Template>
+							<VerticalStack>
+								<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"
+										Foreground="Transparent"
+										MouseEnter="{Foreground=DimGrey}"
+										MouseLeave="{Foreground=Transparent}">
+									<HorizontalStack Background="{./Background}" Spacing="1">
+										<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand"
+											Path="{./Image}"
+											Visible="{./IsExpandable}"
+											SvgSub="{./IsExpanded}"
+											MouseEnter="{Background=LightGrey}"
+											MouseLeave="{Background=Transparent}"/>
+										<Image Margin="1" Width="16" Height="16"
+											Path="#Crow.Icons.folder.svg" SvgSub="{./IsExpanded}"/>
+										<Label Text="{}"/>
+									</HorizontalStack>
+								</Border>
+								<Container Name="Content" Visible="false"/>
+							</VerticalStack>
+						</Template>
+						<HorizontalStack Height="Fit">
+							<Widget Width="12" Height="10"/>
+							<VerticalStack Height="Fit" Name="ItemsContainer"/>
+						</HorizontalStack>
+					</Expandable>
+				</ListItem>
+			</ItemTemplate>
+		</TreeView>
+		<!--<ListBox RootDataLevel="true" DataSource="{../lbCtxs.SelectedItem}" Data="{Assemblies}" UseLoadingThread = 'false' Height="200"/>-->
 	</VerticalStack>
 </DockWindow>
 

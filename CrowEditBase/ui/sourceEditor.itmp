@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}" Selected="{/tb.HasFocus='true'}">
 	<VerticalStack Spacing="0">
-		<HorizontalStack Spacing="0">
-			<SourceEditor Name="tb"  Font="consolas, 12" Margin='0'
+		<HorizontalStack Spacing="0" Background="White">
+			<SourceEditor Name="tb"  Font="consolas, 12" Margin='0' CurrentNode="{CurrentNode}"
 					Document="{}" TextChanged="onTextChanged" />
 			<ScrollBar Value="{²../tb.ScrollY}"
 					LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"
@@ -13,7 +13,11 @@
 				CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />
 		<HorizontalStack Height="Fit" Spacing='3'>
 			<Widget Width="Stretched"/>
-			<Label Text="MouseY:" Foreground="Grey"/>
+			<Label Text="Tok" Foreground="Grey"/>
+			<Label Text="{CurrentTokenString}" Margin="3"/>
+			<Label Text="Node" Foreground="Grey"/>
+			<Label Text="{CurrentNode}" Margin="3"/>
+			<!--<Label Text="MouseY:" Foreground="Grey"/>
 			<Label Text="{../../tb.MouseY}" Margin="3"/>
 			<Label Text="VisibleLines:" Foreground="Grey"/>
 			<Label Text="{../../tb.VisibleLines}" Margin="3"/>
@@ -23,7 +27,7 @@
 			<Label Text="{../../tb.ScrollY}" Margin="3"/>
 			<Label Text="ScrollLine:" Foreground="Grey"/>
 			<Label Text="{../../tb.ScrollLine}" Margin="3"/>
-			<Label Text="HoverLine:" Foreground="Grey"/>
+			<Label Text="HoverLine:" Foreground="Grey"/>-->
 			<Label Text="{../../tb.HoverLine}" Margin="3"/>
 			<Label Text="Line:" Foreground="Grey"/>
 			<Label Text="{../../tb.CurrentLine}" Margin="3"/>

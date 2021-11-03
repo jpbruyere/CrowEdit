@@ -181,27 +181,30 @@ namespace CrowEdit
 		protected override Document openOrCreateFile (string filePath, string editorPath = null) {
 			Document doc = null;
 			CurrentFilePath = filePath;
+			try {
+				string ext = Path.GetExtension (CurrentFilePath);
+				if (TryGetDefaultTypeForExtension (ext, out Type clientType)) {
+					if (typeof(Document).IsAssignableFrom (clientType)) {
+						if (editorPath == null)
+							TryGetDefaultEditorForDocumentType (clientType, out editorPath);
+						doc = (Document)Activator.CreateInstance (clientType, new object[] {CurrentFilePath, editorPath});
+					}else if (typeof(Service).IsAssignableFrom (clientType))
+						doc = GetService (clientType)?.OpenDocument (CurrentFilePath);
+					else if (typeof(Project).IsAssignableFrom (clientType)) {
+						Project prj = (Project)Activator.CreateInstance (clientType, new object[] {CurrentFilePath});
+						Projects.Add (prj);
+						CurrentProject = prj;
+						return null;
+					}
+				}else
+					doc = new TextDocument (CurrentFilePath);
 
-			string ext = Path.GetExtension (CurrentFilePath);
-			if (TryGetDefaultTypeForExtension (ext, out Type clientType)) {
-				if (typeof(Document).IsAssignableFrom (clientType)) {
-					if (editorPath == null)
-						TryGetDefaultEditorForDocumentType (clientType, out editorPath);
-					doc = (Document)Activator.CreateInstance (clientType, new object[] {CurrentFilePath, editorPath});
-				}else if (typeof(Service).IsAssignableFrom (clientType))
-					doc = GetService (clientType)?.OpenDocument (CurrentFilePath);
-				else if (typeof(Project).IsAssignableFrom (clientType)) {
-					Project prj = (Project)Activator.CreateInstance (clientType, new object[] {CurrentFilePath});
-					Projects.Add (prj);
-					CurrentProject = prj;
-					return null;
-				}
-			}else
-				doc = new TextDocument (CurrentFilePath);
-
-			doc.CloseEvent += onQueryCloseDocument;
-			OpenedDocuments.Add (doc);
-			CurrentDocument = doc;
+				doc.CloseEvent += onQueryCloseDocument;
+				OpenedDocuments.Add (doc);
+				CurrentDocument = doc;
+			} catch (Exception ex) {
+				System.Diagnostics.Debug.WriteLine ($"[openOrCreateFile]{ex}");
+			}
 			return doc;
 		}
 		/*public TreeNode[] GetCurrentDirNodes =>

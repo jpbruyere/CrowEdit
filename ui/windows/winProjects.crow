@@ -24,7 +24,7 @@
 					Unselected="{/border.Background=${TreeItemBackground}}"
 					MouseEnter="{/border.Foreground=${TreeItemBorderHighlightFG}}"
 					MouseLeave="{/border.Foreground=${TreeItemBorderFG}}">
-				<Border Name="border" Margin="2" CornerRadius="${TreeItemBorderCornerRadius}"
+				<Border Name="border" Margin="1" CornerRadius="${TreeItemBorderCornerRadius}"
 													Foreground="${TreeItemBorderFG}">
 					<HorizontalStack Spacing="5">
 						<Image Style="TreeIcon"	Path="{Icon}" SvgSub="{IconSub}"/>

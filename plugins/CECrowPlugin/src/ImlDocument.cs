@@ -17,6 +17,8 @@ using static CrowEditBase.CrowEditBase;
 using CrowEdit.Xml;
 using CERoslynPlugin;
 
+using AttributeSyntax = CrowEdit.Xml.AttributeSyntax;
+
 namespace CECrowPlugin
 {
 	public class ImlDocument : XmlDocument {
@@ -46,25 +48,32 @@ namespace CECrowPlugin
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}
 		public override IList GetSuggestions (int pos) {
-			base.GetSuggestions (pos);
+			if (tokens.Length == 0)
+				return null;
+			IList sugs = base.GetSuggestions (pos);
+			if (sugs != null)
+				return sugs;
+
 #if DEBUG
-			Console.WriteLine ($"Current Token: {currentToken} Current Node: {currentNode}");
+			Console.WriteLine ($"Current Token: {CurrentTokenString} Current Node: {CurrentNode}");
 #endif
 
-			/*if (currentToken.GetTokenType() == XmlTokenType.ElementOpen)
+			if (currentToken.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);
 			if (currentToken.GetTokenType() == XmlTokenType.ElementName)
 				return allWidgetNames.Where (s => s.StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
-			if (currentNode is AttributeSyntax attribNode) {
-				if (currentNode.Parent is ElementTagSyntax eltTag) {
-					if (eltTag.NameToken.HasValue) {
+			if (currentToken.GetTokenType() == XmlTokenType.WhiteSpace && CurrentNode is ElementStartTagSyntax eltStartTag2)
+				return getAllCrowTypeMembers (eltStartTag2.Name).ToList();
+			if (CurrentNode is CrowEdit.Xml.AttributeSyntax attribNode) {
+				if (CurrentNode.Parent is ElementTagSyntax eltTag) {
+					if (!string.IsNullOrEmpty (eltTag.Name)) {
 						if (currentToken.GetTokenType() == XmlTokenType.AttributeName) {
-							return getAllCrowTypeMembers (eltTag.NameToken.Value.AsString (Source))
+							return getAllCrowTypeMembers (eltTag.Name)
 								.Where (s => s.Name.StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
-						} else if (attribNode.NameToken.HasValue) {
+						} else if (!string.IsNullOrEmpty (attribNode.Name)) {
 							if (currentToken.GetTokenType() == XmlTokenType.AttributeValue) {
 								MemberInfo mi = getCrowTypeMember (
-									eltTag.NameToken.Value.AsString (Source), attribNode.NameToken.Value.AsString (Source));
+									eltTag.Name, attribNode.Name);
 								if (mi is PropertyInfo pi) {
 									if (pi.Name == "Style")
 										return App.Styling.Keys
@@ -84,7 +93,7 @@ namespace CECrowPlugin
 								}
 							} else if (currentToken.GetTokenType() == XmlTokenType.AttributeValueOpen) {
 								MemberInfo mi = getCrowTypeMember (
-									eltTag.NameToken.Value.AsString (Source), attribNode.NameToken.Value.AsString (Source));
+									eltTag.Name, attribNode.Name);
 								if (mi is PropertyInfo pi) {
 									if (pi.Name == "Style")
 										return App.Styling.Keys.ToList ();
@@ -104,44 +113,18 @@ namespace CECrowPlugin
 			} else if (currentToken.GetTokenType() != XmlTokenType.AttributeValueClose &&
 					currentToken.GetTokenType() != XmlTokenType.EmptyElementClosing &&
 					currentToken.GetTokenType() != XmlTokenType.ClosingSign &&
-					currentNode is ElementStartTagSyntax eltStartTag) {
+					CurrentNode is ElementStartTagSyntax eltStartTag) {
 				if (currentToken.GetTokenType() == XmlTokenType.AttributeName)
-					return getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source))
+					return getAllCrowTypeMembers (eltStartTag.Name)
 						.Where (s => s.Name.StartsWith (currentToken.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
 				//else if (currentToken.Type == TokenType.ElementName)
 				//	Suggestions = getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source)).ToList ();
 			} else {
-			}*/
+			}
 			return null;
 		}
-		public override TextChange? GetCompletionForCurrentToken (object suggestion, out TextSpan? newSelection) {
-			newSelection = null;
-
-			string selectedSugg = suggestion is MemberInfo mi ?
-				mi.Name : suggestion?.ToString ();
-			if (selectedSugg == null)
-				return null;
-
-			if (currentToken.GetTokenType() == XmlTokenType.ElementOpen ||
-				currentToken.GetTokenType() == XmlTokenType.WhiteSpace ||
-				currentToken.GetTokenType() == XmlTokenType.AttributeValueOpen)
-				return new TextChange (currentToken.End, 0, selectedSugg);
-
-			if (currentToken.GetTokenType() == XmlTokenType.AttributeName && currentNode is AttributeSyntax attrib) {
-					if (attrib.ValueToken.HasValue) {
-						TextChange tc = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
-						newSelection = new TextSpan(
-							attrib.ValueToken.Value.Start + tc.CharDiff + 1,
-							attrib.ValueToken.Value.End + tc.CharDiff - 1
-						);
-						return tc;
-					} else {
-						newSelection = TextSpan.FromStartAndLength (currentToken.Start + selectedSugg.Length + 2);
-						return new TextChange (currentToken.Start, currentToken.Length, selectedSugg + "=\"\"");
-					}
-			}
-
-			return new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
+		public override bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection) {
+			return base.TryGetCompletionForCurrentToken (suggestion is MemberInfo mi ? mi.Name : suggestion, out change, out newSelection);
 		}
 
 		public override Color GetColorForToken(TokenType tokType)

@@ -33,13 +33,41 @@ namespace CrowEdit.Xml
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (this);
 
 		public override IList GetSuggestions (int pos) {
-			currentToken = FindTokenIncludingPosition (pos);
-			currentNode = FindNodeIncludingPosition (pos);
+			/*currentToken = FindTokenIncludingPosition (pos);
+			currentNode = FindNodeIncludingPosition (pos);*/
 			return null;
 		}
-		public override TextChange? GetCompletionForCurrentToken (object suggestion, out TextSpan? newSelection) {
+		public override bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection) {
 			newSelection = null;
-			return null;
+			change = default;
+
+			string selectedSugg = suggestion?.ToString ();
+
+			if (selectedSugg == null)
+				return false;
+
+			if (currentToken.GetTokenType() == XmlTokenType.ElementOpen ||
+				currentToken.GetTokenType() == XmlTokenType.WhiteSpace ||
+				currentToken.GetTokenType() == XmlTokenType.AttributeValueOpen) {
+				change = new TextChange (currentToken.End, 0, selectedSugg);
+				return true;
+			}
+			if (currentToken.GetTokenType() == XmlTokenType.AttributeName && CurrentNode is CrowEdit.Xml.AttributeSyntax attrib) {
+				if (attrib.ValueToken.HasValue) {
+					change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
+					newSelection = new TextSpan(
+						attrib.ValueToken.Value.Start + change.CharDiff + 1,
+						attrib.ValueToken.Value.End + change.CharDiff - 1
+					);
+				} else {
+					newSelection = TextSpan.FromStartAndLength (currentToken.Start + selectedSugg.Length + 2);
+					change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg + "=\"\"");
+				}
+				return true;
+			}
+
+			change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
+			return true;
 		}
 
 		public override Color GetColorForToken(TokenType tokType)

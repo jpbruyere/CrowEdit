@@ -25,13 +25,15 @@ namespace CECrowPlugin
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new StyleSyntaxAnalyser (this);
 
 		public override IList GetSuggestions (int pos) {
-			currentToken = FindTokenIncludingPosition (pos);
-			currentNode = FindNodeIncludingPosition (pos);
+			/*currentToken = FindTokenIncludingPosition (pos);
+			currentNode = FindNodeIncludingPosition (pos);*/
 			return null;
 		}
-		public override TextChange? GetCompletionForCurrentToken (object suggestion, out TextSpan? newSelection) {
+		public override bool TryGetCompletionForCurrentToken(object suggestion, out TextChange change, out TextSpan? newSelection)
+		{
+			change = default;
 			newSelection = null;
-			return null;
+			return false;
 		}
 		public override Color GetColorForToken(TokenType tokType)
 		{

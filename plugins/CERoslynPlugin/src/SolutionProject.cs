@@ -44,22 +44,22 @@ namespace CERoslynPlugin
 		public IEnumerable<string> Configurations => solutionFile.SolutionConfigurations.Select (sc => sc.ConfigurationName).Distinct ().ToList ();
 		public IEnumerable<string> Platforms => solutionFile.SolutionConfigurations.Select (sc => sc.PlatformName).Distinct ().ToList ();
 		public string ActiveConfiguration {
-			get => projectCollection.GetGlobalProperty ("Configuration")?.ToString();
-			/*set {
+			get => UserConfig.Get<string> ("ActiveConfiguration");
+			set {
 				if (ActiveConfiguration == value)
 					return;
-				projectCollection.SetGlobalProperty ("Configuration", value);
+				UserConfig.Set ("ActiveConfiguration", value);
 				NotifyValueChanged (value);
-			}*/
+			}
 		}
 		public string ActivePlatform {
-			get => projectCollection.GetGlobalProperty ("Platform")?.ToString();
-			/*set {
-				if (ActivePlatform == value)
+			get => UserConfig.Get<string> ("ActivePlatform");
+			set {
+				if (ActiveConfiguration == value)
 					return;
-				projectCollection.SetGlobalProperty ("Platform", value);
+				UserConfig.Set ("ActivePlatform", value);
 				NotifyValueChanged (value);
-			}*/
+			}
 		}
 		public override bool ContainsFile (string fullPath) =>
 				FlattenProjetcs.Any (f => f.ContainsFile (fullPath));
@@ -92,10 +92,10 @@ namespace CERoslynPlugin
 		}
 
 		public override void Load () {
-			Dictionary<string,string> globalProperties = new Dictionary<string, string>();
-			globalProperties.Add ("Configuration", "Debug");
+			//Dictionary<string,string> globalProperties = new Dictionary<string, string>();
+			//globalProperties.Add ("Configuration", "Debug");
 			projectCollection = new ProjectCollection (
-				globalProperties,
+				null,//globalProperties,
 				new ILogger [] { roslynService.Logger },
 				ToolsetDefinitionLocations.Default
 			);
@@ -104,20 +104,25 @@ namespace CERoslynPlugin
 			solutionFile = SolutionFile.Parse (FullPath);
 			UserConfig = new Configuration (FullPath + ".user");
 
+
 			//IDE.ProgressNotify (10);
 
 			//projectCollection has to be recreated to change global properties
-			//ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
-			//ActivePlatform = solutionFile.GetDefaultPlatformName ();
+			if (string.IsNullOrEmpty (ActiveConfiguration))
+				ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
+			if (string.IsNullOrEmpty (ActivePlatform))
+				ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
 			projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
 							Path.Combine (
 								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
 								"NuGet.Config"));
 
-			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (FullPath) + Path.DirectorySeparatorChar);
 			projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 			projectCollection.SetGlobalProperty ("TargetFramework", "netcoreapp3.1");
+
+			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (FullPath) + Path.DirectorySeparatorChar);
+			//projectCollection.SetGlobalProperty ("Configuration", "Debug");
 
 			//IDE.ProgressNotify (10);
 
@@ -176,9 +181,9 @@ namespace CERoslynPlugin
 			}
 
 			IsLoaded = true;
-
-			if (StartupProject is MSBuildProject msbProj)
-				msbProj?.DesignBuild();
+			//Console.WriteLine (projectCollection.Get ("Configuration"));
+			/*if (StartupProject is MSBuildProject msbProj)
+				msbProj?.DesignBuild();*/
 		}
 
 		void build (params string[] targets) {

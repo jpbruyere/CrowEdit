@@ -3,5 +3,7 @@
 	<VerticalStack>
 		<CheckBox Caption="Print line number" IsChecked="{²PrintLineNumbers}"/>
 		<CheckBox Caption="Reopen last file" IsChecked="{²ReopenLastFile}"/>
+		<CheckBox Caption="Indent With Space" IsChecked="{²IndentWithSpace}"/>
+		<Spinner Caption="Tabulation Size" Value="{²TabulationSize}"/>
 	</VerticalStack>
 </Window>

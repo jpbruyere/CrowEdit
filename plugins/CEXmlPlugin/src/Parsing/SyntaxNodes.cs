@@ -24,6 +24,7 @@ namespace CrowEdit.Xml
 	public abstract class ElementTagSyntax : SyntaxNode {
 		internal int? name, close;
 		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
+		public string Name => Root.GetTokenStringByIndex (TokenIndexBase + name.Value);
 		protected ElementTagSyntax (int startLine, int tokenBase)
 			: base (startLine, tokenBase) {
 		}
@@ -41,7 +42,7 @@ namespace CrowEdit.Xml
 
 	public class EmptyElementSyntax : SyntaxNode {
 		public readonly ElementStartTagSyntax StartTag;
-		public EmptyElementSyntax (ElementStartTagSyntax startNode) : base (startNode.StartLine, startNode.TokenIndexBase, startNode.LastTokenOffset) {
+		public EmptyElementSyntax (ElementStartTagSyntax startNode) : base (startNode.StartLine, startNode.TokenIndexBase, startNode.LastTokenIndex) {
 			StartTag = startNode;
 			AddChild (StartTag);
 		}
@@ -67,6 +68,9 @@ namespace CrowEdit.Xml
 		public int? ValueOpenToken { get; internal set; }
 		public int? ValueCloseToken { get; internal set; }
 		public int? ValueToken { get; internal set; }*/
+		public string Name => name.HasValue ? Root.GetTokenStringByIndex (TokenIndexBase + name.Value) : null;
+		public string Value => valueTok.HasValue ? Root.GetTokenStringByIndex (TokenIndexBase + valueTok.Value) : null;
+		public Token? ValueToken => valueTok.HasValue ? Root.GetTokenByIndex (TokenIndexBase + valueTok.Value) : null;
 		public AttributeSyntax (int startLine, int tokenBase)
 			: base (startLine, tokenBase) {}
 		public override bool IsComplete => base.IsComplete & name.HasValue & equal.HasValue & valueTok.HasValue & valueOpen.HasValue & valueClose.HasValue;

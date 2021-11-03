@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <ItemTemplate DataType="Crow.Command" Path="#ui.MenuButton.template"/>
 <ItemTemplate DataType="Crow.CommandGroup" Data="Commands">
-	<Popper PopDirection="Right" Caption="{Caption}" Width="Stretched"
+	<Popper PopDirection="Right" Caption="{Caption}" Width="Stretched" IsPopped="{²./IsOpened}"
 			MouseEnter="{Background=${ControlHighlight}}"
 			MouseLeave="{Background=Transparent}">
 		<Template>
@@ -10,7 +10,7 @@
 				<Label Text="{./Caption}" Height="Stretched"/>
 				<Label Text="..." Width="Fit"/>
 			</HorizontalStack>
-		</Template>		
+		</Template>
 		<VerticalStack Margin="0" Name="ItemsContainer" Fit="true" Background="${MenuBackground}"/>
 	</Popper>
 </ItemTemplate>

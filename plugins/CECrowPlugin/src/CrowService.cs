@@ -276,11 +276,12 @@ namespace Crow
 			return null;
 		}
 		#endregion
+		static string defaultCrowAssemblyLocation =>
+			System.IO.Path.Combine (System.IO.Path.GetDirectoryName (Assembly.GetEntryAssembly().Location), "Crow.dll");
 		public override void Start()
 		{
 			if (CurrentState == Status.Running)
 				return;
-
 
 			if (!File.Exists (CrowDbgAssemblyLocation))	{
 				DebugLogIsEnabled = false;
@@ -400,8 +401,9 @@ namespace Crow
 				NotifyValueChanged (activeSolution);
 			}
 		}
+
 		public string CrowDbgAssemblyLocation {
-			get => Configuration.Global.Get<string> ("CrowDbgAssemblyLocation");
+			get => Configuration.Global.Get<string> ("CrowDbgAssemblyLocation", defaultCrowAssemblyLocation);
 			set {
 				if (CrowDbgAssemblyLocation == value)
 					return;

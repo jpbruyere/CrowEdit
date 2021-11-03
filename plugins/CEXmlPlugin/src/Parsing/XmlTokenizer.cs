@@ -41,7 +41,29 @@ namespace CrowEdit.Xml
 			}
 			return false;
 		}
-
+		protected virtual void parseAttributeValue (ref SpanCharReader reader) {
+			char q = reader.Read();
+			addTok (ref reader, XmlTokenType.AttributeValueOpen);
+			while (!reader.EndOfSpan) {
+				if (reader.Eol()) {
+					addTok (ref reader, XmlTokenType.AttributeValue);
+					reader.ReadEol();
+					addTok (ref reader, XmlTokenType.LineBreak);
+					continue;
+				}
+				if (reader.TryPeak ('<')) {
+					addTok (ref reader, XmlTokenType.AttributeValue);
+					return;
+				}
+				if (reader.TryPeak (q)) {
+					addTok (ref reader, XmlTokenType.AttributeValue);
+					reader.Advance (1);
+					addTok (ref reader, XmlTokenType.AttributeValueClose);
+					return;
+				}
+				reader.Read ();
+			}
+		}
 		public override Token[] Tokenize (string source) {
 			SpanCharReader reader = initParsing (source);
 
@@ -125,23 +147,7 @@ namespace CrowEdit.Xml
 					break;
 				case '\'':
 				case '"':
-					char q = reader.Read();
-					addTok (ref reader, XmlTokenType.AttributeValueOpen);
-					while (!reader.EndOfSpan) {
-						if (reader.Eol()) {
-							addTok (ref reader, XmlTokenType.AttributeValue);
-							reader.ReadEol();
-							addTok (ref reader, XmlTokenType.LineBreak);
-							continue;
-						}
-						if (reader.TryPeak (q)) {
-							addTok (ref reader, XmlTokenType.AttributeValue);
-							reader.Advance (1);
-							addTok (ref reader, XmlTokenType.AttributeValueClose);
-							break;
-						} else
-							reader.Read ();
-					}
+					parseAttributeValue (ref reader);
 					break;
 				case '=':
 					reader.Advance();
@@ -155,7 +161,8 @@ namespace CrowEdit.Xml
 					break;
 				case '/':
 					reader.Advance();
-					if (reader.TryRead ('>')) {
+					if (reader.TryPeak ('>')) {
+						reader.Advance();
 						addTok (ref reader, XmlTokenType.EmptyElementClosing);
 						if (--curObjectLevel > 0)
 							curState = States.Content;
@@ -171,8 +178,19 @@ namespace CrowEdit.Xml
 						else if (reader.TryAdvance())
 							addTok (ref reader, XmlTokenType.Unknown);
 					} else {
-						reader.TryReadUntil ('<');
-						addTok (ref reader, XmlTokenType.Content);
+						while (!reader.EndOfSpan) {
+							if (reader.Eol()) {
+								addTok (ref reader, XmlTokenType.Content);
+								reader.ReadEol();
+								addTok (ref reader, XmlTokenType.LineBreak);
+								continue;
+							}
+							if (reader.TryPeak ("<")) {
+								addTok (ref reader, XmlTokenType.Content);
+								break;
+							} else
+								reader.Read ();
+						}
 					}
 					break;
 				}

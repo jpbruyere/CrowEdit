@@ -30,6 +30,7 @@ Editor {
 	BubbleEvents ="None";
 	ClipToClientRect = "true";
 	MouseCursor = "ibeam";
+	CacheEnabled = "true";
 }
 
 icon {
@@ -61,8 +62,8 @@ Spinner {
 	Template = "#ui.spinner.template";
 }
 TreeIcon {
-	Width="18";
-	Height="18";
+	Width="16";
+	Height="16";
 }
 TreeIconSmall {
 	Width="12";

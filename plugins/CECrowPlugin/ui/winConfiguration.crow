@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Crow Preview Configuration"  Width="80%" Height="400" Resizable="false">
+<DockWindow Caption="Crow Preview Configuration"  Width="60%" Height="400">
 	<VerticalStack RootDataLevel="true" Margin="5">
 		<HorizontalStack Height="Fit" Margin="5">
 			<Label Text="Crow Service" Width="Stretched"/>
@@ -12,10 +12,8 @@
 		</HorizontalStack>
 		<HorizontalStack Height="Fit">
 			<Label Fit="true" Text="Crow assembly path:"/>
-			<Image Width="30" Height="20" Path="#Crow.Icons.IconAlerte.svg" Visible="{ServiceIsInError}"/>
-		</HorizontalStack>
-		<HorizontalStack Height="Fit">
 			<TextBox Height="Fit" Text="{²CrowDbgAssemblyLocation}" Margin="2"/>
+			<Image Width="30" Height="20" Path="#Crow.Icons.IconAlerte.svg" Visible="{ServiceIsInError}"/>
 			<Button Command="{CMDOptions_SelectCrowAssemblyLocation}" MinimumSize="0,0"/>
 		</HorizontalStack>
 		<Label Background="Red" Foreground="White" Margin="5" Width="Stretched" Text="{ServiceErrorMessage}"
@@ -23,7 +21,6 @@
 		<ListBox Style="ScrollingListBox" Data="{CrowAssemblies}"/>
 		<HorizontalStack Height="Fit" Width="Fit" HorizontalAlignment="Right">
 			<Button Command="{CMDOptions_AddCrowAssembly}" Fit="true"/>
-			
 		</HorizontalStack>
 		<Spinner Caption="Zoom Factor" Value="{²ZoomFactor}" Minimum="0.2" Maximum="4.0" SmallIncrement="0.1" LargeIncrement="0.2"/>
 		<Spinner Caption="Refresh Rate (ms)" Value="{²RefreshRate}" Maximum="1000"/>

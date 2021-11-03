@@ -11,6 +11,7 @@ using System.Linq;
 using CrowEditBase;
 using System.Threading;
 using System.ComponentModel;
+using static CrowEditBase.CrowEditBase;
 
 namespace Crow
 {
@@ -143,7 +144,7 @@ namespace Crow
 		/// <summary>
 		/// Background color for selected text inside this label.
 		/// </summary>
-		[DefaultValue ("SteelBlue")]
+		[DefaultValue ("LightSteelBlue")]
 		public virtual Color SelectionBackground {
 			get { return selBackground; }
 			set {
@@ -329,7 +330,7 @@ namespace Crow
 					if (lines[i].Length == 0)
 						lines.UpdateLineLengthInPixel (i, 0);// (int)Math.Ceiling (fe.MaxXAdvance);
 					else {
-						gr.TextExtents (_text.GetLine (lines[i]), Interface.TAB_SIZE, out tmp);
+						gr.TextExtents (_text.GetLine (lines[i]), App.TabulationSize, out tmp);
 						lines.UpdateLineLengthInPixel (i, (int)Math.Ceiling (tmp.XAdvance));
 					}
 				}
@@ -539,7 +540,7 @@ namespace Crow
 					loc.Column = curLine.Length;
 				}
 #endif
-				loc.VisualCharXPosition = gr.TextExtents (curLine.Slice (0, loc.Column), Interface.TAB_SIZE).XAdvance + cPos;
+				loc.VisualCharXPosition = gr.TextExtents (curLine.Slice (0, loc.Column), App.TabulationSize).XAdvance + cPos;
 				location = loc;
 			} else {
 				TextExtents te;
@@ -613,7 +614,7 @@ namespace Crow
 
 		protected override void onDraw (Context gr)
 		{
-			base.onDraw (gr);
+			//base.onDraw (gr);
 
 			setFontForContext (gr);
 
@@ -740,7 +741,7 @@ namespace Crow
 					else
 						update (new TextChange (selection.Start, 1, ""));
 				} else {
-					if (IFace.Shift)
+					if (e.Modifiers == Modifier.Shift)
 						IFace.Clipboard = SelectedText;
 					update (new TextChange (selection.Start, selection.Length, ""));
 				}
@@ -763,7 +764,7 @@ namespace Crow
 				RegisterForRedraw ();
 				break;
 			case Key.Tab:
-				update (new TextChange (selection.Start, selection.Length, "\t"));
+				update (new TextChange (selection.Start, selection.Length, App.IndentWithSpace ? new string(' ', App.TabulationSize) : "\t"));
 				break;
 			case Key.PageUp:
 				checkShift (e);
@@ -914,6 +915,7 @@ namespace Crow
 		#endregion
 
 		protected void update (TextChange change) {
+
 			lock (linesMutex) {
 				ReadOnlySpan<char> src = _text.AsSpan ();
 				Span<char> tmp = stackalloc char[src.Length + (change.ChangedText.Length - change.Length)];

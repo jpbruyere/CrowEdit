@@ -1,10 +1,49 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Syntax"  Width="40%">
 	<VerticalStack RootDataLevel="true" Spacing="0" DataSource="{CurrentDocument}">
+		<Button Command="{CMDRefreshSyntaxTree}"/>
 		<Label Text="{}"/>
-		<TreeView DataSource="{SyntaxRootNode}" Data="{Children}">
+		<Label Text="{SyntaxRootNode}"/>
+		<Label Text="{CurrentNode}"/>
+		<TreeView Data="{SyntaxRootChildNodes}" SelectedItem="{²CurrentNode}">
 			<ItemTemplate Data="Children">
-				<Expandable Caption="{}" BubbleEvents="MouseWheel">
+				<ListItem IsSelected="{IsSelected}"
+						Selected="{/exp.Background=${ControlHighlight}}"
+						Unselected="{/exp.Background=${TreeItemBackground}}">
+					<Expandable Name="exp" Caption="{}" MouseDoubleClick="/onClickForExpand" BubbleEvents="All" IsExpanded="{²isExpanded}"
+								Tooltip="{AsText}">
+						<Template>
+							<VerticalStack>
+								<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"
+										Foreground="Transparent"
+										MouseEnter="{Foreground=DimGrey}"
+										MouseLeave="{Foreground=Transparent}">
+									<HorizontalStack Background="{./Background}" Spacing="1">
+										<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand"
+											Path="{./Image}"
+											Visible="{HasChilds}"
+											SvgSub="{isExpanded}"
+											MouseEnter="{Background=LightGrey}"
+											MouseLeave="{Background=Transparent}"/>
+										<Label Style="TreeLabel" Text="{./Caption}"/>
+										<Label Style="TreeLabel" Text="ok:"/>
+										<Label Style="TreeLabel" Text="{IsComplete}"/>
+										<Label Style="TreeLabel" Text="span:"/>
+										<Label Style="TreeLabel" Text="{Span}"/>
+									</HorizontalStack>
+								</Border>
+								<Container Name="Content" Visible="false"/>
+							</VerticalStack>
+						</Template>
+						<HorizontalStack Height="Fit">
+							<Widget Width="12" Height="10"/>
+							<VerticalStack Height="Fit" Name="ItemsContainer"/>
+						</HorizontalStack>
+					</Expandable>
+				</ListItem>
+			</ItemTemplate>
+			<!--<ItemTemplate Data="Children">
+				<Expandable Caption="{}" BubbleEvents="MouseWheel" IsExpanded="{²isExpanded}">
 					<HorizontalStack Height="Fit">
 						<Shape Foreground="DimGrey" Background="Transparent"
 							Path="M 5.5,0 L 5.5,11 G" Size="11,11" Width="11" Height="Stretched" KeepProportions="false" Margin="0"/>
@@ -19,21 +58,17 @@
 									MouseEnter="{/border.Foreground=${TreeItemBorderHighlightFG}}"
 									MouseLeave="{/border.Foreground=${TreeItemBorderFG}}">
 								<Border Name="border" Margin="2" CornerRadius="${TreeItemBorderCornerRadius}"
-																	Foreground="${TreeItemBorderFG}">
+											Background="${TreeItemBackground}" Foreground="${TreeItemBorderFG}">
 									<HorizontalStack Spacing="5">
 										<Image Margin="1" Width="9" Height="9" Focusable="true" MouseClick="./onClickForExpand"
 											Path="{./Image}"
 											Visible="{HasChilds}"
-											SvgSub="{./IsExpanded}"
+											SvgSub="{isExpanded}"
 											MouseEnter="{Background=LightGrey}"
 											MouseLeave="{Background=Transparent}"/>
-										<Label Style="TreeLabel" Text="l:"/>
-										<Label Style="TreeLabel" Text="{StartLine}"/>
+										<Label Style="TreeLabel" Text="{./Caption}"/>
 										<Label Style="TreeLabel" Text="ok:"/>
 										<Label Style="TreeLabel" Text="{IsComplete}"/>
-										<Label Style="TreeLabel" Text="#l:"/>
-										<Label Style="TreeLabel" Text="{lineCount2}"/>
-										<Label Style="TreeLabel" Text="{./Caption}"/>
 										<Label Style="TreeLabel" Text="span:"/>
 										<Label Style="TreeLabel" Text="{Span}"/>
 									</HorizontalStack>
@@ -43,7 +78,7 @@
 						</VerticalStack>
 					</Template>
 				</Expandable>
-			</ItemTemplate>
+			</ItemTemplate>-->
 		</TreeView>
 	</VerticalStack>
 </DockWindow>

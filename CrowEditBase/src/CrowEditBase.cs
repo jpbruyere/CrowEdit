@@ -179,7 +179,7 @@ namespace CrowEditBase
 			}
 		}
 		public string PluginsDirecory {
-			get => Configuration.Global.Get<string>("PluginsDirecory");
+			get => Configuration.Global.Get<string>("PluginsDirecory", defaultPluginsDirectory);
 			set {
 				if (PluginsDirecory == value)
 					return;
@@ -283,11 +283,25 @@ namespace CrowEditBase
 				DeleteWidget (g);
 		}
 
-
+		public ActionCommand CMDOptions_SelectPluginsDirectory => new ActionCommand ("...",
+			() => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select CrowEdit Directory' CurrentDirectory='{PluginsDirecory}'
+							ShowFiles='false' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => PluginsDirecory = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = this;
+			}
+		);
+		public ActionCommand CMDOptions_ResetPluginsDirectory => new ActionCommand ("Reset",
+			() => {
+				PluginsDirecory = defaultPluginsDirectory;
+			}
+		);
+		static string defaultPluginsDirectory =>
+			Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "plugins");
 		protected void loadPlugins () {
-			if (string.IsNullOrEmpty (PluginsDirecory))
-				PluginsDirecory = Path.Combine (
-					Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "plugins");
+			if (!Directory.Exists (PluginsDirecory))
+				return;
 
 			foreach (string pluginDir in Directory.GetDirectories (PluginsDirecory)) {
 				Plugin plugin = new Plugin (pluginDir);
@@ -295,6 +309,8 @@ namespace CrowEditBase
 				plugin.Load ();
 			}
 		}
+		public IEnumerable<AssemblyLoadContext> AllLoadContexts =>
+			System.Runtime.Loader.AssemblyLoadContext.All;
 
 
 	#region Editor item templates
@@ -311,7 +327,7 @@ namespace CrowEditBase
 		<ItemTemplate>
 			<ListItem IsVisible='{IsSelected}' IsSelected='{²IsSelected}' Selected=""{/tb.HasFocus='true'}"">
 				<VerticalStack Spacing='0'>
-					<HorizontalStack Spacing='0'>
+					<HorizontalStack Spacing='0' Background='White'>
 						<Editor Name='tb' Font='consolas, 12' Margin='5'
 								Document='{}' TextChanged='onTextChanged'/>
 						<ScrollBar Value='{²../tb.ScrollY}'
@@ -358,6 +374,25 @@ namespace CrowEditBase
 				CurrentEditor?.RegisterForGraphicUpdate ();
 			}
 		}
+		public bool IndentWithSpace {
+			get => Configuration.Global.Get<bool> ("IndentWithSpace", false);
+			set {
+				if (IndentWithSpace == value)
+					return;
+				Configuration.Global.Set ("IndentWithSpace", value);
+				NotifyValueChanged ("IndentWithSpace", IndentWithSpace);
+			}
+		}
+		public int TabulationSize {
+			get => Configuration.Global.Get<int> ("TabulationSize", 4);
+			set {
+				if (TabulationSize == value)
+					return;
+				Configuration.Global.Set ("TabulationSize", value);
+				NotifyValueChanged ("TabulationSize", TabulationSize);
+			}
+		}
+
 		//Folding
 		public bool FoldingEnabled {
 			get => Crow.Configuration.Global.Get<bool> ("FoldingEnabled", true);

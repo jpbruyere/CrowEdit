@@ -5,7 +5,7 @@
 	<HorizontalStack Height="Fit">
 		<Shape Foreground="DimGrey" Background="Transparent"
 			Path="M 5.5,0 L 5.5,11 G" Size="11,11" Width="11" Height="Stretched" KeepProportions="false" Margin="0"/>
-		<VerticalStack Height="Fit" Name="ItemsContainer"/>
+		<VerticalStack Height="Fit" Name="ItemsContainer" Spacing="0"/>
 	</HorizontalStack>
 	<Template>
 		<VerticalStack>
@@ -15,7 +15,7 @@
 					Unselected="{/border.Background=${TreeItemBackground}}"
 					MouseEnter="{/border.Foreground=${TreeItemBorderHighlightFG}}"
 					MouseLeave="{/border.Foreground=${TreeItemBorderFG}}">
-				<Border Name="border" Margin="2" CornerRadius="${TreeItemBorderCornerRadius}"
+				<Border Name="border" Margin="1" CornerRadius="${TreeItemBorderCornerRadius}"
 													Foreground="${TreeItemBorderFG}">
 					<HorizontalStack Spacing="5">
 						<Image Margin="1" Width="9" Height="9" Focusable="true" MouseClick="./onClickForExpand"

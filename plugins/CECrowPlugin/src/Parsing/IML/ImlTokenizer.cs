@@ -11,10 +11,31 @@ using CrowEdit.Xml;
 namespace CECrowPlugin
 {
 	public class ImlTokenizer : XmlTokenizer {
-		protected override void parseAttributeValue (ref SpanCharReader reader) {
+		enum status {
+			init,
+			attribute,
+			bindingTarget,
+			bindingSource,
+
+		};
+		/*protected override void parseAttributeValue (ref SpanCharReader reader) {
 			char q = reader.Read();
 			addTok (ref reader, XmlTokenType.AttributeValueOpen);
+			status curState = status.init;
+
 			while (!reader.EndOfSpan) {
+				if (reader.TryPeak ('{')) {
+					curState = status.bindingSource;
+					reader.Advance ();
+					addTok (ref reader, ImlTokenType.BindingOpen);
+					continue;
+				}
+				if (reader.TryPeak ('}')) {
+					addTok (ref reader, ImlTokenType.BindingExpression);
+					reader.Read();
+					addTok (ref reader, ImlTokenType.BindingClose);
+					continue;
+				}
 				if (reader.Eol()) {
 					addTok (ref reader, XmlTokenType.AttributeValue);
 					reader.ReadEol();
@@ -23,12 +44,13 @@ namespace CECrowPlugin
 				}
 				if (reader.TryPeak (q)) {
 					addTok (ref reader, XmlTokenType.AttributeValue);
-					reader.Advance (1);
+					reader.Advance ();
 					addTok (ref reader, XmlTokenType.AttributeValueClose);
 					return;
 				} else
 					reader.Read ();
 			}
-		}
+		}*/
+
 	}
 }
