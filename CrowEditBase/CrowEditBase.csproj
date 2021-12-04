@@ -16,6 +16,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="/mnt/devel/crow/Crow/Crow.csproj" />
-		<!--<PackageReference Include="Crow" Version="0.9.7-beta" />-->
+		<!--<PackageReference Include="Crow" Version="0.9.8" />-->
 	</ItemGroup>
 </Project>

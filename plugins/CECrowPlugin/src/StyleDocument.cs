@@ -1,14 +1,14 @@
 ﻿// Copyright (c) 2013-2021  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-
+using System;
 using Crow.Text;
 using Crow;
 using System.Collections;
 using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
 
-namespace CECrowPlugin
+namespace CECrowPlugin.Style
 {
 	public class StyleDocument : SourceDocument {
 
@@ -25,8 +25,9 @@ namespace CECrowPlugin
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new StyleSyntaxAnalyser (this);
 
 		public override IList GetSuggestions (CharLocation loc) {
-			/*currentToken = FindTokenIncludingPosition (pos);
-			currentNode = FindNodeIncludingPosition (pos);*/
+			Console.ForegroundColor = ConsoleColor.DarkYellow;
+			Console.WriteLine ($"Tok: {this.CurrentTokenString} {((StyleTokenType)CurrentToken.Type).ToString()}");
+			Console.ResetColor();
 			return null;
 		}
 		public override bool TryGetCompletionForCurrentToken(object suggestion, out TextChange change, out TextSpan? newSelection)

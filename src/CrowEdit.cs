@@ -17,21 +17,6 @@ namespace CrowEdit
 {
 	public class CrowEdit : CrowEditBase.CrowEditBase
 	{
-#if NETCOREAPP
-		static IntPtr resolveUnmanaged(Assembly assembly, String libraryName)
-		{
-
-			switch (libraryName)
-			{
-				case "glfw3":
-					return NativeLibrary.Load("glfw", assembly, null);
-				case "rsvg-2.40":
-					return NativeLibrary.Load("rsvg-2", assembly, null);
-			}
-			Console.WriteLine($"[UNRESOLVE] {assembly} {libraryName}");
-			return IntPtr.Zero;
-		}
-
 		static Assembly last_chance_resolve (System.Runtime.Loader.AssemblyLoadContext context, AssemblyName assemblyName)
 		{
 			foreach (Plugin plugin in App.Plugins) {
@@ -45,10 +30,9 @@ namespace CrowEdit
 		}
 		static CrowEdit()
 		{
-			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).ResolvingUnmanagedDll += resolveUnmanaged;
 			System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly()).Resolving += last_chance_resolve;
 		}
-#endif
+
 		static void Main ()
 		{
 			/*DbgLogger.IncludedEvents.AddRange ( new DbgEvtType[] {
@@ -203,7 +187,10 @@ namespace CrowEdit
 				OpenedDocuments.Add (doc);
 				CurrentDocument = doc;
 			} catch (Exception ex) {
-				System.Diagnostics.Debug.WriteLine ($"[openOrCreateFile]{ex}");
+				MessageBox.ShowModal (this, MessageBox.Type.Alert, $"Unable to open {filePath}.\n{ex.Message}");
+				Console.ForegroundColor = ConsoleColor.Red;
+				Console.WriteLine (ex);
+				Console.ResetColor();
 			}
 			return doc;
 		}
@@ -254,9 +241,9 @@ namespace CrowEdit
 				CurrentDocument = doc;
 		}
 		void tv_projects_SelectedItemChanged (object sender, SelectionChangeEventArgs e) {
-			if (e.NewValue is Project prj) {
+			/*if (e.NewValue is Project prj) {
 				CurrentProject = prj;
-			}
+			}*/
 			/*if (e.NewValue is IFileNode fi) {
 				if (string.IsNullOrEmpty (fi.FullPath) || ! File.Exists (fi.FullPath))
 					return;

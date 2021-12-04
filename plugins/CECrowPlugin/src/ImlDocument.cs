@@ -15,7 +15,6 @@ using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
 
 using CrowEdit.Xml;
-using CERoslynPlugin;
 
 using AttributeSyntax = CrowEdit.Xml.AttributeSyntax;
 

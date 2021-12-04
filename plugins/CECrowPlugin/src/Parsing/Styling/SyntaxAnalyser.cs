@@ -6,35 +6,50 @@ using System.Collections.Generic;
 using System.Linq;
 using CrowEditBase;
 
-namespace CECrowPlugin
+namespace CECrowPlugin.Style
 {
+	public static class Extensions {
+		public static StyleTokenType GetTokenType (this Token tok) {
+			return (StyleTokenType)tok.Type;
+		}
+		public static void SetTokenType (this Token tok, StyleTokenType type) {
+			tok.Type = (TokenType)type;
+		}
+	}
 	public class StyleSyntaxAnalyser : SyntaxAnalyser {
-		public override SyntaxNode Root => CurrentNode;
+		public override SyntaxNode Root => currentNode;
 		public StyleSyntaxAnalyser (StyleDocument source) : base (source) {
 			this.source = source;
 		}
 
-		SyntaxNode CurrentNode;
-		Token previousTok;
-		IEnumerator<Token> iter;
-		int currentLine;
 		public override void Process () {
 			StyleDocument doc = source as StyleDocument;
 			Exceptions = new List<SyntaxException> ();
-			CurrentNode = new StyleRootSyntax (doc);
-			previousTok = default;
-			iter = doc.Tokens.AsEnumerable().GetEnumerator ();
+			currentNode = new StyleRootSyntax (doc);
 			currentLine = 0;
+			Span<Token> toks = source.Tokens;
+			tokIdx = 0;
 
-			bool notEndOfSource = iter.MoveNext ();
-			while (notEndOfSource) {
-				if (iter.Current.Type == TokenType.LineBreak)
+			int firstNameIdx = -1;
+
+			while (tokIdx < toks.Length) {
+				Token curTok = toks[tokIdx];
+				if (curTok.Type == TokenType.LineBreak)
 					currentLine++;
-				else if (!iter.Current.Type.HasFlag (TokenType.Trivia)) {
-				}
+				else if (!curTok.Type.HasFlag (TokenType.Trivia)) {
+					/*if (currentNode is StyleRootSyntax root) {
+						if (firstNameIdx < 0) {
+							if (curTok.GetTokenType()  == StyleTokenType.Name) {
+								firstNameIdx = tokIdx;
+							} else {
+								Exceptions.Add (new SyntaxException  ("Unexpected Token", curTok));
+							}
 
-				previousTok = iter.Current;
-				notEndOfSource = iter.MoveNext ();
+						}
+
+					}*/
+				}
+				tokIdx++;
 			}
 			while (currentNode.Parent != null) {
 				if (!currentNode.LastTokenOffset.HasValue)

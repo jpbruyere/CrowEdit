@@ -7,7 +7,7 @@ using System.Linq;
 
 using CrowEditBase;
 
-namespace CECrowPlugin
+namespace CECrowPlugin.Style
 {
 
 	public class StyleRootSyntax : SyntaxRootNode {
@@ -15,7 +15,14 @@ namespace CECrowPlugin
 			: base (source) {
 		}
 	}
-
+	public class ConstantDefinitionSyntax : SyntaxNode {
+		internal int? name, equal, valueOpen, valueClose;
+		public override bool IsComplete => base.IsComplete & name.HasValue & equal.HasValue &
+			valueOpen.HasValue & valueClose.HasValue;
+		public ConstantDefinitionSyntax (int startLine, int tokenBase)
+			: base (startLine, tokenBase) {
+		}
+	}
 	public class AttributeSyntax : SyntaxNode {
 		public Token? NameToken { get; internal set; }
 		public Token? EqualToken { get; internal set; }

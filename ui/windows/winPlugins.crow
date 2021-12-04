@@ -22,13 +22,13 @@
 		</ListBox>
 		<Splitter/>
 		<TreeView IsRoot="true" Name="lbCtxs"  Data="{AllLoadContexts}" UseLoadingThread = 'false' >
-			<ItemTemplate DataType="System.Reflection">
+			<ItemTemplate DataType="System.Reflection.Assembly">
 				<ListItem CornerRadius="2" Margin="0" Height="Fit" Width="Stretched"
 						Selected="{Background=${ControlHighlight}}"
 						Unselected="{Background=Transparent}">
 					<HorizontalStack>
 						<!--<Image Margin="1" Width="14" Height="14" Path="#Crow.Icons.file.svg"/>-->
-						<Label Text="{}" Width="Stretched"/>
+						<Label Text="{}" Width="Stretched" Tooltip="{Location}"/>
 					</HorizontalStack>
 				</ListItem>
 			</ItemTemplate>

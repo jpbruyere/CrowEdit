@@ -209,5 +209,7 @@ namespace CERoslynPlugin
 			public long ToInt => major << 62 + minor << 60 + revision;
 			public override string ToString () => $"{major}.{minor}.{revision}";
 		}
+
+
 	}
 }

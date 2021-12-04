@@ -16,6 +16,20 @@ namespace Crow
 {
 	public class SourceEditor : Editor {
 		object TokenMutex = new object();
+		/*protected override void backgroundThreadFunc () {
+			while (true) {
+				if (Document != null && Document.TryGetState (this, out List<TextChange> changes)) {
+					disableTextChangedEvent = true;
+					disableSuggestions = true;
+					foreach (TextChange tc in changes)
+						update (tc);
+					disableTextChangedEvent = false;
+					disableSuggestions = false;
+				}
+				System.Threading.Thread.Sleep (200);
+			}
+		}*/
+
 		SyntaxNode currentNode;
 #if DEBUG_NODE
 		SyntaxNode _hoverNode;
@@ -765,7 +779,7 @@ namespace Crow
 			if (Document is SourceDocument srcdoc)
 				srcdoc.updateCurrentTokAndNode (CurrentLoc.Value);
 
-			if (!disableSuggestions && HasFocus)
+			if (!disableSuggestions &&!disableTextChangedEvent && HasFocus)
 				tryGetSuggestions ();
 
 			RegisterForGraphicUpdate();

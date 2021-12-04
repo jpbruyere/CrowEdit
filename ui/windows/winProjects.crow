@@ -13,7 +13,6 @@
 			</HorizontalStack>
 		</ItemTemplate>
 	</ListBox>-->
-
 	<TreeView Name="treeview" IsRoot="true" RootDataLevel="true" Data="{Projects}" Background="Onyx"
 				SelectedItemChanged="tv_projects_SelectedItemChanged" >
 		<ItemTemplate DataType="default" >

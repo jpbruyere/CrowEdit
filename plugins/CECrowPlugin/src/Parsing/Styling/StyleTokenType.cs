@@ -4,7 +4,7 @@
 
 using System;
 
-namespace CECrowPlugin
+namespace CECrowPlugin.Style
 {
 	[Flags]
 	public enum StyleTokenType {

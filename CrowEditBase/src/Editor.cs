@@ -59,11 +59,9 @@ namespace Crow
 		public event EventHandler<TextChangeEventArgs> TextChanged;
 		public void OnTextChanged(object sender, TextChangeEventArgs e)
 		{
-			if (disableTextChangedEvent)
-				return;
 			TextChanged.Raise (this, e);
 		}
-		protected void backgroundThreadFunc () {
+		protected virtual void backgroundThreadFunc () {
 			while (true) {
 				if (Document != null && document.TryGetState (this, out List<TextChange> changes)) {
 					disableTextChangedEvent = true;
@@ -881,7 +879,8 @@ namespace Crow
 
 		protected virtual void update (TextChange change) {
 
-			OnTextChanged (this, new TextChangeEventArgs (change));
+			if (!disableTextChangedEvent)
+				OnTextChanged (this, new TextChangeEventArgs (change));
 
 			selectionStart = null;
 			CurrentLoc = document.GetLocation (change.Start + change.ChangedText.Length);

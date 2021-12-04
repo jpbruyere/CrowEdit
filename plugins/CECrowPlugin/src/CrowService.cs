@@ -38,7 +38,7 @@ namespace Crow
 			=> App.TryGetPlugin ("CERoslynPlugin", out Plugin roslynPlugin) ?
 				roslynPlugin.Load (assemblyName) : null;*/
 
-		static IntPtr resolveUnmanaged(Assembly assembly, String libraryName)
+		/*static IntPtr resolveUnmanaged(Assembly assembly, String libraryName)
 		{
 
 			switch (libraryName)
@@ -50,9 +50,9 @@ namespace Crow
 			}
 			Console.WriteLine($"[UNRESOLVE] {assembly} {libraryName}");
 			return IntPtr.Zero;
-		}
+		}*/
 
-		void updateCrowApp () {
+		/*void updateCrowApp () {
 			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
 				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
 
@@ -64,7 +64,7 @@ namespace Crow
 			}
 
 
-		}
+		}*/
 		#region Commands
 		public Command CMDStartRecording, CMDStopRecording, CMDRefresh;
 		public Command CMDGotoParentEvent, CMDEventHistoryForward, CMDEventHistoryBackward;
@@ -293,8 +293,8 @@ namespace Crow
 			foreach (string assemblyPath in crowAssemblies)
 				additionalResolvePath.Add (System.IO.Path.GetDirectoryName(assemblyPath));
 
+			crowLoadCtx?.Unload();
 			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
-			crowLoadCtx.ResolvingUnmanagedDll += resolveUnmanaged;
 			crowLoadCtx.Resolving += (context, assemblyName) => {
 				foreach (string path in additionalResolvePath) {
 					string assemblyPath = System.IO.Path.Combine (path, assemblyName.Name + ".dll");
@@ -304,7 +304,6 @@ namespace Crow
 				}
 				return null;
 			};
-			//crowLoadCtx.Resolving += (ctx,name) => AssemblyLoadContext.Default.LoadFromAssemblyName (name);
 
 			//using (crowLoadCtx.EnterContextualReflection()) {
 				crowAssembly = crowLoadCtx.LoadFromAssemblyPath (CrowDbgAssemblyLocation);
@@ -394,10 +393,10 @@ namespace Crow
 		public Project ActiveSolution {
 			get => activeSolution;
 			set {
-				CERoslynPlugin.SolutionProject sol = value as CERoslynPlugin.SolutionProject;
-				if (activeSolution == sol)
+				//CERoslynPlugin.SolutionProject sol = value as CERoslynPlugin.SolutionProject;
+				if (activeSolution == value)
 					return;
-				activeSolution = sol;
+				activeSolution = value;
 				NotifyValueChanged (activeSolution);
 			}
 		}

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using System.Linq;
 using Crow;
 using Crow.Drawing;
 using IML = Crow.IML;
@@ -190,12 +191,18 @@ namespace CECrowPlugin
 		public override Type GetWidgetTypeFromName (string typeName){
 			if (knownCrowWidgetTypes.ContainsKey (typeName))
 				return knownCrowWidgetTypes [typeName];
-			foreach (Assembly a in System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly ()).Assemblies) {
-				foreach (Type expT in a.GetExportedTypes ()) {
-					if (expT.Name != typeName)
-						continue;
-					knownCrowWidgetTypes.Add (typeName, expT);
-					return expT;
+			System.Runtime.Loader.AssemblyLoadContext dbgLoadCtx =
+				System.Runtime.Loader.AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
+			foreach (Assembly a in dbgLoadCtx.Assemblies) {
+				try {
+					foreach (Type expT in a.GetExportedTypes ()) {
+						if (expT.Name != typeName)
+							continue;
+						knownCrowWidgetTypes.Add (typeName, expT);
+						return expT;
+					}
+				} catch (Exception ex) {
+					Console.WriteLine ($"[CECrowPlugin]Error: GetWidgetTypeFromName failed for {typeName} in {a}.\n{ex}");
 				}
 			}
 			return null;

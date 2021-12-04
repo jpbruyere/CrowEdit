@@ -9,7 +9,7 @@ using CrowEditBase;
 using System.Globalization;
 using Crow.Coding;
 
-namespace CECrowPlugin {
+namespace CECrowPlugin.Style {
 	public class StyleTokenizer : Tokenizer {
 		enum States	{
 			classNames, members, value, endOfStatement
@@ -40,6 +40,20 @@ namespace CECrowPlugin {
 			}
 			return false;
 		}
+		bool replacePreviousNonTriviaTokType (StyleTokenType expectedType, StyleTokenType newType) {
+			int tk = Toks.Count - 2;
+			if (tk < 0)
+				return false;
+			while (tk > 0 && Toks[tk].Type.HasFlag(StyleTokenType.Trivia))
+				tk --;
+			if ((StyleTokenType)Toks[tk].Type == expectedType) {
+				Token tok = Toks[tk];
+				tok.Type = (TokenType)newType;
+				Toks[tk] = tok;
+				return true;
+			}
+			return false;
+		}
 
 		public override Token[] Tokenize (string source) {
 			SpanCharReader reader = initParsing (source);
@@ -64,10 +78,20 @@ namespace CECrowPlugin {
 					} else if (reader.TryPeak ('*')) {
 						reader.Advance ();
 						addTok (ref reader, StyleTokenType.BlockCommentStart);
-						if (reader.TryReadUntil ("*/")) {
-							addTok (ref reader, StyleTokenType.BlockComment);
-							reader.Advance (2);
-							addTok (ref reader, StyleTokenType.BlockCommentEnd);
+						while (!reader.EndOfSpan) {
+							if (reader.Eol()) {
+								addTok (ref reader, StyleTokenType.BlockComment);
+								reader.ReadEol();
+								addTok (ref reader, StyleTokenType.LineBreak);
+								continue;
+							}
+							if (reader.TryPeak ("*/")) {
+								addTok (ref reader, StyleTokenType.BlockComment);
+								reader.Advance (2);
+								addTok (ref reader, StyleTokenType.BlockCommentEnd);
+								break;
+							} else
+								reader.Read ();
 						}
 					}
 					break;
