@@ -7,6 +7,7 @@ using Crow;
 using System.Collections;
 using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
+using Drawing2D;
 
 namespace CECrowPlugin.Style
 {

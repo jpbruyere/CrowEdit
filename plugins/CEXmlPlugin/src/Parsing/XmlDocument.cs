@@ -2,17 +2,10 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
-using System;
-using System.Linq;
 using Crow.Text;
-using System.Collections.Generic;
-using System.Diagnostics;
-using Crow;
-using IML = Crow.IML;
 using System.Collections;
-using System.Reflection;
 using CrowEditBase;
-using static CrowEditBase.CrowEditBase;
+using Drawing2D;
 
 namespace CrowEdit.Xml
 {

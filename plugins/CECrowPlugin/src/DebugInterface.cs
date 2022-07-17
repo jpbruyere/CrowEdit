@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2021-2022  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Threading;
 using System.Linq;
 using Crow;
-using Crow.Drawing;
+using Drawing2D;
 using IML = Crow.IML;
 
 namespace CECrowPlugin
@@ -20,21 +20,28 @@ namespace CECrowPlugin
 		}
 		public DebugInterface (IntPtr hWin) : base (100, 100, hWin)
 		{
-			SolidBackground = false;
-			initBackend (true);
-
 			clientRectangle = new Rectangle (0, 0, 100, 100);
-			CreateMainSurface (ref clientRectangle);
 		}
-
+		protected override void initBackend()
+		{
+			if (!tryFindBackendType (out Type backendType))
+				throw new Exception ("No backend found.");
+			backend = (CrowBackend)Activator.CreateInstance (backendType, new object[] {clientRectangle.Width, clientRectangle.Height});
+			//hWin = backend.hWin;
+			ownWindow = false;
+			clipping = Backend.CreateRegion ();
+		}
 		public override void Run()
 		{
-			Init();
+			initBackend ();
 
 			Thread t = new Thread (interfaceThread) {
 				IsBackground = true
 			};
 			t.Start ();
+
+			Init();
+
 		}
 		public bool Terminate;
 		string source;
@@ -66,8 +73,6 @@ namespace CECrowPlugin
 						Console.WriteLine ($"[DebugIFace] trying to exit ClippingMutex on error");
 						Monitor.Exit (ClippingMutex);
 					}
-
-
 					/*while (Monitor.IsEntered(LayoutMutex))
 						Monitor.Exit (LayoutMutex);
 					while (Monitor.IsEntered(UpdateMutex))
@@ -85,12 +90,7 @@ namespace CECrowPlugin
 
 				Thread.Sleep (UPDATE_INTERVAL);
 			}
-		}
-		public new IntPtr SurfacePointer {
-			get {
-				lock(UpdateMutex)
-					return surf.Handle;
-			}
+			Dispose();
 		}
 		public void RegisterDebugInterfaceCallback (object crowService){
 			Type t = crowService.GetType();
@@ -152,10 +152,9 @@ namespace CECrowPlugin
 			Source = src;
 		}
 		public void Resize (int width, int height) {
-			if (!HaveVkvgBackend)
-				ProcessResize (new Rectangle(0,0,width, height));
+			ProcessResize (new Rectangle(0, 0, width, height));
 		}
-		public override void ProcessResize(Rectangle bounds) {
+		/*public override void ProcessResize(Rectangle bounds) {
 			lock (UpdateMutex) {
 				clientRectangle = bounds.Size;
 
@@ -166,7 +165,7 @@ namespace CECrowPlugin
 
 				RegisterClip (clientRectangle);
 			}
-		}
+		}*/
 		public override void ForceMousePosition()
 		{
 			delCrowServiceGetScreenCoordinate(out int x, out int y);

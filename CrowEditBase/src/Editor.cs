@@ -6,7 +6,7 @@ using System;
 using Glfw;
 using Crow.Text;
 using System.Collections.Generic;
-using Crow.Drawing;
+using Drawing2D;
 using System.Linq;
 using CrowEditBase;
 using System.Threading;
@@ -268,7 +268,7 @@ namespace Crow
 		/// </summary>
 		protected virtual int visualLineCount => document.LinesCount;
 
-		protected virtual void measureTextBounds (Context gr) {
+		protected virtual void measureTextBounds (IContext gr) {
 			fe = gr.FontExtents;
 			te = new TextExtents ();
 
@@ -301,7 +301,7 @@ namespace Crow
 				document.ExitReadLock ();
 			}
 		}
-		protected virtual void drawContent (Context gr) {
+		protected virtual void drawContent (IContext gr) {
 			gr.Translate (-ScrollX, -ScrollY);
 
 			Rectangle cb = ClientRectangle;
@@ -358,7 +358,7 @@ namespace Crow
 								if (bytes.Length < size)
 									bytes = size > 512 ? new byte[size] : stackalloc byte[size];
 
-								encodedBytes = Crow.Text.Encoding.ToUtf8 (document.GetText (l), bytes);
+								encodedBytes = document.GetText (l).ToUtf8 (bytes);
 								bytes[encodedBytes++] = 0;
 
 								if (l.LengthInPixel < 0) {
@@ -442,21 +442,23 @@ namespace Crow
 			NotifyValueChanged("VisibleLines", visibleLines);
 			NotifyValueChanged("HoverLine", hoverLine);
 			hoverLoc = new CharLocation (hoverLine, -1, mouseLocalPos.X + ScrollX);
-			using (Context gr = new Context (IFace.surf)) {
-				setFontForContext (gr);
+			using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+				gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+				gr.SetFontSize (Font.Size);
 				updateLocation (gr, ClientRectangle.Width, ref hoverLoc);
 			}
 		}
 		protected virtual bool cancelLinePrint (double lineHeght, double y, int clientHeight) => false;
 		RectangleD? textCursor = null;
 
-		public virtual bool DrawCursor (Context ctx, out Rectangle rect) {
+		public virtual bool DrawCursor (IContext ctx, out Rectangle rect) {
 			if (CurrentLoc == null) {
 				rect = default;
 				return false;
 			}
 			if (!CurrentLoc.Value.HasVisualX) {
-				setFontForContext (ctx);
+				ctx.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+				ctx.SetFontSize (Font.Size);
 
 				if (currentLoc?.Column < 0) {
 					updateLocation (ctx, ClientRectangle.Width, ref currentLoc);
@@ -486,7 +488,7 @@ namespace Crow
 			return true;
 		}
 
-		protected void updateLocation (Context gr, int clientWidth, ref CharLocation? location) {
+		protected void updateLocation (IContext gr, int clientWidth, ref CharLocation? location) {
 			if (location == null)
 				return;
 			CharLocation loc = location.Value;
@@ -512,7 +514,7 @@ namespace Crow
 				Span<byte> bytes = stackalloc byte[5];//utf8 single char buffer + '\0'
 
 				for (int i = 0; i < ls.Length; i++) {
-					int encodedBytes = Crow.Text.Encoding.ToUtf8 (curLine.Slice (i, 1), bytes);
+					int encodedBytes = curLine.Slice (i, 1).ToUtf8 (bytes);
 					bytes[encodedBytes] = 0;
 
 					gr.TextExtents (bytes, out te);
@@ -563,8 +565,9 @@ namespace Crow
 			DbgLogger.StartEvent(DbgEvtType.GOMeasure, this, lt);
 			try {
 				if (!textMeasureIsUpToDate) {
-					using (Context gr = new Context (IFace.surf)) {
-						setFontForContext (gr);
+					using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+						gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+						gr.SetFontSize (Font.Size);
 						measureTextBounds (gr);
 					}
 				}
@@ -573,15 +576,16 @@ namespace Crow
 				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
 			}
 		}
-		public override void Paint (Context ctx) {
+		public override void Paint (IContext ctx) {
 			base.Paint (ctx);
 			IFace.forceTextCursor = true;
 		}
-		protected override void onDraw (Context gr)
+		protected override void onDraw (IContext gr)
 		{
 			//base.onDraw (gr);
 
-			setFontForContext (gr);
+			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+			gr.SetFontSize (Font.Size);
 
 			if (!textMeasureIsUpToDate) {
 				measureTextBounds (gr);

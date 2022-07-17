@@ -37,11 +37,11 @@ namespace CERoslynPlugin
 						reader.Read();
 						if (reader.IsNextCharIn ('\xA', '\x85'))
 							reader.Read();
-						addTok (ref reader, TokenType.LineBreak);														
+						addTok (ref reader, TokenType.LineBreak);
 						break;
 					case '\x20':
 					case '\x9':
-						char c = reader.Read();									
+						char c = reader.Read();
 						while (reader.TryPeak (c))
 							reader.Read();
 						addTok (ref reader, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
@@ -56,7 +56,7 @@ namespace CERoslynPlugin
 				switch (reader.Peak) {
 					case '\x20':
 					case '\x9':
-						char c = reader.Read();									
+						char c = reader.Read();
 						while (reader.TryPeak (c))
 							reader.Read();
 						addTok (ref reader, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
@@ -70,7 +70,7 @@ namespace CERoslynPlugin
 		public override Token[] Tokenize(string source)
 		{
 			SpanCharReader reader = new SpanCharReader(source);
-			
+
 			startOfTok = 0;
 			//curState = States.Init;
 			Toks = new List<Token>(100);
@@ -101,7 +101,7 @@ namespace CERoslynPlugin
 			Toks = new List<Token>(100);
 		}
 		public override void Visit (SyntaxNode node)
-		{			
+		{
 			base.Visit (node);
 		}
 		public override void VisitToken (SyntaxToken token)

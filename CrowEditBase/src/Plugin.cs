@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2021-2022  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -18,6 +18,7 @@ namespace CrowEditBase
 		string FullPath;
 		bool isLoaded;
 		PluginsLoadContext loadContext;
+		Type serviceClass;
 
 		public Assembly Load (AssemblyName assemblyName)
 			=> loadContext.LoadFromAssemblyName (assemblyName);
@@ -68,6 +69,11 @@ namespace CrowEditBase
 			string defaultConfigName = loadContext.MainAssembly.GetManifestResourceNames ().FirstOrDefault(c=>c.EndsWith ("default.conf"));
 			if (!string.IsNullOrEmpty (defaultConfigName)) {
 				Configuration config = new Configuration (loadContext.MainAssembly.GetManifestResourceStream (defaultConfigName));
+				string mainService = config.Get<string> ("MainService");
+				if (!string.IsNullOrEmpty (mainService)) {
+					serviceClass = loadContext.MainAssembly.GetType (mainService);
+					App.GetService (serviceClass)?.Start();
+				}
 				string fileAssociations = config.Get<string> ("FileAssociations");
 				if (!string.IsNullOrEmpty (fileAssociations)) {
 					try
@@ -94,6 +100,9 @@ namespace CrowEditBase
 		public void Unload () {
 			if (!isLoaded)
 				return;
+
+			if (serviceClass != null)
+				App.GetService (serviceClass)?.Stop();
 
 			App.RemoveCrowAssembly (loadContext.MainAssembly);
 

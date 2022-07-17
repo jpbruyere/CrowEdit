@@ -7,7 +7,6 @@ using Glfw;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.IO;
-using Crow.Drawing;
 using System.Diagnostics;
 using System.Collections.Generic;
 using Crow.DebugLogger;
@@ -18,6 +17,7 @@ using Crow.Text;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using static CrowEditBase.CrowEditBase;
+using Drawing2D;
 
 namespace Crow
 {
@@ -93,10 +93,12 @@ namespace Crow
 			}
 		);
 
+		public ActionCommand CMDViewPreview;
+
 		void initCommands ()
 		{
-			App.ViewCommands.Add (
-				new ActionCommand("Crow Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App)));
+			CMDViewPreview = new ActionCommand("Crow Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App));
+
 			CMDRefresh = new ActionCommand ("Refresh", refresh, "#icons.refresh.svg", IsRunning);
 			CMDStartRecording = new ActionCommand ("Start Recording", () => Recording = true, "#icons.circle.svg", false);
 			CMDStopRecording = new ActionCommand ("Stop Recording", stopRecording, "#icons.circle-red.svg", false);
@@ -129,14 +131,14 @@ namespace Crow
 		FieldInfo fiDbgIFace_IsDirty;
 		Action delResetDebugger;
 		Action<object, string> delSaveDebugLog;
-		Func<IntPtr> delGetSurfacePointer;
+		Func<ISurface> delGetMainSurface;
 		Action<string> delSetSource;
 		Action delReloadIml;
 		Func<double> delGetZoomFactor;
 		Action<double> delSetZoomFactor;
 
 
-		FieldInfo fiDbg_IncludeEvents, fiDbg_DiscardEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount;
+		FieldInfo fiDbg_IncludeEvents, fiDbg_DiscardEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount, fiDbgIFace_Terminate;
 		#endregion
 
 		bool recording, debugLogIsEnabled;
@@ -293,7 +295,7 @@ namespace Crow
 			foreach (string assemblyPath in crowAssemblies)
 				additionalResolvePath.Add (System.IO.Path.GetDirectoryName(assemblyPath));
 
-			crowLoadCtx?.Unload();
+			//crowLoadCtx?.Unload();
 			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
 			crowLoadCtx.Resolving += (context, assemblyName) => {
 				foreach (string path in additionalResolvePath) {
@@ -343,17 +345,18 @@ namespace Crow
 											dbgIFace, dbgIfaceType.GetMethod("OnKeyPress"));
 
 
-				delGetSurfacePointer = (Func<IntPtr>)Delegate.CreateDelegate(typeof(Func<IntPtr>),
-											dbgIFace, dbgIfaceType.GetProperty("SurfacePointer").GetGetMethod());
+				delGetMainSurface = (Func<ISurface>)Delegate.CreateDelegate(typeof(Func<ISurface>),
+											dbgIFace, dbgIfaceType.GetProperty("MainSurface").GetGetMethod());
 				delSetSource = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>),
 											dbgIFace, dbgIfaceType.GetProperty("Source").GetSetMethod());
 				delReloadIml = (Action)Delegate.CreateDelegate(typeof(Action), dbgIFace, dbgIfaceType.GetMethod("ReloadIml"));
 
-				delGetZoomFactor = (Func<double>)Delegate.CreateDelegate(typeof(Func<double>),
+				/*delGetZoomFactor = (Func<double>)Delegate.CreateDelegate(typeof(Func<double>),
 											dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetGetMethod());
 				delSetZoomFactor = (Action<double>)Delegate.CreateDelegate(typeof(Action<double>),
-											dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetSetMethod());
+											dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetSetMethod());*/
 
+				fiDbgIFace_Terminate = dbgIfaceType.GetField("Terminate");
 				fiDbgIFace_IsDirty = dbgIfaceType.GetField("IsDirty");
 				fiDbgIFace_MaxLayoutingTries = dbgIfaceType.GetField("MaxLayoutingTries", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 				fiDbgIFace_MaxDiscardCount = dbgIfaceType.GetField("MaxDiscardCount", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
@@ -364,7 +367,7 @@ namespace Crow
 				delResetDebugger = (Action)Delegate.CreateDelegate(typeof(Action), null, debuggerType.GetMethod("Reset"));
 				/*delSaveDebugLog = (Action<object, string>)Delegate.CreateDelegate(typeof(Action<object, string>),
 											null, debuggerType.GetMethod("Save", new Type[] {dbgIfaceType, typeof(string)}));*/
-				HasVkvgBackend = (bool)dbgIfaceType.GetField ("HaveVkvgBackend", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).GetValue (null);
+				//HasVkvgBackend = (bool)dbgIfaceType.GetField ("HaveVkvgBackend", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).GetValue (null);
 				dbgIfaceType.GetMethod("RegisterDebugInterfaceCallback").Invoke (dbgIFace, new object[] {this} );
 				dbgIfaceType.GetMethod("Run").Invoke (dbgIFace, null);
 
@@ -373,12 +376,18 @@ namespace Crow
 
 				CurrentState = Status.Running;
 
+				App.ViewCommands.Add (CMDViewPreview);
+
 				updateCrowDebuggerState();
 
-				delSetZoomFactor (ZoomFactor);
+				//delSetZoomFactor (ZoomFactor);
 		}
 		public override void Stop()
 		{
+			if (CurrentState == Status.Running)
+				fiDbgIFace_Terminate.SetValue (dbgIFace, true);
+			App.ViewCommands.Remove (CMDViewPreview);
+
 			Recording = false;
 			DebugLogIsEnabled = false;
 			crowLoadCtx = null;
@@ -540,7 +549,7 @@ namespace Crow
 			}
 		}
 		#endregion
-		public IntPtr SurfacePointer => IsRunning ? delGetSurfacePointer() : IntPtr.Zero;
+		public ISurface MainSurface => IsRunning ? delGetMainSurface() : null;
 		public void Resize (int width, int height) {
 			if (IsRunning)
 				delResize (width, height);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2019  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2022  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -7,7 +7,7 @@ using Glfw;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.IO;
-using Crow.Drawing;
+using Drawing2D;
 using System.Diagnostics;
 using System.Collections.Generic;
 using Crow.DebugLogger;
@@ -137,7 +137,7 @@ namespace Crow
 			(Parent.LogicalParent as DockWindow).CMDClose
 		);
 
-		protected override void onDraw(Context gr)
+		protected override void onDraw(IContext gr)
 		{
 			Console.WriteLine("onDraw");
 			gr.SetSource(Colors.RoyalBlue);
@@ -156,23 +156,23 @@ namespace Crow
 		public override void onMouseUp(object sender, MouseButtonEventArgs e) => crowIFaceService?.onMouseUp(e);
 		public override void onMouseWheel(object sender, MouseWheelEventArgs e) => crowIFaceService?.onMouseWheel(e);
 
+		public override void Paint(IContext ctx)
+		{
+			base.Paint(ctx);
+		}
 		protected override void RecreateCache()
 		{
-			bmp?.Dispose ();
+			//bmp?.Dispose ();
 
 			if (crowIFaceService != null && crowIFaceService.IsRunning) {
 				crowIFaceService.Resize (Slot.Width, Slot.Height);
-				if (crowIFaceService.HasVkvgBackend)
-					bmp = IFace.CreateSurfaceForData (crowIFaceService.SurfacePointer, Slot.Width, Slot.Height);
-				else
-					bmp = IFace.CreateSurface (crowIFaceService.SurfacePointer);
-				bmp = Crow.Drawing.Surface.Lookup (crowIFaceService.SurfacePointer, false);
+				bmp = crowIFaceService.MainSurface;
 			} else
 				base.RecreateCache ();
 
 			IsDirty = false;
 		}
-		protected override void UpdateCache(Context ctx)
+		protected override void UpdateCache(IContext ctx)
 		{
 			if (bmp != null) {
 				paintCache (ctx, Slot + Parent.ClientRectangle.Position);

@@ -8,6 +8,7 @@ using Crow.Text;
 using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
+using Drawing2D;
 
 namespace CrowEditBase
 {
@@ -143,7 +144,7 @@ namespace CrowEditBase
 			}
 		}
 
-		public virtual Crow.Color GetColorForToken (TokenType tokType) {
+		public virtual Color GetColorForToken (TokenType tokType) {
 			if (tokType.HasFlag (TokenType.Punctuation))
 				return Colors.DarkGrey;
 			if (tokType.HasFlag (TokenType.Trivia))

@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Crow.Drawing;
+using Drawing2D;
 using Crow.DebugLogger;
 using System.Diagnostics;
 
@@ -176,7 +176,7 @@ namespace Crow
 			get { return base.Font; }
 			set {
 				base.Font = value;
-				using (Context gr = new Context (IFace.surf)) {
+				using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
 					gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 					gr.SetFontSize (Font.Size);
 
@@ -198,7 +198,7 @@ namespace Crow
 				w -= rightDiff;
 			return new RectangleD(x, penY, w, fe.Height);
 		}
-		void drawEvents (Context ctx, IList<DbgEvent> evts)
+		void drawEvents (IContext ctx, IList<DbgEvent> evts)
 		{
 			if (evts == null || evts.Count == 0)
 				return;
@@ -245,11 +245,12 @@ namespace Crow
 		}
 
 		DbgEvtType currentFilter;
-		protected override void onDraw (Context gr)
+		protected override void onDraw (IContext gr)
 		{
 			base.onDraw (gr);
 
-			setFontForContext (gr);
+			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+			gr.SetFontSize (Font.Size);
 
 			if (widgets == null)
 				return;
@@ -268,7 +269,7 @@ namespace Crow
 
 				penY += fe.Height;
 
-				gr.SetSource (Crow.Colors.Jet);
+				gr.SetSource (Colors.Jet);
 				gr.MoveTo (cb.X, penY - 0.5);
 				gr.LineTo (cb.Right, penY - 0.5);
 				gr.Stroke ();
@@ -276,7 +277,7 @@ namespace Crow
 				double penX = 5.0 * g.xLevel + cb.Left;
 
 				if (g.xLevel == 0)
-					gr.SetSource (Crow.Colors.LightSalmon);
+					gr.SetSource (Colors.LightSalmon);
 				else if (currentLine == g.listIndex)
 					gr.SetSource(Colors.RoyalBlue);
 				else
@@ -294,7 +295,7 @@ namespace Crow
 
 			gr.MoveTo (leftMargin + cb.Left, cb.Top);
 			gr.LineTo (leftMargin + cb.Left, cb.Bottom);
-			gr.SetSource (Crow.Colors.Grey);
+			gr.SetSource (Colors.Grey);
 
 			penY = topMargin + ClientRectangle.Top;
 
@@ -329,7 +330,7 @@ namespace Crow
 
 		}
 		string ticksToMS(long ticks) => Math.Round ((double)ticks / Stopwatch.Frequency * 1000.0, 2).ToString();
-		public override void Paint (Context ctx)
+		public override void Paint (IContext ctx)
 		{
 			base.Paint (ctx);
 
@@ -362,7 +363,8 @@ namespace Crow
 				}
 			}
 
-			setFontForContext (ctx);
+			ctx.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+			ctx.SetFontSize (Font.Size);
 
 			string str = ticksToMS(hoverTick);
 
@@ -586,10 +588,11 @@ namespace Crow
 			if (widgets == null)
 				return;
 
-			using (Context gr = new Context (IFace.surf)) {
+			using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+				gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+				gr.SetFontSize (Font.Size);
+				
 				double maxNameWidth = 0.0;
-
-				setFontForContext (gr);
 
 				foreach (DbgWidgetRecord o in widgets) {
 					double nameWidth = gr.TextExtents (o.name).Width + 5.0 * o.xLevel;

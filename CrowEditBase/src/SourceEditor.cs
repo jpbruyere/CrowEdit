@@ -5,7 +5,7 @@
 using System;
 using Glfw;
 using Crow.Text;
-using Crow.Drawing;
+using Drawing2D;
 using System.Collections;
 using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
@@ -186,8 +186,10 @@ namespace Crow
 				updateMargin ();
 
 				if (!textMeasureIsUpToDate) {
-					using (Context gr = new Context (IFace.surf)) {
-						setFontForContext (gr);
+					using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+						gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+						gr.SetFontSize (Font.Size);
+
 						measureTextBounds (gr);
 					}
 				}
@@ -258,8 +260,9 @@ namespace Crow
 				return;
 			}
 			hoverLoc = new CharLocation (hoverLine, -1, mouseLocalPos.X + ScrollX - leftMargin);
-			using (Context gr = new Context (IFace.surf)) {
-				setFontForContext (gr);
+			using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+				gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+				gr.SetFontSize (Font.Size);
 				updateLocation (gr, ClientRectangle.Width, ref hoverLoc);
 			}
 #if DEBUG_NODES
@@ -473,7 +476,7 @@ namespace Crow
 		}
 
 
-		protected virtual void fillHighlight (Context gr, int l, CharLocation selStart, CharLocation selEnd, RectangleD selRect, Color color) {
+		protected virtual void fillHighlight (IContext gr, int l, CharLocation selStart, CharLocation selEnd, RectangleD selRect, Color color) {
 			if (selStart.Line == selEnd.Line) {
 				selRect.X += selStart.VisualCharXPosition;
 				selRect.Width = selEnd.VisualCharXPosition - selStart.VisualCharXPosition;
@@ -495,7 +498,7 @@ namespace Crow
 
 			gr.Operator = Operator.Over;
 		}
-		protected override void drawContent (Context gr) {
+		protected override void drawContent (IContext gr) {
 			if (!(Document is SourceDocument doc)) {
 				base.drawContent (gr);
 				return;
@@ -642,7 +645,7 @@ namespace Crow
 						if (bytes.Length < size)
 							bytes = size > 512 ? new byte[size] : stackalloc byte[size];
 
-						int encodedBytes = Crow.Text.Encoding.ToUtf8 (buff, bytes);
+						int encodedBytes = buff.ToUtf8 (bytes);
 
 						if (encodedBytes > 0) {
 							bytes[encodedBytes++] = 0;

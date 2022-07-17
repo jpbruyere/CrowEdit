@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using Crow.Drawing;
+using Drawing2D;
 using Crow.DebugLogger;
 
 namespace Crow
@@ -85,7 +85,7 @@ namespace Crow
 			base.OnLayoutChanges (layoutType);
 		}
 
-		protected override void onDraw (Context gr)
+		protected override void onDraw (IContext gr)
 		{
 			lock (dataMutex) {
 
@@ -109,7 +109,7 @@ namespace Crow
 				drawEvent (gr, cb.Height, Event);
 			}
 		}
-		void drawEvent (Context ctx, int h, DbgEvent dbge)
+		void drawEvent (IContext ctx, int h, DbgEvent dbge)
 		{
 			double w = Math.Max(dbge.Duration * pixelPerTick, 2.0);
 			double x = (dbge.begin - Event.begin) * pixelPerTick;

@@ -6,7 +6,7 @@ using System;
 using System.Xml.Serialization;
 using System.ComponentModel;
 using System.Collections;
-using Crow.Drawing;
+using Drawing2D;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -254,15 +254,10 @@ namespace Crow
 			base.OnLayoutChanges (layoutType);
 
 			if (layoutType == LayoutingType.Height) {
-				using (ImageSurface img = new ImageSurface (Format.Argb32, 10, 10)) {
-					using (Context gr = new Context (img)) {
-						//Cairo.FontFace cf = gr.GetContextFontFace ();
-
-						gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
-						gr.SetFontSize (Font.Size);
-
-						fe = gr.FontExtents;
-					}
+				using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+					gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+					gr.SetFontSize (Font.Size);
+					fe = gr.FontExtents;
 				}
 				if (updateFilteredLinesRequest)
 					updateFilteredLines ();
@@ -270,7 +265,7 @@ namespace Crow
 				MaxScrollY = filteredLines == null ? 0 : filteredLines.Length - visibleLines;
 			}
 		}
-		protected override void onDraw (Context gr)
+		protected override void onDraw (IContext gr)
 		{
 			base.onDraw (gr);
 

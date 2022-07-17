@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Runtime.Loader;
 using System.Text;
+using Drawing2D;
 
 namespace CrowEditBase
 {
@@ -58,7 +59,7 @@ namespace CrowEditBase
 
 
 		public static CrowEditBase App;
-		public CrowEditBase (int width, int height) : base (width, height) {
+		public CrowEditBase (int width, int height) : base (width, height, true) {
 			App = this;
 		}
 
@@ -352,6 +353,24 @@ namespace CrowEditBase
 
 
 #region main options
+		public int CrowUpdateInterval {
+			get => Crow.Interface.UPDATE_INTERVAL;
+			set {
+				if (Crow.Interface.UPDATE_INTERVAL == value)
+					return;
+				Crow.Interface.UPDATE_INTERVAL = value;
+				NotifyValueChanged (Crow.Interface.UPDATE_INTERVAL);
+			}
+		}
+		public int CrowPollingInterval {
+			get => Crow.Interface.POLLING_INTERVAL;
+			set {
+				if (Crow.Interface.POLLING_INTERVAL == value)
+					return;
+				Crow.Interface.POLLING_INTERVAL = value;
+				NotifyValueChanged (Crow.Interface.POLLING_INTERVAL);
+			}
+		}
 		public virtual Color MarginBackground {
 			get => Configuration.Global.Get<Color> ("MarginBackground", Colors.Onyx);
 			set {

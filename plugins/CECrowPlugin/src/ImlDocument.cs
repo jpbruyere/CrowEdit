@@ -17,6 +17,7 @@ using static CrowEditBase.CrowEditBase;
 using CrowEdit.Xml;
 
 using AttributeSyntax = CrowEdit.Xml.AttributeSyntax;
+using Drawing2D;
 
 namespace CECrowPlugin
 {

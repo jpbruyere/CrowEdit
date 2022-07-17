@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using CrowEditBase;
 using System.Linq;
 using System.Text;
+using Drawing2D;
 
 namespace CrowEdit
 {
@@ -62,14 +63,14 @@ namespace CrowEdit
 		protected override void OnInitialized () {
 			base.OnInitialized ();
 
+			initCommands ();
+
 			loadPlugins ();
 
 			SetWindowIcon ("#Crow.Icons.crow.png");
 
 			if (CurrentDir == null)
 				CurrentDir = Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments);
-
-			initCommands ();
 
 			Widget w = Load ("#CrowEdit.ui.main.crow");
 			w.DataSource = this;

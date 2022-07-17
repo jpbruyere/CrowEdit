@@ -7,15 +7,17 @@
 
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
-		<EmbeddedResource Include="ui\**\*.*" >
+		<EmbeddedResource Include="ui\**\*.*">
 			<LogicalName>ui.%(Filename)%(Extension)</LogicalName>
 		</EmbeddedResource>
-		<EmbeddedResource Include="icons\**\*.*" >
+		<EmbeddedResource Include="icons\**\*.*">
 			<LogicalName>icons.%(Filename)%(Extension)</LogicalName>
 		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="/mnt/devel/crow/Crow/Crow.csproj" />
-		<!--<PackageReference Include="Crow" Version="0.9.8" />-->
+		<ProjectReference Include="/mnt/devel/crow/Backends/CairoBackend/Crow.CairoBackend.csproj" />
+		<!--<PackageReference Include="Crow" Version="1.0.1-beta" />
+		<PackageReference Include="Crow.CairoBackend" Version="1.0.1-beta" />-->
 	</ItemGroup>
 </Project>
