@@ -61,6 +61,14 @@ namespace CERoslynPlugin
 			AssemblyLoadContext pluginCtx = AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly());
 			pluginCtx.Resolving += msbuildResolve;
 
+			/*foreach (string dll in Directory.GetFiles ("/usr/share/dotnet/shared/Microsoft.NETCore.App/5.0.17/", "*.dll")) {
+				try {
+					pluginCtx.LoadFromAssemblyPath (dll);
+				} catch (Exception ex) {
+					App.Log(LogType.Error, $"[RoslynService]{ex}");
+				}
+			}*/
+
 			foreach (string dll in Directory.GetFiles (MSBuildRoot, "*.dll")) {
 				try {
 					pluginCtx.LoadFromAssemblyPath (dll);
@@ -68,14 +76,21 @@ namespace CERoslynPlugin
 					App.Log(LogType.Error, $"[RoslynService]{ex}");
 				}
 			}
-			string capath = Path.Combine (MSBuildRoot, "Roslyn", "bincore");
+			string capath = Path.Combine (MSBuildRoot, "Roslyn");
 			foreach (string dll in Directory.GetFiles (capath, "*.dll")) {
 				try	{
 					pluginCtx.LoadFromAssemblyPath (dll);
 				} catch (Exception ex) {
 					App.Log(LogType.Error, $"[RoslynService]{ex}");
 				}
-
+			}
+			capath = Path.Combine (MSBuildRoot, "Roslyn", "bincore");
+			foreach (string dll in Directory.GetFiles (capath, "*.dll")) {
+				try	{
+					pluginCtx.LoadFromAssemblyPath (dll);
+				} catch (Exception ex) {
+					App.Log(LogType.Error, $"[RoslynService]{ex}");
+				}
 			}
 		}
 		Assembly msbuildResolve (AssemblyLoadContext context, AssemblyName assemblyName) {

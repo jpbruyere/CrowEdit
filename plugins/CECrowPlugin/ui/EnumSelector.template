@@ -6,5 +6,5 @@
 			<Label Background="SeaGreen" Text="{../../../EnumValue}" Margin="3"/>
 		</HorizontalStack>
 	</Template>	
-	<Wrapper Name="Content" Height="Fit" Width="420" Background="Jet" Orientation="Vertical" />	
+	<Wrapper Name="Content" Height="Fit" Width="700" Background="Jet" Orientation="Vertical" />	
 </Popper>

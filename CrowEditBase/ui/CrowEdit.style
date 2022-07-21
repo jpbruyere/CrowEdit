@@ -141,3 +141,6 @@ CheckBox {
 	MouseEnter = "{Foreground=${ControlCaptionHoverColor}}";
 	MouseLeave = "{Foreground=${ControlForeground}}";
 }
+LogViewerWidget {
+	Background = "0.01,0.01,0.01,1";
+}

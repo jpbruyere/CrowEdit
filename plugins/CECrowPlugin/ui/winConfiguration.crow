@@ -26,13 +26,18 @@
 		<Spinner Caption="Refresh Rate (ms)" Value="{²RefreshRate}" Maximum="1000"/>
 		<Spinner Caption="Max Layout Try" Value="{²MaxLayoutingTries}" Maximum="1000"/>
 		<Spinner Caption="Max Layout Discard" Value="{²MaxDiscardCount}" Maximum="1000"/>
-		<GroupBox Caption="Debug Logger" IsEnabled="{DebugLogIsEnabled}">
-			<VerticalStack>
-				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowPlugin.ui.EnumSelector.template" Width="Stretched"
-					Caption="Recorded Events" EnumValue="{²RecordedEvents}" BitFieldExcludeMask="255" />
-				<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowPlugin.ui.EnumSelector.template" Width="Stretched"
-					Caption="Discarded Events" EnumValue="{²DiscardedEvents}" BitFieldExcludeMask="255" />
-				<!--<HorizontalStack Height="Fit">
+		<GroupBox Caption="Debug Logger" IsEnabled="{DebugLogIsEnabled}" Height="40%">
+			<HorizontalStack>
+				<ListBox Data="{²RecordedEvents}"/>
+				<VerticalStack Width="50%">
+					<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowPlugin.ui.EnumSelector.template" Width="Stretched"
+						Caption="Recorded Events" EnumValue="{²AddRecordedEvents}"  />
+					<HorizontalStack>
+						<Button/>
+					</HorizontalStack>
+				</VerticalStack>
+					
+				<!--<HorizontalStack Height="Fit"> BitFieldExcludeMask="255"
 					<CheckBox Caption="Recording" IsChecked="{²Recording}" Height="24" Width="30"
 						Checked="{sh.Path='A 8,8,7.5,0,6.3 O 0.8,0,0,1 f O 0,0,0,0.5 G'}"
 						Unchecked="{sh.Path='R 0.5,0.5,15,15 f O 0,0,0,1 G'}">
@@ -51,7 +56,7 @@
 						</ItemTemplate>
 					</Menu>
 				</HorizontalStack>-->
-			</VerticalStack>
+			</HorizontalStack>
 		</GroupBox>
 	</VerticalStack>
 </DockWindow>

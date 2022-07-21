@@ -119,10 +119,8 @@ namespace CERoslynPlugin
 								"NuGet.Config"));
 
 			projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
-			projectCollection.SetGlobalProperty ("TargetFramework", "netcoreapp3.1");
 
-			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (FullPath) + Path.DirectorySeparatorChar);
-			//projectCollection.SetGlobalProperty ("Configuration", "Debug");
+			//projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine(roslynService.MSBuildRoot, "Roslyn"));
 
 			//IDE.ProgressNotify (10);
 

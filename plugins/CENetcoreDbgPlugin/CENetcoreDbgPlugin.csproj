@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+		<TargetFrameworks>net5</TargetFrameworks>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
 		<EmbeddedResource Include="ui\**\*.*" />
+		<EmbeddedResource Include="default.conf" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="../CERoslynPlugin\CERoslynPlugin.csproj" />

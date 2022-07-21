@@ -54,16 +54,15 @@ namespace NetcoreDbgPlugin
 			CurrentState = Status.Paused;
 		}
 
-		/*public Command CMDOptions_SelectNetcoredbgPath = new Command ("...",
+		public Command CMDOptions_SelectNetcoredbgPath => new ActionCommand ("...",
 			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
 					<FileDialog Caption='Select netcoredbg executable path' CurrentDirectory='{NetcoredbgPath}'
-								ShowFiles='true' ShowHidden='true'/>
-				");
+								ShowFiles='true' ShowHidden='true'/>");
 				dlg.OkClicked += (sender, e) => NetcoredbgPath = (sender as FileDialog).SelectedFileFullPath;
 				dlg.DataSource = this;
 			}
-		);*/
+		);
 
 		public override string ConfigurationWindowPath => "#CENetcoreDbgPlugin.ui.winConfiguration.crow";
 	}

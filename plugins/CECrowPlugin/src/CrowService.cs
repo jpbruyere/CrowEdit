@@ -138,11 +138,12 @@ namespace Crow
 		Action<double> delSetZoomFactor;
 
 
-		FieldInfo fiDbg_IncludeEvents, fiDbg_DiscardEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount, fiDbgIFace_Terminate;
+		FieldInfo fiDbg_IncludedEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount, fiDbgIFace_Terminate;
 		#endregion
 
 		bool recording, debugLogIsEnabled;
-		DbgEvtType recordedEvents = DbgEvtType.Widget, discardedEvents;
+		IList<DbgEvtType> recordedEvents = new ObservableList<DbgEvtType>(new DbgEvtType[] {DbgEvtType.Widget} );
+		DbgEvtType addRecordedEvents = DbgEvtType.None;
 		public bool HasVkvgBackend { get; private set; }
 		public int RefreshRate {
 			get => Configuration.Global.Get<int> ("RefreshRate", 10);
@@ -202,41 +203,37 @@ namespace Crow
 					return;
 				recording = IsRunning & DebugLogIsEnabled & value;
 				if (recording) {
-					fiDbg_DiscardEvents.SetValue (dbgIFace, DiscardedEvents);
-					fiDbg_IncludeEvents.SetValue (dbgIFace, RecordedEvents);
+					fiDbg_IncludedEvents.SetValue (dbgIFace, RecordedEvents.ToList());
 					CMDStartRecording.CanExecute = false;
 					CMDStopRecording.CanExecute = true;
 				} else {
-					fiDbg_DiscardEvents.SetValue (dbgIFace, DbgEvtType.All);
-					fiDbg_IncludeEvents.SetValue (dbgIFace, DbgEvtType.None);
+					fiDbg_IncludedEvents.SetValue (dbgIFace, new List<DbgEvtType>());
 					CMDStartRecording.CanExecute = debugLogIsEnabled;
 					CMDStopRecording.CanExecute = false;
 				}
 				NotifyValueChanged(recording);
 			}
 		}
-		public DbgEvtType RecordedEvents {
+		public IList<DbgEvtType> RecordedEvents {
 			get => recordedEvents;
 			set {
 				if (recordedEvents == value)
 					return;
 				recordedEvents = value;
 				if (Recording)
-					fiDbg_IncludeEvents.SetValue (dbgIFace, value);
+					fiDbg_IncludedEvents.SetValue (dbgIFace, value);
 				NotifyValueChanged (recordedEvents);
 			}
 		}
-		public DbgEvtType DiscardedEvents {
-			get => discardedEvents;
+		public DbgEvtType AddRecordedEvents {
+			get => addRecordedEvents;
 			set {
-				if (discardedEvents == value)
+				if (addRecordedEvents == value)
 					return;
-				discardedEvents = value;
-				if (Recording)
-					fiDbg_DiscardEvents.SetValue (dbgIFace, value);
-				NotifyValueChanged (discardedEvents);
+				addRecordedEvents = value;
+				NotifyValueChanged (addRecordedEvents);
 			}
-		}
+		}		
 		public string DebugLogFilePath {
 			get => Configuration.Global.Get<string> ("DebugLogFilePath");
 			set {
@@ -361,8 +358,7 @@ namespace Crow
 				fiDbgIFace_MaxLayoutingTries = dbgIfaceType.GetField("MaxLayoutingTries", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 				fiDbgIFace_MaxDiscardCount = dbgIfaceType.GetField("MaxDiscardCount", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 
-				fiDbg_IncludeEvents = debuggerType.GetField("IncludeEvents");
-				fiDbg_DiscardEvents = debuggerType.GetField("DiscardEvents");
+				fiDbg_IncludedEvents = debuggerType.GetField("IncludedEvents");
 				fiDbg_ConsoleOutput = debuggerType.GetField("ConsoleOutput");
 				delResetDebugger = (Action)Delegate.CreateDelegate(typeof(Action), null, debuggerType.GetMethod("Reset"));
 				/*delSaveDebugLog = (Action<object, string>)Delegate.CreateDelegate(typeof(Action<object, string>),
@@ -447,14 +443,13 @@ namespace Crow
 				crowAssemblies.Add (a);
 		}
 
-
-
 		protected override void onStateChange(Status previousState, Status newState)
 		{
 			base.onStateChange(previousState, newState);
 			CMDRefresh.CanExecute = IsRunning;
 		}
-		#region Mouse & Keyboard
+		
+		#region Mouse & Keyboard		
 		Point mouseScreenPos;//absolute on screen position.
 		public void onKeyDown(KeyEventArgs e)
 		{
@@ -549,6 +544,7 @@ namespace Crow
 			}
 		}
 		#endregion
+
 		public ISurface MainSurface => IsRunning ? delGetMainSurface() : null;
 		public void Resize (int width, int height) {
 			if (IsRunning)

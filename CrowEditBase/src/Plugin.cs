@@ -72,7 +72,7 @@ namespace CrowEditBase
 				string mainService = config.Get<string> ("MainService");
 				if (!string.IsNullOrEmpty (mainService)) {
 					serviceClass = loadContext.MainAssembly.GetType (mainService);
-					App.GetService (serviceClass)?.Start();
+					App.GetService (serviceClass);//instantiate service without starting it
 				}
 				string fileAssociations = config.Get<string> ("FileAssociations");
 				if (!string.IsNullOrEmpty (fileAssociations)) {
