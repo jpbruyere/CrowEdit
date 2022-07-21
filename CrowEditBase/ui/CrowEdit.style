@@ -52,7 +52,7 @@ MemberViewHStack {
 }
 
 IcoBut {
-	Template = "#Crow.Coding.ui.IcoBut.template";
+	Template = "#ui.IcoBut.template";
 	MinimumSize = "10,10";
 	Width = "8";
 	Height = "14";

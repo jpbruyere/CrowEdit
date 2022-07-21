@@ -15,9 +15,7 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="/mnt/devel/crow/Crow/Crow.csproj" />
-		<ProjectReference Include="/mnt/devel/crow/Backends/CairoBackend/Crow.CairoBackend.csproj" />
-		<!--<PackageReference Include="Crow" Version="1.0.1-beta" />
-		<PackageReference Include="Crow.CairoBackend" Version="1.0.1-beta" />-->
+		<PackageReference Include="Crow" Version="1.1.0-beta" />
+		<PackageReference Include="Crow.CairoBackend" Version="1.1.0-beta" />
 	</ItemGroup>
 </Project>

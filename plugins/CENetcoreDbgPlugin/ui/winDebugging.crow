@@ -1,16 +1,21 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Netcore Debugger"  Width="Fit" Height="Fit" Resizable="false">
+<Window Caption="Netcore Debugger"  Width="Fit" Height="Fit" Resizable="false">
 	<Template>
-		<Border Name="Content" Name="MoveHandle" Margin="5"/>
+		<Border Margin="5">
+			<HorizontalStack Fit="true">
+				<Image Name="MoveHandle" Path="#icons.move-arrows.svg" Width="12" Height="12"/>
+				<Container Name="Content"/>
+			</HorizontalStack>
+		</Border>
 	</Template>
-		<HorizontalStack Fit="true">
-			<Button Style="IcoBut" Command="{CMDDebugStart}"/>
-			<Button Style="IcoBut" Command="{CMDDebugPause}"/>
-			<Button Style="IcoBut" Command="{CMDDebugStop}"/>
-			<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
-			<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
-			<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
-	</VerticalStack>
-</DockWindow>
+	<HorizontalStack Fit="true">
+		<Button Style="IcoBut" Command="{CMDDebugStart}"/>
+		<Button Style="IcoBut" Command="{CMDDebugPause}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStop}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
+	</HorizontalStack>
+</kWindow>
 
 

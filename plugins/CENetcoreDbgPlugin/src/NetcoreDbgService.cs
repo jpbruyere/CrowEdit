@@ -18,8 +18,27 @@ using Crow;
 namespace NetcoreDbgPlugin
 {
 	public class NetcoreDbgService : Service {
+		public override string ConfigurationWindowPath => "#CENetcoreDbgPlugin.ui.winConfiguration.crow";
 		public NetcoreDbgService () : base () {
+			initCommands();
+			App.ViewCommands.Add (CMDViewDebug);
 		}
+		#region commands
+		public ActionCommand CMDViewDebug;
+		public Command CMDOptions_SelectNetcoredbgPath => new ActionCommand ("...",
+			() => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+					<FileDialog Caption='Select netcoredbg executable path' CurrentDirectory='{NetcoredbgPath}'
+								ShowFiles='true' ShowHidden='true'/>");
+				dlg.OkClicked += (sender, e) => NetcoredbgPath = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = this;
+			}
+		);
+		void initCommands ()
+		{
+			CMDViewDebug = new ActionCommand("Debug Window", () => App.LoadWindow ("#CENetcoreDbgPlugin.ui.winDebugging.crow", dbg));
+		}
+		#endregion
 		public string NetcoredbgPath {
 			get => Configuration.Global.Get<string> ("NetcoredbgPath");
 			set {
@@ -54,16 +73,5 @@ namespace NetcoreDbgPlugin
 			CurrentState = Status.Paused;
 		}
 
-		public Command CMDOptions_SelectNetcoredbgPath => new ActionCommand ("...",
-			() => {
-				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-					<FileDialog Caption='Select netcoredbg executable path' CurrentDirectory='{NetcoredbgPath}'
-								ShowFiles='true' ShowHidden='true'/>");
-				dlg.OkClicked += (sender, e) => NetcoredbgPath = (sender as FileDialog).SelectedFileFullPath;
-				dlg.DataSource = this;
-			}
-		);
-
-		public override string ConfigurationWindowPath => "#CENetcoreDbgPlugin.ui.winConfiguration.crow";
 	}
 }
