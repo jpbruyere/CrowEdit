@@ -330,7 +330,7 @@ namespace Crow
 
 		}
 		string ticksToMS(long ticks) => Math.Round ((double)ticks / Stopwatch.Frequency * 1000.0, 2).ToString();
-		public override void Paint (IContext ctx)
+		public override bool Paint (IContext ctx)
 		{
 			base.Paint (ctx);
 
@@ -399,7 +399,7 @@ namespace Crow
 
 			if (selStart < 0 || selEnd < 0) {
 				ctx.Operator = Operator.Over;
-				return;
+				return true;
 			}
 			double selStartX = (double)(selStart - ScrollX - minTicks) * xScale + leftMargin + cb.Left;
 			double selEndX = (double)(selEnd - ScrollX - minTicks) * xScale + leftMargin + cb.Left;
@@ -425,8 +425,7 @@ namespace Crow
 			ctx.SetSource (Colors.Black);
 			ctx.ShowText (str);
 
-
-
+			return true;
 		}
 		public override void OnLayoutChanges (LayoutingType layoutType)
 		{

@@ -1,10 +1,10 @@
-﻿SmallUIFont = "sans, 10";
-SmallFont = "consolas, 10";
+﻿SmallUIFont = "sans, 12";
+SmallFont = "consolas, 12";
 InactiveTabBackground = "DarkGrey";
 SelectedTabBackground = "Onyx";
 InactiveTabForeground = "Grey";
 SelectedTabForeground = "White";
-MenuIconSize = "16";
+MenuIconSize = "22";
 
 ControlForeground = "LightGrey";
 ControlCaptionHoverColor = "White";
@@ -19,6 +19,11 @@ TreeItemBorderFG			= "Transparent";
 TreeItemBorderHighlightFG	= "DimGrey";
 TreeItemBackground			= "Transparent";
 //TreeItemHighlight			= "
+
+TxtInFileDialog {
+	Margin = "2";
+	Font = "mono, 14";
+}
 
 Editor {
 	Focusable="true";
@@ -54,9 +59,8 @@ MemberViewHStack {
 IcoBut {
 	Template = "#ui.IcoBut.template";
 	MinimumSize = "10,10";
-	Width = "8";
-	Height = "14";
-	Background = "White";
+	Width = "32";
+	Height = "32";
 }
 Spinner {
 	Template = "#ui.spinner.template";
@@ -133,7 +137,7 @@ CheckBox {
 	Template= "#Crow.CheckBox2.template";
 	Width = "Stretched";
 	Height = "Fit";
-	CornerRadius = "3";
+	CornerRadius = "0";
 	Background = "${ControlIdle}";
 	Foreground = "${ControlForeground}";
 	Checked = "{Background=${ControlHighlight}}";
@@ -143,4 +147,5 @@ CheckBox {
 }
 LogViewerWidget {
 	Background = "0.01,0.01,0.01,1";
+	MouseWheelSpeed = "2";
 }

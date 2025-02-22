@@ -139,7 +139,7 @@ namespace Crow
 
 		protected override void onDraw(IContext gr)
 		{
-			Console.WriteLine("onDraw");
+			//crowIFaceService.Log(LogType.Error, "onDraw");
 			gr.SetSource(Colors.RoyalBlue);
 			gr.Paint();
 		}
@@ -156,9 +156,9 @@ namespace Crow
 		public override void onMouseUp(object sender, MouseButtonEventArgs e) => crowIFaceService?.onMouseUp(e);
 		public override void onMouseWheel(object sender, MouseWheelEventArgs e) => crowIFaceService?.onMouseWheel(e);
 
-		public override void Paint(IContext ctx)
+		public override bool Paint(IContext ctx)
 		{
-			base.Paint(ctx);
+			return base.Paint(ctx);
 		}
 		protected override void RecreateCache()
 		{

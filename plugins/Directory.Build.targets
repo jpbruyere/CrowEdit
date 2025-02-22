@@ -3,7 +3,8 @@
 		<DestinationFolder>$(SolutionDir)build\plugins\</DestinationFolder>
 	</PropertyGroup>
 	<Target Name="AfterBuild">
-		<MakeDir Directories="$(DestinationFolder)$(ProjectName)\"/>
+		<MakeDir Directories="$(DestinationFolder)\"/>
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DestinationFolder)$(ProjectName)\" ContinueOnError="true" />
+		<Copy SourceFiles="$(ProjectDir)$(OutputPath)$(TargetName).pdb" DestinationFolder="$(DestinationFolder)$(ProjectName)\" ContinueOnError="true" />
 	</Target>
 </Project>

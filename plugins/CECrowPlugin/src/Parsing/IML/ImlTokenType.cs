@@ -21,6 +21,7 @@ namespace CECrowPlugin
 		ElementName				= 0x0201,
 		AttributeName			= 0x0202,
 		PI_Target				= 0x0203,
+		ConstantName			= 0x0204,
 		Punctuation				= 0x0400,
 		PI_Start				= 0x0401,// '<?'
 		PI_End					= 0x0402,// '?>'
@@ -39,9 +40,11 @@ namespace CECrowPlugin
 		BindingOpen 			= 0xA401,// '{'
 		BindingClose			= 0xA402,// '}'
 		ConstantRefOpen			= 0x2403,// '${'
+		ConstantRefClose		= 0x2404,// '}'
 		BindingLevel			= 0xA404,// '/'
 		BindingDot				= 0xA405,// '.'
 		BindingDoubleDot		= 0xA406,// '..'
+		TwoWayBinding			= 0xA407,// ²
 		BindingName				= 0xA203,// 'Identifier in binding expression'
 		BindingExpression		= 0xA001,// 'unparsed binding expression
 	}

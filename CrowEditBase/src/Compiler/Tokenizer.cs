@@ -41,7 +41,7 @@ namespace CrowEditBase
 		}
 		protected virtual void skipWhiteSpaces (ref SpanCharReader reader) {
 			while(!reader.EndOfSpan) {
-				switch (reader.Peak) {
+				switch (reader.Peek) {
 					case '\x85':
 					case '\x2028':
 					case '\xA':
@@ -57,7 +57,7 @@ namespace CrowEditBase
 					case '\x20':
 					case '\x9':
 						char c = reader.Read();
-						while (reader.TryPeak (c))
+						while (reader.TryPeek (c))
 							reader.Read();
 						addTok (ref reader, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
 						break;

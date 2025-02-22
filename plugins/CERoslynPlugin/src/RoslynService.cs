@@ -54,53 +54,64 @@ namespace CERoslynPlugin
 				break;
 			}
 		}*/
-
 		public RoslynService () : base () {
 			configureDefaultSDKPathes ();
 			//TODO static init to prevent rebinding on Service multiple instantiation
 			AssemblyLoadContext pluginCtx = AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly());
-			pluginCtx.Resolving += msbuildResolve;
+			AssemblyLoadContext.Default.Resolving += msbuildResolve;
+			
 
-			/*foreach (string dll in Directory.GetFiles ("/usr/share/dotnet/shared/Microsoft.NETCore.App/5.0.17/", "*.dll")) {
-				try {
-					pluginCtx.LoadFromAssemblyPath (dll);
-				} catch (Exception ex) {
-					App.Log(LogType.Error, $"[RoslynService]{ex}");
-				}
-			}*/
-
-			foreach (string dll in Directory.GetFiles (MSBuildRoot, "*.dll")) {
-				try {
-					pluginCtx.LoadFromAssemblyPath (dll);
-				} catch (Exception ex) {
-					App.Log(LogType.Error, $"[RoslynService]{ex}");
-				}
-			}
-			string capath = Path.Combine (MSBuildRoot, "Roslyn");
-			foreach (string dll in Directory.GetFiles (capath, "*.dll")) {
-				try	{
-					pluginCtx.LoadFromAssemblyPath (dll);
-				} catch (Exception ex) {
-					App.Log(LogType.Error, $"[RoslynService]{ex}");
-				}
-			}
-			capath = Path.Combine (MSBuildRoot, "Roslyn", "bincore");
-			foreach (string dll in Directory.GetFiles (capath, "*.dll")) {
-				try	{
-					pluginCtx.LoadFromAssemblyPath (dll);
-				} catch (Exception ex) {
-					App.Log(LogType.Error, $"[RoslynService]{ex}");
-				}
-			}
 		}
 		Assembly msbuildResolve (AssemblyLoadContext context, AssemblyName assemblyName) {
 			string assemblyPath = Path.Combine (MSBuildRoot, assemblyName.Name + ".dll");
 			//return File.Exists (assemblyPath) ? context.LoadFromAssemblyPath (assemblyPath) : null;
-			if (!File.Exists (assemblyPath))
-				return null;
+			if (!File.Exists (assemblyPath)) {
+				assemblyPath = Path.Combine (MSBuildRoot, "Roslyn","bincore", assemblyName.Name + ".dll");
+				if (!File.Exists (assemblyPath)) {
+					foreach (string file in Directory.EnumerateFiles(MSBuildRoot, assemblyName.Name + ".dll", new EnumerationOptions { RecurseSubdirectories = true }))
+					{
+						try {
+
+							AssemblyName an = AssemblyName.GetAssemblyName(file);
+							/*if (an.ProcessorArchitecture != ProcessorArchitecture.Amd64)
+								continue;*/
+							if (string.Equals(an.ToString(), assemblyName.ToString()))	{
+								Assembly aa = context.LoadFromAssemblyPath (file);
+								//App.Log (LogType.Message, $"[MSBuildResolve]{aa},{aa.CodeBase}");
+								return aa;
+							}
+						} catch (Exception e) {
+							System.Diagnostics.Debug.WriteLine(e.Message);
+						}
+					}
+					//App.Log (LogType.Error, $"[MSBuild Unresolved]{assemblyName.Name}");
+					return null;
+				}					
+			}
+				
 			Assembly a = context.LoadFromAssemblyPath (assemblyPath);
-			App.Log (LogType.Message, $"[MSBuildResolve]{a},{a.CodeBase}");
+			//App.Log (LogType.Message, $"[MSBuildResolve]{a},{a.CodeBase}");
 			return a;
+			/*string dotnetRoot = "/usr/share/dotnet";
+			string assemblyFile = Path.Combine (assemblyName.Name + ".dll");
+			foreach (string file in Directory.EnumerateFiles(dotnetRoot, assemblyFile, new EnumerationOptions { RecurseSubdirectories = true }))
+			{
+				try {
+
+					AssemblyName an = AssemblyName.GetAssemblyName(file);
+					if (an.ProcessorArchitecture != ProcessorArchitecture.Amd64)
+						continue;
+					if (string.Equals(an.ToString(), assemblyName.ToString()))	{
+						Assembly a = context.LoadFromAssemblyPath (file);
+						App.Log (LogType.Message, $"[MSBuildResolve]{a},{a.CodeBase}");
+						return a;
+					}
+				} catch (Exception e) {
+					Debug.WriteLine(e.Message);
+				}
+
+			}
+			return null;*/			
 		}
 
 		public override void Start() {
@@ -111,9 +122,16 @@ namespace CERoslynPlugin
 
 			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (MSBuildRoot, "MSBuild.dll"));
 			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", Path.Combine (MSBuildRoot, "Sdks"));
+			Environment.SetEnvironmentVariable ("MSBuildExtensionsPath", Path.Combine (MSBuildRoot));
+			Environment.SetEnvironmentVariable ("MSBuildExtensionsPath32", Path.Combine (MSBuildRoot));
+			Environment.SetEnvironmentVariable ("MSBuildExtensionsPath64", Path.Combine (MSBuildRoot));
+			Environment.SetEnvironmentVariable ("MSBUILDUSESERVER", "0");
+			Environment.SetEnvironmentVariable ("DOTNET_HOST_PATH", @"/usr/share/dotnet/dotnet");
 
-			if (Environment.OSVersion.Platform == PlatformID.Unix)
-				Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");
+
+
+			/*if (Environment.OSVersion.Platform == PlatformID.Unix)
+				Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");*/
 
 			CurrentState = Status.Running;
 

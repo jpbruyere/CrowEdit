@@ -63,9 +63,11 @@ namespace CrowEditBase
 		public void OnQueryClose (object sender, EventArgs e){
 			CloseEvent.Raise (this, null);
 		}
+		protected abstract void saveFileDialog_OkClicked (object sender, EventArgs e);
 		public void SaveAs () {
 			App.LoadIMLFragment (
-			"<FileDialog Width='60%' Height='50%' Caption='Save File' CurrentDirectory='{FileDirectory}' OkClicked='saveFileDialog_OkClicked'/>"
+			@"<FileDialog Width='60%' Height='50%' Caption='Save File' CurrentDirectory='{FileDirectory}'
+				SelectedFile='{FileName}' OkClicked='saveFileDialog_OkClicked'/>"
 			).DataSource = this;
 		}
 		public void Save () {

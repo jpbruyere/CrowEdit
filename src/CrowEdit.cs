@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2025  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -44,13 +44,10 @@ namespace CrowEdit
 				DbgEvtType.WidgetMouseClick,
 				DbgEvtType.HoverWidget
 			});*/
-
-			CrowEdit.CrowAssemblyNames = new string[] {"CrowEditBase"};
 			using (CrowEdit app = new CrowEdit ())
 				app.Run	();
 		}
-		public CrowEdit () : base (Configuration.Global.Get<int>("MainWinWidth", 800), Configuration.Global.Get<int>("MainWinHeight", 600)) {
-
+		public CrowEdit () : base (Configuration.Global.Get<int>("MainWinWidth", 800), Configuration.Global.Get<int>("MainWinHeight", 600), true) {
 
 		}
 		public override void ProcessResize(Rectangle bounds)
@@ -79,6 +76,13 @@ namespace CrowEdit
 
 			reloadWinConfigs ();
 
+			foreach (Service service in Services) {
+				if (TryGetWindow (service.ConfigurationWindowPath, out Window win))
+					win.DataSource = service;
+			}
+
+			reloadLogsConfigs ();
+
 			reopenLastProjectList ();
 
 			reopenLastDocumentList ();
@@ -87,6 +91,7 @@ namespace CrowEdit
 		{
 			saveProjectList ();
 			saveOpenedDocumentList ();
+			saveLogsConfig ();
 			saveWinConfigs ();
 		}
 		DockStack mainDock;
@@ -128,7 +133,6 @@ namespace CrowEdit
 			);
 		}
 
-
 		static void loadWindowWithThisDataSource(object sender, string path) {
 			Widget w = sender as Widget;
 			CrowEdit e = w.IFace as CrowEdit;
@@ -150,7 +154,6 @@ namespace CrowEdit
 
 			Configuration.Global.Save ();
 		}
-
 		void reloadWinConfigs() {
 
 			if (Configuration.Global.TryGet<string>("WinConfigs", out string conf) && !string.IsNullOrEmpty(conf))
@@ -160,8 +163,25 @@ namespace CrowEdit
 				for (int i = 0; i < floatings.Length; i++)
 					DockWindow.CreateFromFloatingConfigString (this, floatings[i], this);
 			}
-
 		}
+		void reloadLogsConfigs() {
+
+			if (Configuration.Global.TryGet<string>("OpenedLogs", out string conf) && !string.IsNullOrEmpty(conf)) {
+				string[] logs = conf.Split ('|');
+				for (int i = 0; i < logs.Length; i++)
+					App.GetLog(logs[i]).IsOpened = true;
+				if (Configuration.Global.TryGet<string>("CurrentLog", out string curLog) && !string.IsNullOrEmpty(curLog))
+					App.GetLog(curLog).IsSelected = true;
+			}
+		}	
+		void saveLogsConfig() {
+			lock (OpenedLogs) {
+				string openLogs = OpenedLogs.Count > 0 ?
+					OpenedLogs.Select(li=>li.Name).Aggregate((a,b) => a + "|" + b) : null;
+				Configuration.Global.Set("OpenedLogs", openLogs);
+				Configuration.Global.Set("CurrentLog", CurrentLog?.Name);
+			}
+		}	
 
 		protected override Document openOrCreateFile (string filePath, string editorPath = null) {
 			Document doc = null;
@@ -189,9 +209,7 @@ namespace CrowEdit
 				CurrentDocument = doc;
 			} catch (Exception ex) {
 				MessageBox.ShowModal (this, MessageBox.Type.Alert, $"Unable to open {filePath}.\n{ex.Message}");
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine (ex);
-				Console.ResetColor();
+				Log(LogType.Error, $"Unable to open {filePath}.\n{ex.Message}");
 			}
 			return doc;
 		}
@@ -303,7 +321,10 @@ namespace CrowEdit
 			if (prj != null)
 				CurrentProject = prj;
 		}
-
-	}
+        public override Stream GetStreamFromPath(string path)
+        {
+            return base.GetStreamFromPath(path);
+        }
+    }
 }
 

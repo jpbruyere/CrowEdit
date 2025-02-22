@@ -44,7 +44,7 @@ namespace CrowEditBase
 		public int StartLine { get; private set; }
 		public virtual int LineCount => lineCount;
 		public virtual bool IsComplete => LastTokenOffset.HasValue;
-		public virtual bool IsFoldable => Parent.StartLine != StartLine && lineCount > 1;
+		public virtual bool IsFoldable => IsComplete && Parent.StartLine != StartLine && lineCount > 1;
 		public virtual SyntaxRootNode Root => Parent.Root;
 		public virtual void UnfoldToTheTop () {
 			isFolded = false;

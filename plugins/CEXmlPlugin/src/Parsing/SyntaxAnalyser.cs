@@ -17,17 +17,19 @@ namespace CrowEdit.Xml
 		/*public virtual SyntaxNode Process (SyntaxNode startingNode) {
 
 		}*/
-
+		public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
+			attrib.valueTok = tokIdx - attrib.TokenIndexBase;
+		}
 		public override void Process () {
 			XmlDocument xmlDoc = source as XmlDocument;
 			Exceptions = new List<SyntaxException> ();
-			currentNode = new IMLRootSyntax (xmlDoc);
+			currentNode = new XMLRootSyntax (xmlDoc);
 			currentLine = 0;
 			Span<Token> toks = source.Tokens;
 			tokIdx = 0;
 
 			while (tokIdx < toks.Length) {
-				Token curTok = toks[tokIdx];
+				curTok = toks[tokIdx];
 				if (curTok.Type == TokenType.LineBreak)
 					currentLine++;
 				else if (!curTok.Type.HasFlag (TokenType.Trivia)) {
@@ -39,6 +41,7 @@ namespace CrowEdit.Xml
 						} else if (curTok.GetTokenType() == XmlTokenType.ElementName)
 							tag.name = tokIdx - tag.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.ClosingSign) {
+							tag.close = tokIdx - tag.TokenIndexBase;
 							storeCurrentNode ();
 							currentNode.RemoveChild (tag);
 							currentNode = currentNode.AddChild (new ElementSyntax (tag));
@@ -69,7 +72,7 @@ namespace CrowEdit.Xml
 						else if (curTok.GetTokenType() == XmlTokenType.AttributeValueOpen)
 							attrib.valueOpen = tokIdx - attrib.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.AttributeValue)
-							attrib.valueTok = tokIdx - attrib.TokenIndexBase;
+							ProcessAttributeValueSyntax (attrib);
 						else if (curTok.GetTokenType() == XmlTokenType.AttributeValueClose) {
 							attrib.valueClose = tokIdx - attrib.TokenIndexBase;
 							storeCurrentNode ();
@@ -82,6 +85,7 @@ namespace CrowEdit.Xml
 						if (curTok.GetTokenType() == XmlTokenType.ElementName)
 							eltEndTag.name = tokIdx - eltEndTag.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.ClosingSign) {
+							eltEndTag.close = tokIdx - eltEndTag.TokenIndexBase;
 							//go up 2 times
 							storeCurrentNode (); storeCurrentNode ();
 						} else {
@@ -90,7 +94,7 @@ namespace CrowEdit.Xml
 							storeCurrentNode (-1);
 							continue;
 						}
-					} else if (currentNode is IMLRootSyntax) {
+					} else if (currentNode is XMLRootSyntax) {
 						switch (curTok.GetTokenType()) {
 							case XmlTokenType.ElementOpen:
 								currentNode = currentNode.AddChild (new ElementStartTagSyntax (currentLine, tokIdx));
@@ -106,6 +110,7 @@ namespace CrowEdit.Xml
 						if (curTok.GetTokenType() == XmlTokenType.PI_Target)
 							pi.name = tokIdx - pi.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.PI_End) {
+							pi.PIClose = tokIdx - pi.TokenIndexBase;
 							storeCurrentNode ();
 						} else if (curTok.GetTokenType() == XmlTokenType.AttributeName) {
 							AttributeSyntax attribute = new AttributeSyntax (currentLine, tokIdx);

@@ -16,7 +16,8 @@ namespace CrowEditBase
 		public TextSpan Span => new TextSpan (Start, End);
 		public string AsString (ReadOnlySpan<char> source)
 			=> source.Slice (Start, Length).ToString();
-
+		public char GetChar (ReadOnlySpan<char> source, int charIndex = 0)
+			=> source[Start + charIndex];
 		public Token (TokenType type, int pos) {
 			Type = type;
 			Start = pos;

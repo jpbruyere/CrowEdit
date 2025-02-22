@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+		<TargetFrameworks>net9</TargetFrameworks>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
 
@@ -15,7 +15,13 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Crow" Version="1.1.0-beta" />
-		<PackageReference Include="Crow.CairoBackend" Version="1.1.0-beta" />
+		<ProjectReference Include="/mnt/sdata/devel/crow/Crow/Crow.csproj"/>
+		<!--<PackageReference Include="Crow" Version="1.3.2-beta" />-->
+		<PackageReference Include="Crow.CairoBackend" Version="1.2.1-beta" />
 	</ItemGroup>
+	<ItemGroup>
+		<AssemblyAttribute Include="Crow.CrowAssemblyPriority">
+			<_Parameter1>0</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>	
 </Project>

@@ -69,10 +69,11 @@ namespace CERoslynPlugin
 				return;
 			try
 			{
+				//string test = System.Runtime.Loader.AssemblyLoadContext.CurrentContextualReflectionContext.Name;
 				using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
 					ProjectRootElement projectRootElt = ProjectRootElement.Open (projectInSolution.AbsolutePath);
-					project = new Microsoft.Build.Evaluation.Project (projectInSolution.AbsolutePath, null, null, solutionProject.projectCollection);
-
+					project = new Microsoft.Build.Evaluation.Project (projectInSolution.AbsolutePath, null, "Current", solutionProject.projectCollection);
+					
 					ProjectProperty msbuildProjExtPath = project.GetProperty ("MSBuildProjectExtensionsPath");
 					ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");
 
@@ -98,7 +99,9 @@ namespace CERoslynPlugin
 					if (constants != null)
 						parseOptions = parseOptions.WithPreprocessorSymbols (constants.EvaluatedValue.Split (';'));
 
+
 					/*ProjectProperty targetPath = project.GetProperty ("TargetPath");
+					
 					printEvaluatedProperties(project.CreateProjectInstance());*/
 
 					populateTreeNodes ();
@@ -113,7 +116,7 @@ namespace CERoslynPlugin
 			}
 			catch (System.Exception ex)
 			{
-				Console.WriteLine (ex);
+				//App.Log(LogType.Error, $"[MSBuildProject.Load] Error: {ex.ToString()}");
 			}
 		}
 
@@ -131,21 +134,27 @@ namespace CERoslynPlugin
 		public void Build () => Build ("Build");
 		public void Build (params string[] targets)
 		{
-			BuildManager.DefaultBuildManager.ResetCaches ();
-			//using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
+			using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
+				BuildManager.DefaultBuildManager.ResetCaches ();
+			
 				ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
+
+				Console.ForegroundColor = ConsoleColor.Green;
+				/*Console.WriteLine ($"Initial properties");
+				printEvaluatedProperties (pi);*/
+
 				BuildRequestData request = new BuildRequestData (pi, targets, null,
 					BuildRequestDataFlags.ProvideProjectStateAfterBuild);
 
 				lastBuildResult = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
 
-				printEvaluatedProperties (lastBuildResult.ProjectStateAfterBuild);
+				/*printEvaluatedProperties (lastBuildResult.ProjectStateAfterBuild);
 
-				var test = lastBuildResult.ProjectStateAfterBuild.GetItems ("Reference");
+				var test = lastBuildResult.ProjectStateAfterBuild.GetItems ("Reference");*/
 
-				Console.WriteLine (IsCrowProject);
+				//Console.WriteLine (IsCrowProject);
 
-			//}
+			}
 		}
 		public async void DesignBuild () {
 			lastBuildResult = await Task.Run (()=> designBuild());
@@ -255,6 +264,7 @@ namespace CERoslynPlugin
 						curNode.AddChild (new ProjectItemNode (pn));
 
 					} catch (Exception ex) {
+						
 						Console.ForegroundColor = ConsoleColor.DarkRed;
 						Console.WriteLine (ex);
 						Console.ResetColor ();
@@ -281,12 +291,13 @@ namespace CERoslynPlugin
 		public string DefaultTargets => project.Xml.DefaultTargets;
 		public ICollection<ProjectProperty> Properties => project.Properties;
 		public ICollection<ProjectProperty> PropertiesSorted => project.Properties.OrderBy(p=>p.Name).ToList();
+		public string TargetPath =>	project.GetProperty ("TargetPath").EvaluatedValue;
 		public string AssemblyName => project.GetProperty ("AssemblyName").EvaluatedValue;
 		public string OutputPath => project.GetProperty ("OutputPath").EvaluatedValue;
 		public string IntermediateOutputPath => project.GetProperty ("IntermediateOutputPath").EvaluatedValue;
 		public string OutputType => project.GetProperty ("OutputType").EvaluatedValue;
 		public string OutputAssembly =>
-			Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + AssemblyExtension);
+			Path.Combine (project.GetProperty ("TargetDir").EvaluatedValue, project.GetProperty ("TargetName").EvaluatedValue);
 		public string AssemblyExtension => RuntimeInformation.IsOSPlatform (OSPlatform.Windows) ? ".exe" : "";
 		public OutputKind OutputKind {
 			get {
@@ -345,10 +356,10 @@ namespace CERoslynPlugin
 				Console.WriteLine ($"{item.EvaluatedValue}");
 
 			}
-			ICollection<ProjectItemInstance> pii = pi.GetItems ("InnerOutput");
+			/*ICollection<ProjectItemInstance> pii = pi.GetItems ("InnerOutput");
 			ProjectRootElement pre = pi.ToProjectRootElement();
 			pre.FullPath = "/home/jp/test.csproj";
-			pre.Save();
+			pre.Save();*/
 
 		}
 #endregion

@@ -1,0 +1,33 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Watches"  Width="60%">
+	<VerticalStack RootDataLevel="true" DataSource="{DbgSession}" >
+		<TreeView IsRoot="true" Data="{Watches}" >
+			<ItemTemplate Data="Children" >
+				<Expandable IsExpanded="{²IsExpanded}" >
+					<Template>
+						<VerticalStack>
+							<ListItem Height="Fit" Margin="0" Focusable="true" HorizontalAlignment="Left" IsSelected="{IsSelected}"
+										ContextCommands = "{Commands}"
+										Selected = "{Background=${ControlHighlight}}"
+										Unselected = "{Background=Transparent}">
+								<HorizontalStack Spacing="5" MouseDoubleClick="./onClickForExpand">
+									<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand" IsVisible="{HasChildren}"
+										Path="{./Image}" SvgSub="{./IsExpanded}" MouseEnter="{Background=LightGrey}" MouseLeave="{Background=Transparent}" />										
+									<Label Text="{Expression}" Foreground="White" MinimumSize="120,0"/>
+									<TextBox Text="{Value}" IsEnabled="{IsEditable}" Width="Stretched"/>
+									<Label Text="{Name}" Foreground="LightGrey"/>
+								</HorizontalStack>
+							</ListItem>
+							<Container Name="Content" Visible="false" />
+						</VerticalStack>
+					</Template>
+					<HorizontalStack Height="Fit">
+						<Widget Width="16" Height="10" />
+						<VerticalStack Height="Fit" Name="ItemsContainer" />
+					</HorizontalStack>
+				</Expandable>					
+			</ItemTemplate>
+		</TreeView>
+		<TextBox Validate="OnValidateNewWatch"/>
+	</VerticalStack>
+</DockWindow>

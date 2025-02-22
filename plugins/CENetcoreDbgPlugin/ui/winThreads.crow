@@ -1,0 +1,19 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Threads"  Width="60%">
+	<ListBox DataSource="{DbgSession}" Data="{Threads}" SelectedItem="{²CurrentThread}">
+		<Template>
+			<Scroller  Name="scroller1"  >
+				<Table Columns="Id,Fit;Title,Stretched;State,Fit"
+					Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+			</Scroller>			
+		</Template>	
+		<ItemTemplate>
+			<TableRow 	Selected = "{Background=${ControlHighlight}}"
+						Unselected = "{Background=Transparent}">
+				<Label Text="{Id}" />
+				<Label Text="{Name}" />
+				<Label Text="{IsRunning}" />				
+			</TableRow>
+		</ItemTemplate>
+	</ListBox>	
+</DockWindow>

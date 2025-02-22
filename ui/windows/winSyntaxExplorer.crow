@@ -30,6 +30,8 @@
 										<Label Style="TreeLabel" Text="{IsComplete}"/>
 										<Label Style="TreeLabel" Text="span:"/>
 										<Label Style="TreeLabel" Text="{Span}"/>
+										<Label Style="TreeLabel" Text="foldable:"/>
+										<Label Style="TreeLabel" Text="{IsFoldable}"/>
 									</HorizontalStack>
 								</Border>
 								<Container Name="Content" Visible="false"/>

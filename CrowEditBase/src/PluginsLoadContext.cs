@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+// Copyright (c) 2021-2025  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -37,8 +37,8 @@ namespace CrowEditBase
 		}
 		protected override Assembly Load(AssemblyName assemblyName) {
 			string assemblyPath = Path.Combine (fullPath, assemblyName.Name + ".dll");
+			//App.Log (LogType.Message, $"[PluginsLoadContext:{Name}] Trying: {assemblyName.ToString()} => {assemblyPath}");
 			return File.Exists (assemblyPath) ? LoadFromAssemblyPath (assemblyPath) : null;
 		}
-
 	}
 }

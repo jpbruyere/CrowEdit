@@ -27,6 +27,7 @@ namespace CrowEditBase
 			assembly = loadContext.Assemblies.FirstOrDefault (a=>a.GetName().Name == assemblyName.Name);
 			return assembly != null;
 		}
+		public Drawing2D.Color ColorStatus => isLoaded ? Drawing2D.Colors.Green : Drawing2D.Colors.Red;
 		public virtual bool IsLoaded {
 			get { return isLoaded; }
 			set {
@@ -36,6 +37,8 @@ namespace CrowEditBase
 				isLoaded = value;
 
 				NotifyValueChanged (isLoaded);
+				NotifyValueChanged ("ColorStatus", ColorStatus);
+				
 
 				CMDLoad.CanExecute = !IsLoaded;
 				CMDReload.CanExecute = CMDUnload.CanExecute = IsLoaded;
@@ -52,14 +55,15 @@ namespace CrowEditBase
 			CMDLoad, CMDUnload, CMDReload);
 
 		protected virtual void initCommands () {
-			CMDLoad = new ActionCommand ("Load", Load, "#icons.reply.svg",  false);
+			CMDLoad = new ActionCommand ("Load", () => { Load(); }, "#icons.reply.svg",  false);
 			CMDUnload = new ActionCommand ("Unload", Unload, "#icons.share-arrow.svg", false);
 			CMDReload = new ActionCommand ("Reload", () => { Unload(); Load();}, "#icons.refresh.svg", false);
 		}
 
-		public void Load () {
+		// return false on type load exception so the plugin load will be retried 1 time
+		public bool Load () {
 			if (isLoaded)
-				return;
+				return true;
 
 			if (loadContext == null)
 				loadContext = new PluginsLoadContext(FullPath);
@@ -81,6 +85,10 @@ namespace CrowEditBase
 						foreach (string associations in fileAssociations.Split (';')) {
 							string[] typeExts = associations.Split (':');
 							Type clientClass = loadContext.MainAssembly.GetType (typeExts[0].Trim());
+							if (clientClass == null) {
+								App.Log(LogType.Plugin | LogType.Warning | LogType.Debug, $"Plugin first load failed: {Name}");
+								return false;
+							}
 							foreach (string ext in typeExts[1].Split (','))//supported extension comma separated list
 								App.AddFileAssociation (ext.Trim(), clientClass);
 							if (typeExts.Length < 3)
@@ -90,12 +98,15 @@ namespace CrowEditBase
 						}
 					}
 					catch (System.Exception ex)	{
-						Console.WriteLine ($"[Plugin]Error reading 'default.conf' for {FullPath}: {ex.Message}");
+						App.Log (LogType.Error|LogType.Plugin, $"Error reading 'default.conf' for {FullPath}: {ex.Message}");
+						return true;
 					}
 				}
 			}
 
 			IsLoaded = true;
+			App.Log(LogType.Normal, $"Plugin loaded: {Name}");
+			return true;
 		}
 		public void Unload () {
 			if (!isLoaded)
@@ -105,7 +116,7 @@ namespace CrowEditBase
 				App.GetService (serviceClass)?.Stop();
 
 			App.RemoveCrowAssembly (loadContext.MainAssembly);
-
+			App.Log(LogType.Plugin | LogType.Normal, $"Plugin unloaded: {Name}");
 			IsLoaded = false;
 		}
 	}

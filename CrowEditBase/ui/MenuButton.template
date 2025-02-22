@@ -5,7 +5,7 @@
 						MouseEnter="{Background=${ControlHighlight}}"
 						MouseLeave="{Background=Transparent}">
 			<Image Style="MenuIcon" Picture="{./Icon}" />
-			<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="1"/>
+			<Label Text="{./Caption}" Width="Stretched" Height="Fit" Margin="1"/>
 		</HorizontalStack>
 	</Template>
 </Button>

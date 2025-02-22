@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+		<TargetFrameworks>net9</TargetFrameworks>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
 		<EmbeddedResource Include="default.conf" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="Enums.NET" Version="4.0.0" >
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
 	</ItemGroup>
 </Project>

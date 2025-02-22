@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net5</TargetFramework>
+		<TargetFramework>net9</TargetFramework>
 		<OutputType>WinExe</OutputType>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
@@ -18,15 +18,33 @@
 
 		<ProjectReference Include="plugins\CECrowPlugin\CECrowPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	        <Private>false</Private>
+	        <ExcludeAssets>runtime</ExcludeAssets>
 		</ProjectReference>
 		<ProjectReference Include="plugins\CEXmlPlugin\CEXmlPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	        <Private>false</Private>
+	        <ExcludeAssets>runtime</ExcludeAssets>
 		</ProjectReference>
 		<ProjectReference Include="plugins\CERoslynPlugin\CERoslynPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	        <Private>false</Private>
+	        <ExcludeAssets>runtime</ExcludeAssets>
 		</ProjectReference>
 		<ProjectReference Include="plugins\CENetcoreDbgPlugin\CENetcoreDbgPlugin.csproj" >
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<Private>false</Private>
+			<ExcludeAssets>runtime</ExcludeAssets>
 		</ProjectReference>
+		<ProjectReference Include="plugins\CENugetPlugin\CENugetPlugin.csproj" >
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	        <Private>false</Private>
+	        <ExcludeAssets>runtime</ExcludeAssets>
+		</ProjectReference>
+		<ProjectReference Include="plugins\CEEbnfPlugin\CEEbnfPlugin.csproj" >
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	        <Private>false</Private>
+	        <ExcludeAssets>runtime</ExcludeAssets>
+		</ProjectReference>		
 	</ItemGroup>
 </Project>

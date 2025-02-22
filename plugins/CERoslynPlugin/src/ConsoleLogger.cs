@@ -116,6 +116,26 @@ namespace CERoslynPlugin
 			Console.WriteLine (e.Message);
 		}
         private void EventSource_AnyEventRaised (object sender, BuildEventArgs e) {
+			if (e is TaskStartedEventArgs tse)
+				Console.ForegroundColor = ConsoleColor.Green;
+			else if (e is TaskFinishedEventArgs tfe) 
+				Console.ForegroundColor = ConsoleColor.Green;
+			else if (e is TargetStartedEventArgs tase) 
+				Console.ForegroundColor = ConsoleColor.Yellow;
+			else if (e is TargetFinishedEventArgs tafe) 
+				Console.ForegroundColor = ConsoleColor.Yellow;
+			else if (e is BuildMessageEventArgs bme) 
+				Console.ForegroundColor = ConsoleColor.Gray;
+			else if (e is ProjectStartedEventArgs pse) 
+				Console.ForegroundColor = ConsoleColor.White;
+			else if (e is ProjectFinishedEventArgs pfe) 
+				Console.ForegroundColor = ConsoleColor.White;
+			else if (e is BuildErrorEventArgs bee) 
+				Console.ForegroundColor = ConsoleColor.Red;
+			else if (e is BuildWarningEventArgs bwe) 
+				Console.ForegroundColor = ConsoleColor.DarkYellow;
+			else
+				Console.ForegroundColor = ConsoleColor.DarkGray;
 			Console.WriteLine (e.Message);
 		}
 

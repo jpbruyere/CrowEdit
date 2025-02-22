@@ -1,21 +1,14 @@
 ﻿<?xml version="1.0"?>
-<Window Caption="Netcore Debugger"  Width="Fit" Height="Fit" Resizable="false">
-	<Template>
-		<Border Margin="5">
-			<HorizontalStack Fit="true">
-				<Image Name="MoveHandle" Path="#icons.move-arrows.svg" Width="12" Height="12"/>
-				<Container Name="Content"/>
-			</HorizontalStack>
-		</Border>
-	</Template>
-	<HorizontalStack Fit="true">
+<DockWindow Caption="Netcore Debugger"  Width="Fit" Height="Fit" Resizable="false" >
+	<HorizontalStack Fit="true" DataSource="{DbgSession}" Margin="0" Spacing="5">
 		<Button Style="IcoBut" Command="{CMDDebugStart}"/>
 		<Button Style="IcoBut" Command="{CMDDebugPause}"/>
 		<Button Style="IcoBut" Command="{CMDDebugStop}"/>
 		<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
 		<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
 		<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
+		<Label Text="{CurrentState}" Margin="2"/>
 	</HorizontalStack>
-</kWindow>
+</DockWindow>
 
 

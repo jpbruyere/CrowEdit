@@ -18,16 +18,19 @@ namespace CrowEditBase
 			Paused,
 			Stopped
 		}
+		LogItem log;
+		protected void Log(LogType type, string message) => log.Add(type, message);
 		protected Service () {
+			Name = this.GetType().Name;
+			log = CrowEditBase.App.MainLog;
 			CMDStart = new ActionCommand ("Start", Start, "#icons.play-button.svg", true);
 			CMDStop = new ActionCommand ("Stop", Stop, "#icons.stop.svg", false);
 			CMDPause = new ActionCommand ("Pause", Pause, "#icons.pause-symbol.svg", false);
 			CMDOpenConfig = new ActionCommand ("Service configuration",
 				() => CrowEditBase.App.LoadWindow (ConfigurationWindowPath, this), "#icons.cogwheel.svg", true);
 			Commands = new CommandGroup (CMDStart, CMDPause, CMDStop, CMDOpenConfig);
-
-			if (CrowEditBase.App.TryGetWindow (ConfigurationWindowPath, out Window win))
-				win.DataSource = this;
+			ensureConfigWinDataSource();
+			Log(LogType.Low, $"[{Name}] Service Instanciated");
 		}
 		public Command CMDStart, CMDStop, CMDPause, CMDOpenConfig;
 		public CommandGroup Commands;
@@ -50,8 +53,13 @@ namespace CrowEditBase
 			CMDStart.CanExecute = !IsRunning;
 			CMDPause.CanExecute = IsRunning;
 			CMDStop.CanExecute = IsRunning || CurrentState == Status.Paused;
+			Log(LogType.High, $"[{Name}] Status: {previousState} -> {newState}");
 		}
-
+		protected void ensureConfigWinDataSource() {
+			if (CrowEditBase.App.TryGetWindow (ConfigurationWindowPath, out Window win))
+				win.DataSource = this;
+		}
+		public readonly string Name;
 		public abstract void Start ();
 		public abstract void Stop ();
 		public abstract void Pause ();

@@ -338,8 +338,7 @@ namespace Crow
 							selStart = selectionStart.Value;
 							selEnd = CurrentLoc.Value;
 						}
-					} else
-						IFace.forceTextCursor = true;
+					}
 				//}
 
 				if (document.Lenght > 0) {
@@ -356,7 +355,7 @@ namespace Crow
 							if (l.Length > 0) {
 								int size = l.Length * 4 + 1;
 								if (bytes.Length < size)
-									bytes = size > 512 ? new byte[size] : stackalloc byte[size];
+									bytes = new byte[size];
 
 								encodedBytes = document.GetText (l).ToUtf8 (bytes);
 								bytes[encodedBytes++] = 0;
@@ -477,8 +476,7 @@ namespace Crow
 			}
 			//}
 
-			Rectangle c = ScreenCoordinates (textCursor.Value + Slot.Position + ClientRectangle.Position);
-			ctx.ResetClip ();
+			Rectangle c = ContextCoordinates (textCursor.Value + Slot.Position + ClientRectangle.Position);
 			Foreground.SetAsSource (IFace, ctx, c);
 			ctx.LineWidth = 1.0;
 			ctx.MoveTo (0.5 + c.X, c.Y);
@@ -576,10 +574,6 @@ namespace Crow
 				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
 			}
 		}
-		public override void Paint (IContext ctx) {
-			base.Paint (ctx);
-			IFace.forceTextCursor = true;
-		}
 		protected override void onDraw (IContext gr)
 		{
 			//base.onDraw (gr);
@@ -602,6 +596,14 @@ namespace Crow
 			if (ClipToClientRect)
 				gr.Restore ();
 		}
+        public override bool Paint(IContext ctx)
+        {
+            bool painted = base.Paint(ctx);
+			if (HasFocus && painted && IFace.drawTextCursor) {
+				DrawCursor(ctx, out Rectangle r);
+			}
+			return painted;
+        }
 		#endregion
 
 		#region Mouse handling
@@ -638,7 +640,7 @@ namespace Crow
 			if (HasFocus && IFace.IsDown (MouseButton.Left)) {
 				CurrentLoc = hoverLoc;
 				autoAdjustScroll = true;
-				IFace.forceTextCursor = true;
+				IFace.forceTextCursor();
 				RegisterForRedraw ();
 			}
 		}
@@ -652,7 +654,7 @@ namespace Crow
 					else if (!selectionStart.HasValue)
 						selectionStart = CurrentLoc;
 					CurrentLoc = hoverLoc;
-					IFace.forceTextCursor = true;
+					IFace.forceTextCursor();
 					RegisterForRedraw ();
 					e.Handled = true;
 				}
@@ -808,7 +810,7 @@ namespace Crow
 					return;
 				}
 				autoAdjustScroll = true;
-				IFace.forceTextCursor = true;
+				IFace.forceTextCursor();
 				e.Handled = true;
 			/*} finally {
 				document.ExitReadLock ();
@@ -890,7 +892,7 @@ namespace Crow
 			CurrentLoc = document.GetLocation (change.Start + change.ChangedText.Length);
 
 			textMeasureIsUpToDate = false;
-			IFace.forceTextCursor = true;
+			IFace.forceTextCursor();
 			autoAdjustScroll = true;
 
 			RegisterForGraphicUpdate ();

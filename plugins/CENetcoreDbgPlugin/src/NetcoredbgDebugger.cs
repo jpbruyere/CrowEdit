@@ -42,25 +42,13 @@ namespace NetcoreDbgPlugin
 				base.Project = value;
 			}
 		}
-		void initDebugSession () {
-			if (CurrentState != Status.Init || msbProject == null)
-				return;
+		LogItem log;
 
-			bool result = procdbg.Start();
-
-			procdbg.BeginOutputReadLine();
-
-			CreateNewRequest($"-file-exec-and-symbols {msbProject.OutputAssembly}");
-			CreateNewRequest($"-environment-cd {Path.GetDirectoryName(msbProject.OutputAssembly)}");
-
-			foreach (BreakPoint bp in BreakPoints)
-				InsertBreakPoint(bp);
-
-			CurrentState = Status.Starting;
-		}
 		#region CTOR
 		public NetcoredbgDebugger()
 		{
+			log = App.GetLog("NetcoredbgDebugger");
+
 			procdbg = new System.Diagnostics.Process();
 			procdbg.StartInfo.FileName = App.GetService<NetcoreDbgService>().NetcoredbgPath;
 			procdbg.StartInfo.Arguments = "--interpreter=mi";
@@ -79,6 +67,8 @@ namespace NetcoreDbgPlugin
 
 			BreakPoints.ListAdd += BreakPoints_ListAdd;
 			BreakPoints.ListRemove += BreakPoints_ListRemove;
+
+			initCommands();
 		}
 		#endregion
 
@@ -99,7 +89,7 @@ namespace NetcoreDbgPlugin
 		/// </summary>
 		void sendRequest(Request request)
 		{
-			DebuggerLog.Add($"<- {request}");
+			log.Add(LogType.Custom1, $"<- {request}");
 			procdbg.StandardInput.WriteLine(request);
 		}
 
@@ -124,12 +114,34 @@ namespace NetcoreDbgPlugin
 					sendRequest(pendingRequest.Peek());
 			}
 		}
+		void initDebugSession () {
+			if (CurrentState != Status.Init || msbProject == null)
+				return;
+
+			bool result = procdbg.Start();
+
+			procdbg.BeginOutputReadLine();
+
+			CreateNewRequest($"-file-exec-and-symbols {msbProject.OutputAssembly}");
+			CreateNewRequest($"-environment-cd {Path.GetDirectoryName(msbProject.TargetPath)}");
+
+			foreach (BreakPoint bp in BreakPoints)
+				InsertBreakPoint(bp);
+
+			CurrentState = Status.Starting;
+			CreateNewRequest($"-exec-run");
+		}
 
 		#region Debugger abstract class implementation
 		public override void Start()
 		{
-			initDebugSession ();
-			CreateNewRequest($"-exec-run");
+			if (CurrentState == Status.Init)
+				initDebugSession ();
+			else if (CurrentState == Status.Ready) {
+				CurrentState = Status.Starting;			
+				CreateNewRequest($"-exec-run");
+			} else if (CurrentState == Status.Stopped)
+				Continue();
 		}
 		public override void Pause()
 		{
@@ -141,6 +153,7 @@ namespace NetcoreDbgPlugin
 		}
 		public override void Stop()
 		{
+			CurrentState = Status.Stopping;
 			CreateNewRequest($"-exec-abort");
 		}
 
@@ -201,7 +214,7 @@ namespace NetcoreDbgPlugin
 		}
 		private void Procdbg_Exited(object sender, EventArgs e)
 		{
-			DebuggerLog.Add("GDB process Terminated.");
+			log.Add(LogType.Custom1, "GDB process Terminated.");
 
 			CurrentState = Status.Init;
 		}
@@ -254,14 +267,14 @@ namespace NetcoreDbgPlugin
 		}
 
 		void Procdbg_ErrorDataReceived(object sender, System.Diagnostics.DataReceivedEventArgs e) {
-			DebuggerLog.Add($"-> Error: {e.Data}");
+			log.Add(LogType.Error, $"-> Error: {e.Data}");
 		}
 
 		void Procdbg_OutputDataReceived(object sender, System.Diagnostics.DataReceivedEventArgs e) {
 			if (string.IsNullOrEmpty(e.Data))
 				return;
-
-			DebuggerLog.Add($"-> {e.Data}");
+			
+			log.Add(LogType.Custom1, $"-> {e.Data}");
 
 			char firstChar = e.Data[0];
 			ReadOnlySpan<char> data = e.Data.AsSpan(1);
@@ -330,14 +343,14 @@ namespace NetcoreDbgPlugin
 							bp.Update (obj["bkpt"] as MITupple);
 
 						} else
-							DebuggerLog.Add($"=> request result not handled: {request}");
+							log.Add(LogType.Warning, $"=> request result not handled: {request}");
 					}
 
 
 				}
 				else if (data_id.SequenceEqual("exit"))
 				{
-					DebuggerLog.Add($"=> exit request done: {request}");
+					log.Add(LogType.Custom1, $"=> exit request done: {request}");
 					CreateNewRequest($"-gdb-exit");
 				}
 				else
@@ -353,13 +366,13 @@ namespace NetcoreDbgPlugin
 					if (reason == "exited")
 					{
 						CurrentState = Status.Ready;
-						DebuggerLog.Add($"Exited({obj.GetAttributeValue("exit-code")})");
+						log.Add(LogType.Custom1, $"Exited({obj.GetAttributeValue("exit-code")})");
 						//CreateNewRequest($"-gdb-exit");
 					}
 					else if (reason == "entry-point-hit" && !BreakOnStartup) {
 						Continue();
 					} else {
-						DebuggerLog.Add($"Stopped reason:{reason}");
+						log.Add(LogType.Custom1, $"Stopped reason:{reason}");
 
 						StackFrame frame = new StackFrame(obj["frame"] as MITupple);
 						if (reason == "breakpoint-hit") {
@@ -379,9 +392,9 @@ namespace NetcoreDbgPlugin
 					print_unknown_datas(e.Data);
 			} else if (firstChar == '=') {//EVENTS
 				if (data_id.SequenceEqual("message")) {
-					OutputLog.Add(obj.GetAttributeValue("text").ToString().Replace(@"\0", ""));
+					log.Add(LogType.Custom2, obj.GetAttributeValue("text").ToString().Replace(@"\0", ""));
 				} else if (data_id.SequenceEqual("breakpoint-modified")) {
-					OutputLog.Add($"{e.Data}");
+					log.Add(LogType.Custom2, $"{e.Data}");
 					MITupple bkpt = obj["bkpt"] as MITupple;
 					BreakPoint bp = (BreakPoint)BreakPoints.FirstOrDefault (bk=>bk.Index == int.Parse (bkpt.GetAttributeValue("number")));
 					bp.Update (bkpt);
@@ -392,9 +405,7 @@ namespace NetcoreDbgPlugin
 
 		void print_unknown_datas(string data)
 		{
-			Console.ForegroundColor = ConsoleColor.Red;
-			Console.WriteLine(data);
-			Console.ResetColor();
+			log.Add(LogType.Message, $"unknown datas: {data}");
 		}
 
 		public void WatchRequest(Watch w)

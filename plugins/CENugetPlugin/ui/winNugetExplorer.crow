@@ -1,0 +1,48 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Nuget explorer"  Width="80%" Height="400" Resizable="true">
+	<VerticalStack RootDataLevel="true" Margin="5">
+		<HorizontalStack Height="Fit" Spacing="10">
+			<Label Text="Search" Margin="5"/>
+			<TextBox Width="Stretched" MaximumSize="300,0" Text="{²SearchString}"/>
+			<Button Command="{CMDSearchPackage}" MinimumSize="0,0"/>
+		</HorizontalStack>
+		<ListBox Style="ScrollingListBox" Height="Stretched" Width="Stretched" Data="{SearchResults}">
+			<Template>
+				<Border BorderWidth="1" Background="{./Background}">
+					<HorizontalStack Margin="1">
+						<Scroller Name="ItemsScroller" Margin="2">
+							<VerticalStack Height="Fit" MinimumSize="10,10" Spacing="10"
+								Name="ItemsContainer" Margin="0" VerticalAlignment="Top"/>
+						</Scroller>
+						<ScrollBar Name="scrollbar1" Value="{²../ItemsScroller.ScrollY}"
+							LargeIncrement="{../ItemsScroller.PageHeight}" SmallIncrement="30" CursorRatio="{../ItemsScroller.ChildHeightRatio}"
+							Maximum="{../ItemsScroller.MaxScrollY}" Orientation="Vertical" 
+							Width="12" />
+					</HorizontalStack>
+				</Border>
+			</Template>
+			<ItemTemplate>
+				<!--<TableRow 	Selected = "{Background=${ControlHighlight}}"
+							Unselected = "{Background=Transparent}">
+					<Label Text="{Title}" VerticalAlignment="Top" />
+					<Label Text="{Summary}" Multiline="true"/>
+				</TableRow>-->
+				<ListItem Selected = "{Background=${ControlHighlight}}"
+						  Unselected = "{Background=Transparent}">
+					<Border CornerRadius="2" Margin="0" Height="Fit"
+														Foreground="Transparent"
+														MouseEnter="{Foreground=DimGrey}"
+														MouseLeave="{Foreground=Transparent}">							  
+						<HorizontalStack Height="50" Spacing="10" Margin="5">
+							<Image Height="Stretched" Width="50" Path="{GetNugetPackageIcon}" Background="White"/>
+							<Label VerticalAlignment="Top" Text="{Title}" Width="20%" />
+							<Label Height="Stretched" Text="{Summary}" Multiline="true"/>
+						</HorizontalStack>
+					</Border>
+				</ListItem>
+			</ItemTemplate>			
+		</ListBox>
+	</VerticalStack>
+</DockWindow>
+
+

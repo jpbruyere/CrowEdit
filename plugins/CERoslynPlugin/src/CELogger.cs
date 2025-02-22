@@ -52,9 +52,10 @@ namespace CERoslynPlugin
 			}
 		}
 		public string Parameters { get; set; }
-
+		CrowEditBase.LogItem logger;
 		public CELogger (LoggerVerbosity verbosity = LoggerVerbosity.Detailed)
 		{
+			logger = App.GetLog("MSBuild");
 			Verbosity = verbosity;
 		}
 		public void Initialize (IEventSource eventSource) {
@@ -75,6 +76,8 @@ namespace CERoslynPlugin
 			eventSource.TargetFinished += EventSource_TargetFinished;
 			eventSource.TaskStarted += EventSource_TaskStarted;
 			eventSource.TaskFinished += EventSource_TaskFinished;
+			eventSource.CustomEventRaised += EventSource_CusomEvent;
+			//eventSource.AnyEventRaised += EventSource_AnyEvent;
 		}
 
 		void unregisterHandles () {
@@ -89,15 +92,27 @@ namespace CERoslynPlugin
 			eventSource.TargetFinished -= EventSource_TargetFinished;
 			eventSource.TaskStarted -= EventSource_TaskStarted;
 			eventSource.TaskFinished -= EventSource_TaskFinished;
+			eventSource.CustomEventRaised -= EventSource_CusomEvent;
+			//eventSource.AnyEventRaised -= EventSource_AnyEvent;
 		}
 		void log (LogType type, string message) {
 			string[] lines = Regex.Split (message, "\r\n|\r|\n");//|\r|\n|\\\\n");
 			for	(int i=0; i<lines.Length;i++)
-				App.Log (type, lines[i]);
+				logger.Add (type, lines[i]);
 		}
+		void EventSource_AnyEvent (object sender, BuildEventArgs e)
+		{
+			log (LogType.Custom3, e.Message);
+		}		
+		void EventSource_CusomEvent (object sender, CustomBuildEventArgs e)
+		{
+			if (Verbosity == LoggerVerbosity.Diagnostic)
+				log (LogType.Custom3, e.Message);
+		}
+
 		void EventSource_Progress_BuildStarted (object sender, BuildStartedEventArgs e)
 		{
-			App.ResetLog ();
+			logger.ResetLog ();
 			log (LogType.High, "Build starting.");
 		}
 		void EventSource_Progress_BuildFinished (object sender, BuildFinishedEventArgs e)

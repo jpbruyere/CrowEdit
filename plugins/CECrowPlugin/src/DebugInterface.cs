@@ -24,7 +24,7 @@ namespace CECrowPlugin
 		}
 		protected override void initBackend()
 		{
-			if (!tryFindBackendType (out Type backendType))
+			if (!tryFindBackend (out Type backendType))
 				throw new Exception ("No backend found.");
 			backend = (CrowBackend)Activator.CreateInstance (backendType, new object[] {clientRectangle.Width, clientRectangle.Height});
 			//hWin = backend.hWin;
@@ -34,14 +34,11 @@ namespace CECrowPlugin
 		public override void Run()
 		{
 			initBackend ();
-
+			Init();
 			Thread t = new Thread (interfaceThread) {
 				IsBackground = true
 			};
 			t.Start ();
-
-			Init();
-
 		}
 		public bool Terminate;
 		string source;

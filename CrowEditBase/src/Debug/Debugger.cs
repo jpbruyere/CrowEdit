@@ -19,6 +19,8 @@ namespace CrowEditBase
 			Ready,
 			/// <summary>running state received</summary>
 			Running,
+			/// <summary> abort requested </summary>
+			Stopping,
 			/// <summary>stopped event received</summary>
 			Stopped,
 		}
@@ -28,12 +30,12 @@ namespace CrowEditBase
 		public virtual CommandGroup Commands => new CommandGroup (
 			CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut);
 		protected virtual void initCommands () {
-			CMDDebugStart = new ActionCommand ("Start", Start, "#Icons.debug-play.svg");
-			CMDDebugPause = new ActionCommand ("Pause", Pause, "#Icons.debug-pause.svg", false);
-			CMDDebugStop = new ActionCommand ("Stop", Stop, "#Icons.debug-stop.svg", false);
-			CMDDebugStepIn = new ActionCommand ("Step in", StepIn, "#Icons.debug-step-into.svg", false);
-			CMDDebugStepOut = new ActionCommand ("Step out", StepOut, "#Icons.debug-step-out.svg", false);
-			CMDDebugStepOver = new ActionCommand ("Step over", StepOver, "#Icons.debug-step-over.svg", false);
+			CMDDebugStart = new ActionCommand ("Start", Start, "#icons.debug-play.svg");
+			CMDDebugPause = new ActionCommand ("Pause", Pause, "#icons.debug-pause.svg", false);
+			CMDDebugStop = new ActionCommand ("Stop", Stop, "#icons.debug-stop.svg", false);
+			CMDDebugStepIn = new ActionCommand ("Step in", StepIn, "#icons.debug-step-into.svg", false);
+			CMDDebugStepOut = new ActionCommand ("Step out", StepOut, "#icons.debug-step-out.svg", false);
+			CMDDebugStepOver = new ActionCommand ("Step over", StepOver, "#icons.debug-step-over.svg", false);
 		}
 
 
@@ -47,12 +49,16 @@ namespace CrowEditBase
 			{
 				if (currentState == value)
 					return;
+
 				currentState = value;
 
 				CMDDebugStepIn.CanExecute = CMDDebugStepOut.CanExecute = CMDDebugStepOver.CanExecute =
 					(CurrentState == Status.Stopped);
 				CMDDebugStart.CanExecute = (CurrentState == Status.Ready || CurrentState == Status.Stopped);
-				CMDDebugPause.CanExecute = CMDDebugStop.CanExecute = (CurrentState == Status.Running);
+				CMDDebugPause.CanExecute = (CurrentState == Status.Running);
+				CMDDebugStop.CanExecute = (CurrentState == Status.Running || CurrentState == Status.Stopped);
+
+				NotifyValueChanged(currentState);
 			}
 		}
 		StackFrame executingFile;
@@ -80,6 +86,7 @@ namespace CrowEditBase
 					return;
 				currentThread = value;
 				NotifyValueChanged(currentThread);
+				onCurrentThreadChanged();
 			}
 		}
 		public StackFrame CurrentFrame

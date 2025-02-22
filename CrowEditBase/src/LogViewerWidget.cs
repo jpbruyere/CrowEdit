@@ -9,6 +9,9 @@ using System.Collections;
 using Drawing2D;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Collections.Generic;
+using CrowEditBase;
+using System.Diagnostics;
 
 namespace Crow
 {
@@ -30,8 +33,13 @@ namespace Crow
 		Custom1		= 0x0040,
 		Custom2		= 0x0080,
 		Custom3		= 0x0100,
+		code		= 0x1000,
+		crowEdit	= 0x2000,
+		Plugin		= 0x4000,
+
+		
 		Custom		= Custom1 | Custom2 | Custom3,
-		all			= Message | WarnErr | Custom | Debug,
+		all			= 0xffff
 	}
 	public class LogEntry {
 		public LogType Type;
@@ -44,9 +52,10 @@ namespace Crow
 	}
 	public class LogViewerWidget : ScrollingObject
 	{
-		ObservableList<LogEntry> lines;
-		LogEntry[] filteredLines;
+		LogItem logger;
+		IEnumerable<LogEntry> filteredLines;
 		object filteredLinesMutex = new object ();
+		bool updateFilteredLinesRequest = true;
 		bool scrollOnOutput, caseSensitiveSearch, allWordSearch;
 		int visibleLines = 1;
 		FontExtents fe;
@@ -69,6 +78,32 @@ namespace Crow
 				NotifyValueChanged ("ScrollOnOutput", scrollOnOutput);
 			}
 		}
+		public LogItem Logger {
+			get => logger;
+			set {
+				if (logger == value)
+					return;
+				if (logger != null) {
+					lock(logger.LogMutext) {
+						logger.log.ListAdd -= Lines_ListAdd;
+						logger.log.ListRemove -= Lines_ListRemove;
+						logger.log.ListClear -= Lines_ListClear;
+					}
+				}
+				logger = value;
+				if (logger != null) {
+					lock(logger.LogMutext) {
+						logger.log.ListAdd += Lines_ListAdd;
+						logger.log.ListRemove += Lines_ListRemove;
+						logger.log.ListClear += Lines_ListClear;
+					}
+					updateFilteredLinesRequest = true;
+				}
+				NotifyValueChanged("Logger", logger);
+				if (IsVisible)
+					RegisterForRedraw();
+			}
+		}
 		[DefaultValue(LogType.all)]
 		public LogType Filter {
 			get => filter;
@@ -79,39 +114,6 @@ namespace Crow
 				NotifyValueChangedAuto (filter);
 				updateFilteredLines ();
 				RegisterForRedraw ();
-			}
-		}
-		bool updateFilteredLinesRequest = true;
-		void updateFilteredLines () {
-			if (Lines != null) {
-				lock (filteredLinesMutex)
-					lock (lines)
-						filteredLines = Lines.Where (l=>((int)l.Type & (int)filter) > 0).ToArray();
-				MaxScrollY = filteredLines.Length - visibleLines;
-				if (scrollOnOutput)
-					ScrollY = MaxScrollY;
-			}
-			updateFilteredLinesRequest = false;
-		}
-		public virtual ObservableList<LogEntry> Lines {
-			get => lines;
-			set {
-				if (lines == value)
-					return;
-				if (lines != null) {
-					lines.ListAdd -= Lines_ListAdd;
-					lines.ListRemove -= Lines_ListRemove;
-					lines.ListClear -= Lines_ListClear;
-				}
-				lines = value;
-				if (lines != null) {
-					lines.ListAdd += Lines_ListAdd;
-					lines.ListRemove += Lines_ListRemove;
-					lines.ListClear += Lines_ListClear;
-					updateFilteredLinesRequest = true;
-				}
-				NotifyValueChanged ("Lines", lines);
-				RegisterForGraphicUpdate ();
 			}
 		}
 		public int CurrentEntryIndex {
@@ -128,6 +130,36 @@ namespace Crow
 				RegisterForRedraw();
 			}
 		}
+		
+		void updateFilteredLines () {
+			if (logger != null) {
+				lock (filteredLinesMutex) {
+					//Console.WriteLine("updatefilteredlines");
+					lock (logger.LogMutext)
+						filteredLines = logger.log.Where (l=>((int)l.Type & (int)filter) > 0);
+					MaxScrollY = filteredLines == null ? 0 : filteredLines.Count() - visibleLines;
+					NotifyValueChanged ("ChildHeightRatio", Math.Min (1.0, (double)visibleLines / filteredLines.Count()));
+				}
+				if (scrollOnOutput)
+					ScrollY = MaxScrollY;
+			}
+			updateFilteredLinesRequest = false;
+		}
+		void updateHoverEntryIdx (Point mpos) {
+			PointD mouseLocalPos = ScreenPointToLocal (mpos);
+			lock (filteredLinesMutex) {
+				if (filteredLines == null) {
+					hoverEntryIdx = -1;
+					return;
+				}
+				hoverEntryIdx = ScrollY + (int)Math.Min (Math.Max (0, Math.Floor (mouseLocalPos.Y / fe.Height)), filteredLines.Count() - 1);
+			}
+			RegisterForRedraw ();
+		}
+		
+		
+
+		#region Searching
 		[DefaultValue (true)]
 		public virtual bool CaseSensitiveSearch {
 			get { return caseSensitiveSearch; }
@@ -207,7 +239,9 @@ namespace Crow
 		void performSearch (string str, bool next = false, bool backward = false) {
 			if (string.IsNullOrEmpty (str) || filteredLines == null)
 				return;
-			LogEntry[] entries = filteredLines.ToArray ();
+			LogEntry[] entries;
+			lock(filteredLinesMutex)
+				entries = filteredLines.ToArray ();
 			if (entries.Length == 0) {
 				CurrentEntryIndex = -1;
 				return;
@@ -217,27 +251,16 @@ namespace Crow
 			else
 				performSearchForward (entries, str, next);
 		}
-
+		#endregion
 
 		void Lines_ListAdd (object sender, ListChangedEventArg e)
 		{
 			updateFilteredLinesRequest = true;
-			RegisterForRedraw();
-			// try
-			// {
-				//updateFilteredLines();
-
-			// }
-			// catch (System.Exception ex)
-			// {
-			// 	Console.WriteLine ($"list add valueChange handler bug:{ex}");
-			// }
+			if (IsVisible)
+				RegisterForRedraw();
 		}
-
 		void Lines_ListRemove (object sender, ListChangedEventArg e)
 		{
-			/*updateFilteredLines();
-			MaxScrollY = filteredLines.Length - visibleLines;*/
 			updateFilteredLinesRequest = true;
 			RegisterForRedraw ();
 		}
@@ -248,7 +271,9 @@ namespace Crow
 			RegisterForRedraw ();
 		}
 
+		public Stopwatch perf = new Stopwatch ();
 
+		#region widget overrides
 		public override void OnLayoutChanges (LayoutingType layoutType)
 		{
 			base.OnLayoutChanges (layoutType);
@@ -259,10 +284,18 @@ namespace Crow
 					gr.SetFontSize (Font.Size);
 					fe = gr.FontExtents;
 				}
+
+				visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
+
 				if (updateFilteredLinesRequest)
 					updateFilteredLines ();
-				visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
-				MaxScrollY = filteredLines == null ? 0 : filteredLines.Length - visibleLines;
+				else {
+					int count = 0;
+					lock (filteredLinesMutex) 
+						count = filteredLines.Count();
+					MaxScrollY = filteredLines == null ? 0 : count - visibleLines;
+					NotifyValueChanged ("ChildHeightRatio", Math.Min (1.0, (double)visibleLines / count));
+				}
 			}
 		}
 		protected override void onDraw (IContext gr)
@@ -280,27 +313,30 @@ namespace Crow
 
 			Rectangle r = ClientRectangle;
 
-
 			double y = ClientRectangle.Y;
 			double x = ClientRectangle.X - ScrollX;
 
+			IEnumerable<LogEntry> entries;
 			lock (filteredLinesMutex) {
-				for (int i = 0; i < visibleLines; i++) {
-					int idx = i + ScrollY;
-					if (idx >= filteredLines.Length)
-						break;
-					LogEntry le = filteredLines[idx];
+				entries = filteredLines.Skip(ScrollY).Take(visibleLines);
+			}
 
-					if (idx == curEntryIdx) {
-						gr.Rectangle (x, y, r.Width, fe.Height);
-						gr.SetSource (Color.Parse ("#5555ff55"));
-						gr.Fill ();
-					} else if (idx == hoverEntryIdx) {
-						gr.Rectangle (x, y, r.Width, fe.Height);
-						gr.SetSource (Color.Parse ("#8B451355"));
-						gr.Fill ();
-					}
+			//perf.Restart();
 
+			for (int i = 0; i < entries.Count(); i++) {
+				int idx = i + ScrollY;
+				LogEntry le = entries.ElementAt(i);
+
+				if (idx == curEntryIdx) {
+					gr.Rectangle (x, y, r.Width, fe.Height);
+					gr.SetSource (Color.Parse ("#5555ff55"));
+					gr.Fill ();
+				} else if (idx == hoverEntryIdx) {
+					gr.Rectangle (x, y, r.Width, fe.Height);
+					gr.SetSource (Color.Parse ("#8B451355"));
+					gr.Fill ();
+				}
+				if (!string.IsNullOrEmpty(le.msg)) {
 					switch (le.Type) {
 						case LogType.Low:
 							gr.SetSource (Colors.DimGrey);
@@ -329,13 +365,21 @@ namespace Crow
 						case LogType.Custom3:
 							gr.SetSource (Colors.LightPink);
 							break;
+						default:
+							gr.SetSource (Colors.Grey);
+							break;
 					}
 					gr.MoveTo (x, y + fe.Ascent);
-					gr.ShowText (le.msg);
-					y += fe.Height;
+					ReadOnlySpan<char> tmp = le.msg.AsSpan(0, Math.Min (400, le.msg.Length));
+					gr.ShowText (tmp);
 				}
+				y += fe.Height;
 			}
+			/*perf.Stop();
+			Console.WriteLine($"log onDraw: {visibleLines} lines in {perf.ElapsedMilliseconds} ms");*/
+			
 		}
+		
 		public override void onMouseLeave(object sender, MouseMoveEventArgs e)
 		{
 			hoverEntryIdx = -1;
@@ -360,17 +404,18 @@ namespace Crow
 			base.onMouseWheel(sender, e);
 			updateHoverEntryIdx (IFace.MousePosition);
 		}
-		void updateHoverEntryIdx (Point mpos) {
-			PointD mouseLocalPos = ScreenPointToLocal (mpos);
-			lock (filteredLinesMutex) {
-				if (filteredLines == null) {
-					hoverEntryIdx = -1;
-					return;
+        protected override void Dispose(bool disposing)
+        {
+			if (logger != null) {
+				lock(logger.LogMutext) {
+					logger.log.ListAdd -= Lines_ListAdd;
+					logger.log.ListRemove -= Lines_ListRemove;
+					logger.log.ListClear -= Lines_ListClear;
 				}
-				hoverEntryIdx = ScrollY + (int)Math.Min (Math.Max (0, Math.Floor (mouseLocalPos.Y / fe.Height)), filteredLines.Length - 1);
-			}
-			RegisterForRedraw ();
-		}
-	}
+			}			
+            base.Dispose(disposing);
+        }
+		#endregion
+    }
 }
 

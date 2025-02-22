@@ -12,12 +12,14 @@ using IML = Crow.IML;
 using System.Collections;
 using System.Reflection;
 using CrowEditBase;
+using Drawing2D;
 
 //using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using static CrowEditBase.CrowEditBase;
+using CrowEdit.Xml;
 
 namespace CERoslynPlugin
 {
@@ -25,7 +27,7 @@ namespace CERoslynPlugin
 		public static CSTokenType GetTokenType (this Token tok) => (XmlTokenType)tok.Type;
 		public static void SetTokenType (this Token tok, CSTokenType type) => tok.Type = (TokenType)type;
 	}*/
-	public class CSDocument : TextDocument {
+	public class CSDocument : SourceDocument {
 
 		static CSDocument () {
 			App.GetService<RoslynService> ()?.Start ();
@@ -34,30 +36,42 @@ namespace CERoslynPlugin
 		CSharpSyntaxTree tree;
 		public CSDocument (string fullPath, string editorPath)	: base (fullPath, editorPath) {
 
-			//tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);
+			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);
+			var root = tree.GetRoot();
+			/*foreach (SyntaxKind v in Enum.GetValues<SyntaxKind>().OrderBy(k=>(uint)k)) {
+				Console.WriteLine($"{v,50} {(((uint)v) ).ToString("B16") } {(((uint)v) ).ToString("X4") }");
+			}*/
 		}
 
 		#region SourceDocument abstract class implementation
-		/*protected override Tokenizer CreateTokenizer() => new CSTokenizer ();
-		protected override SyntaxAnalyser CreateSyntaxAnalyser() => null;// new XmlSyntaxAnalyser (this);
+		protected override Tokenizer CreateTokenizer() => new CSTokenizer ();
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new CSSyntaxAnalyser (this);
 
-		public override IList GetSuggestions(int pos)
+		public override IList GetSuggestions (CharLocation loc)
 		{
 			throw new NotImplementedException();
 		}
-
-		public override TextChange? GetCompletionForCurrentToken(object suggestion, out TextSpan? newSelection)
+		public override bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection)
 		{
 			throw new NotImplementedException();
-		}*/
+		}
 		#endregion
 
+		public override Color GetColorForToken (TokenType tokType) {
+			uint rawkind = (uint)tokType;
+			uint tokCat = rawkind & 0xFF;
+			CSTokenType cat = (CSTokenType)tokCat;
 
+			SyntaxKind k = (SyntaxKind)tokType;
 
-		/*ProjectCollection tree;
-		public CSDocument (string fullPath)	: base (fullPath) {
-			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);
-		}*/
+			//Console.WriteLine($"{k,50} {(((uint)tokType) ).ToString("B16") } {cat}");
+			
+			switch (cat) {
+				case CSTokenType.Trivia: return Colors.Grey;
+				case CSTokenType.Keyword: return Colors.DarkSlateBlue;
+				default: return Colors.Black;
+			}
+		}
 
 	}
 }

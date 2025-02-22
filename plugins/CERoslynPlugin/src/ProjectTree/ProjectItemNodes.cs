@@ -53,16 +53,13 @@ namespace CERoslynPlugin
 			}
 		}
 
-
-
-
 		public override string Icon {
 			get {
 				switch (NodeType) {
 				/*case NodeType.Reference:
 					return CrowIDE.IcoReference;*/
 				case NodeType.ProjectReference:
-					return "#Crow.Icons.projectRef.svg";
+					return "#icons.file-cube.svg";
 				case NodeType.PackageReference:
 					return "#icons.file_type_package.svg";
 				case NodeType.ReferenceGroup:

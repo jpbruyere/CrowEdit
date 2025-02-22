@@ -95,7 +95,14 @@ namespace CrowEditBase
 			Tokenizer tokenizer = CreateTokenizer ();
 			tokens = tokenizer.Tokenize (Source);
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
+			
+			if (syntaxAnalyser == null) {
+				RootNode = null;
+				return;
+			}
+
 			syntaxAnalyser.Process ();
+			NotifyValueChanged("Exceptions", syntaxAnalyser.Exceptions);
 
 			SyntaxNode newNode = syntaxAnalyser.Root.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));
 
@@ -137,6 +144,8 @@ namespace CrowEditBase
 				currentTokenIndex = FindTokenIndexIncludingPosition (pos);
 				CurrentNode = FindNodeIncludingSpan (currentToken.Span);
 				NotifyValueChanged ("CurrentTokenString", (object)CurrentTokenString);
+				//NotifyValueChanged ("CurrentTokenType", (uint)(currentToken.Type)>>8);
+				NotifyValueChanged ("CurrentTokenType", (object)GetTokenTypeString(currentToken.Type));
 			}else {
 				currentTokenIndex = -1;
 				CurrentNode = null;
@@ -153,6 +162,7 @@ namespace CrowEditBase
 				return Colors.DarkSlateBlue;
 			return Colors.Red;
 		}
+		public virtual string GetTokenTypeString (TokenType tokenType) => tokenType.ToString();
 		protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public abstract IList GetSuggestions (CharLocation loc);
@@ -168,17 +178,20 @@ namespace CrowEditBase
 		public abstract bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection);
 		void parse () {
 			Tokenizer tokenizer = CreateTokenizer ();
-			tokens = tokenizer.Tokenize (Source);
-
+			tokens = tokenizer?.Tokenize (Source);
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
-			//Stopwatch sw = Stopwatch.StartNew ();
-			syntaxAnalyser.Process ();
-			//sw.Stop();
-			RootNode = syntaxAnalyser.Root;
+			Stopwatch sw = Stopwatch.StartNew ();
+			syntaxAnalyser?.Process ();
+			sw.Stop();
+			RootNode = syntaxAnalyser?.Root;
 
-			/*Console.WriteLine ($"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
+			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
+			if (syntaxAnalyser == null)
+				return;
+			LogItem log = CrowEditBase.App.GetLog(this.FileName);
+			log.ResetLog();
 			foreach (SyntaxException ex in syntaxAnalyser.Exceptions)
-				Console.WriteLine ($"{ex}");*/
+				log.Add(LogType.Error, $"{ex}");
 
 				/*foreach (Token t in Tokens)
 					Console.WriteLine ($"{t,-40} {Source.AsSpan(t.Start, t.Length).ToString()}");

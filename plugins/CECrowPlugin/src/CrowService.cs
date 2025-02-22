@@ -23,48 +23,14 @@ namespace Crow
 {
 	public class CrowService : Service {
 		public CrowService () : base () {
-
-			loadCrowAssemblies ();
-
+			restoreCrowAssemblies ();
 			initCommands ();
 
-			//resolve other plugins dependencies
-			//AssemblyLoadContext.GetLoadContext (Assembly.GetExecutingAssembly ()).Resolving += resolvePluginRefs;
+			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
 
-			if (CrowEditBase.CrowEditBase.App.TryGetWindow ("#CECrowPlugin.ui.winLogGraph.crow", out Window win))
-				win.DataSource = this;
 		}
-		/*Assembly resolvePluginRefs (AssemblyLoadContext ctx, AssemblyName assemblyName)
-			=> App.TryGetPlugin ("CERoslynPlugin", out Plugin roslynPlugin) ?
-				roslynPlugin.Load (assemblyName) : null;*/
+		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
 
-		/*static IntPtr resolveUnmanaged(Assembly assembly, String libraryName)
-		{
-
-			switch (libraryName)
-			{
-				case "glfw3":
-					return NativeLibrary.Load("glfw", assembly, null);
-				case "rsvg-2.40":
-					return NativeLibrary.Load("rsvg-2", assembly, null);
-			}
-			Console.WriteLine($"[UNRESOLVE] {assembly} {libraryName}");
-			return IntPtr.Zero;
-		}*/
-
-		/*void updateCrowApp () {
-			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
-				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
-
-				}
-			}else if (App.CurrentProject is CERoslynPlugin.MSBuildProject csprj){
-				CERoslynPlugin.MSBuildProject project = App.CurrentProject as CERoslynPlugin.MSBuildProject;
-				Console.WriteLine ($"{project.Name}: {project.IsCrowProject}");
-
-			}
-
-
-		}*/
 		#region Commands
 		public Command CMDStartRecording, CMDStopRecording, CMDRefresh;
 		public Command CMDGotoParentEvent, CMDEventHistoryForward, CMDEventHistoryBackward;
@@ -92,9 +58,7 @@ namespace Crow
 				dlg.DataSource = this;
 			}
 		);
-
 		public ActionCommand CMDViewPreview;
-
 		void initCommands ()
 		{
 			CMDViewPreview = new ActionCommand("Crow Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App));
@@ -113,6 +77,7 @@ namespace Crow
 			if (CurrentState == Status.Running)
 				delSetSource (imlSource);
 		}
+		Project activeSolution;
 		Exception currentException;
 		public string ErrorMessage = "";
 		public bool ServiceIsInError;
@@ -121,7 +86,7 @@ namespace Crow
 		Assembly crowAssembly, thisAssembly;
 		Type dbgIfaceType;
 
-		#region dbgIface delegates
+#region dbgIface delegates
 		Action<int, int> delResize;
 		Func<int, int, bool> delMouseMove;
 		Func<float, bool> delMouseWheelChanged;
@@ -139,52 +104,12 @@ namespace Crow
 
 
 		FieldInfo fiDbg_IncludedEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount, fiDbgIFace_Terminate;
-		#endregion
+#endregion
 
+#region DebugLog
 		bool recording, debugLogIsEnabled;
 		IList<DbgEvtType> recordedEvents = new ObservableList<DbgEvtType>(new DbgEvtType[] {DbgEvtType.Widget} );
 		DbgEvtType addRecordedEvents = DbgEvtType.None;
-		public bool HasVkvgBackend { get; private set; }
-		public int RefreshRate {
-			get => Configuration.Global.Get<int> ("RefreshRate", 10);
-			set {
-				if (RefreshRate == value)
-					return;
-				Configuration.Global.Set ("RefreshRate", value);
-				NotifyValueChanged(value);
-			}
-		}
-		public int MaxLayoutingTries {
-			get => Configuration.Global.Get<int> ("MaxLayoutingTries", 30);
-			set {
-				if (MaxLayoutingTries == value)
-					return;
-				Configuration.Global.Set ("MaxLayoutingTries", value);
-				NotifyValueChanged(value);
-				fiDbgIFace_MaxLayoutingTries.SetValue (null, value);
-			}
-		}
-		public int MaxDiscardCount {
-			get => Configuration.Global.Get<int> ("MaxDiscardCount", 5);
-			set {
-				if (MaxDiscardCount == value)
-					return;
-				Configuration.Global.Set ("MaxDiscardCount", value);
-				NotifyValueChanged(value);
-				fiDbgIFace_MaxDiscardCount.SetValue (null, value);
-			}
-		}
-		public bool PreviewHasError => currentException != null;
-		public Exception CurrentException {
-			get => currentException;
-			private set {
-				if (currentException == value)
-					return;
-				currentException = value;
-				NotifyValueChanged (currentException);
-				NotifyValueChanged ("PreviewHasError", PreviewHasError);
-			}
-		}
 		public bool DebugLogIsEnabled {
 			get => debugLogIsEnabled;
 			set {
@@ -243,11 +168,77 @@ namespace Crow
 				NotifyValueChanged (value);
 			}
 		}
+#endregion
+
+		public bool HasVkvgBackend { get; private set; }
+		public int RefreshRate {
+			get => Configuration.Global.Get<int> ("RefreshRate", 10);
+			set {
+				if (RefreshRate == value)
+					return;
+				Configuration.Global.Set ("RefreshRate", value);
+				NotifyValueChanged(value);
+			}
+		}
+		public int MaxLayoutingTries {
+			get => Configuration.Global.Get<int> ("MaxLayoutingTries", 30);
+			set {
+				if (MaxLayoutingTries == value)
+					return;
+				Configuration.Global.Set ("MaxLayoutingTries", value);
+				NotifyValueChanged(value);
+				fiDbgIFace_MaxLayoutingTries.SetValue (null, value);
+			}
+		}
+		public int MaxDiscardCount {
+			get => Configuration.Global.Get<int> ("MaxDiscardCount", 5);
+			set {
+				if (MaxDiscardCount == value)
+					return;
+				Configuration.Global.Set ("MaxDiscardCount", value);
+				NotifyValueChanged(value);
+				fiDbgIFace_MaxDiscardCount.SetValue (null, value);
+			}
+		}
+		public double ZoomFactor {
+			get => Configuration.Global.Get<Double> ("CrowPreviewZoomFactor", 1.0);
+			set {
+				if (ZoomFactor == value)
+					return;
+				Configuration.Global.Set<Double> ("CrowPreviewZoomFactor", value);
+				NotifyValueChanged (value);
+				if (CurrentState == Status.Running)
+					delSetZoomFactor (value);
+			}
+		}
+		public bool PreviewHasError => currentException != null;
+		public Exception CurrentException {
+			get => currentException;
+			private set {
+				if (currentException == value)
+					return;
+				currentException = value;
+				NotifyValueChanged (currentException);
+				NotifyValueChanged ("PreviewHasError", PreviewHasError);
+			}
+		}
+		public ISurface MainSurface => IsRunning ? delGetMainSurface() : null;
+		public string CrowAssemblyName => IsRunning ? crowAssembly.FullName : null;
+		public void Resize (int width, int height) {
+			if (IsRunning)
+				delResize (width, height);
+		}
+		public void ResetDirtyState () {
+			if (IsRunning)
+				fiDbgIFace_IsDirty.SetValue (dbgIFace, false);
+		}
+		public bool GetDirtyState => IsRunning ? (bool)fiDbgIFace_IsDirty.GetValue (dbgIFace) : false;
 		void updateCrowDebuggerState (string errorMsg = null) {
 			ErrorMessage = errorMsg;
 			ServiceIsInError = errorMsg != null;
 			NotifyValueChanged ("ServiceErrorMessage", (object)ErrorMessage);
 			NotifyValueChanged ("ServiceIsInError",  ServiceIsInError);
+			NotifyValueChanged ("CrowAssemblyName",  (object)CrowAssemblyName);
 		}
 
 		#region DesignInterface callbacks
@@ -264,6 +255,10 @@ namespace Crow
 						yield return style.FullPath;
 				}
 			}
+			/*foreach (String item in crowAssemblies)
+			{
+				yield return Assembly.LoadFile();
+			}*/
 			yield return crowAssembly;
 		}
 		Stream getStreamFromPath (string path) {
@@ -282,19 +277,15 @@ namespace Crow
 			if (CurrentState == Status.Running)
 				return;
 
-			if (!File.Exists (CrowDbgAssemblyLocation))	{
-				DebugLogIsEnabled = false;
-				updateCrowDebuggerState($"Crow.dll for debugging file not found");
-				return;
-			}
-			List<string> additionalResolvePath = new List<string>();
+
+			/*List<string> additionalResolvePath = new List<string>();
 			additionalResolvePath.Add (System.IO.Path.GetDirectoryName(CrowDbgAssemblyLocation));
 			foreach (string assemblyPath in crowAssemblies)
-				additionalResolvePath.Add (System.IO.Path.GetDirectoryName(assemblyPath));
+				additionalResolvePath.Add (System.IO.Path.GetDirectoryName(assemblyPath));*/
 
 			//crowLoadCtx?.Unload();
-			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
-			crowLoadCtx.Resolving += (context, assemblyName) => {
+			
+			/*crowLoadCtx.Resolving += (context, assemblyName) => {
 				foreach (string path in additionalResolvePath) {
 					string assemblyPath = System.IO.Path.Combine (path, assemblyName.Name + ".dll");
 					if (!File.Exists (assemblyPath))
@@ -302,79 +293,16 @@ namespace Crow
 					return crowLoadCtx.LoadFromAssemblyPath (assemblyPath);
 				}
 				return null;
-			};
+			};*/
 
-			//using (crowLoadCtx.EnterContextualReflection()) {
-				crowAssembly = crowLoadCtx.LoadFromAssemblyPath (CrowDbgAssemblyLocation);
-				thisAssembly = crowLoadCtx.LoadFromAssemblyPath (new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath);
+			if (!updateCrowDesignAssemblyLocation()) 
+				return;
 
-				foreach (string assemblyPath in crowAssemblies)
-					crowLoadCtx.LoadFromAssemblyPath (assemblyPath);
+			CurrentState = Status.Running;
 
-				Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
-				DebugLogIsEnabled = (bool)debuggerType.GetField("IsEnabled").GetValue(null);
+			App.ViewCommands.Add (CMDViewPreview);
 
-				dbgIfaceType = thisAssembly.GetType("CECrowPlugin.DebugInterface");
-
-				dbgIFace = Activator.CreateInstance (dbgIfaceType, new object[] {CrowEditBase.CrowEditBase.App.WindowHandle});
-
-				delResize = (Action<int, int>)Delegate.CreateDelegate(typeof(Action<int, int>),
-											dbgIFace, dbgIfaceType.GetMethod("Resize"));
-
-				delMouseMove = (Func<int, int, bool>)Delegate.CreateDelegate(typeof(Func<int, int, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnMouseMove"));
-
-				delMouseWheelChanged = (Func<float, bool>)Delegate.CreateDelegate(typeof(Func<float, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnMouseWheelChanged"));
-
-
-				delMouseDown = (Func<MouseButton, bool>)Delegate.CreateDelegate(typeof(Func<MouseButton, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnMouseButtonDown"));
-
-				delMouseUp = (Func<MouseButton, bool>)Delegate.CreateDelegate(typeof(Func<MouseButton, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnMouseButtonUp"));
-
-				delKeyDown = (Func<Key, int, Modifier, bool>)Delegate.CreateDelegate(typeof(Func<Key, int, Modifier, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnKeyDown", new Type[] { typeof(Key), typeof(int), typeof (Modifier)}));
-				delKeyUp = (Func<Key, int, Modifier, bool>)Delegate.CreateDelegate(typeof(Func<Key, int, Modifier, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnKeyUp", new Type[] { typeof(Key), typeof(int), typeof (Modifier)}));
-				delKeyPress = (Func<char, bool>)Delegate.CreateDelegate(typeof(Func<char, bool>),
-											dbgIFace, dbgIfaceType.GetMethod("OnKeyPress"));
-
-
-				delGetMainSurface = (Func<ISurface>)Delegate.CreateDelegate(typeof(Func<ISurface>),
-											dbgIFace, dbgIfaceType.GetProperty("MainSurface").GetGetMethod());
-				delSetSource = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>),
-											dbgIFace, dbgIfaceType.GetProperty("Source").GetSetMethod());
-				delReloadIml = (Action)Delegate.CreateDelegate(typeof(Action), dbgIFace, dbgIfaceType.GetMethod("ReloadIml"));
-
-				/*delGetZoomFactor = (Func<double>)Delegate.CreateDelegate(typeof(Func<double>),
-											dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetGetMethod());
-				delSetZoomFactor = (Action<double>)Delegate.CreateDelegate(typeof(Action<double>),
-											dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetSetMethod());*/
-
-				fiDbgIFace_Terminate = dbgIfaceType.GetField("Terminate");
-				fiDbgIFace_IsDirty = dbgIfaceType.GetField("IsDirty");
-				fiDbgIFace_MaxLayoutingTries = dbgIfaceType.GetField("MaxLayoutingTries", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
-				fiDbgIFace_MaxDiscardCount = dbgIfaceType.GetField("MaxDiscardCount", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
-
-				fiDbg_IncludedEvents = debuggerType.GetField("IncludedEvents");
-				fiDbg_ConsoleOutput = debuggerType.GetField("ConsoleOutput");
-				delResetDebugger = (Action)Delegate.CreateDelegate(typeof(Action), null, debuggerType.GetMethod("Reset"));
-				/*delSaveDebugLog = (Action<object, string>)Delegate.CreateDelegate(typeof(Action<object, string>),
-											null, debuggerType.GetMethod("Save", new Type[] {dbgIfaceType, typeof(string)}));*/
-				//HasVkvgBackend = (bool)dbgIfaceType.GetField ("HaveVkvgBackend", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).GetValue (null);
-				dbgIfaceType.GetMethod("RegisterDebugInterfaceCallback").Invoke (dbgIFace, new object[] {this} );
-				dbgIfaceType.GetMethod("Run").Invoke (dbgIFace, null);
-
-				fiDbgIFace_MaxLayoutingTries.SetValue (null, MaxLayoutingTries);
-				fiDbgIFace_MaxDiscardCount.SetValue (null, MaxDiscardCount);
-
-				CurrentState = Status.Running;
-
-				App.ViewCommands.Add (CMDViewPreview);
-
-				updateCrowDebuggerState();
+			updateCrowDebuggerState();
 
 				//delSetZoomFactor (ZoomFactor);
 		}
@@ -393,8 +321,12 @@ namespace Crow
 		{
 			CurrentState = Status.Paused;
 		}
-		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
-		Project activeSolution;
+		protected override void onStateChange(Status previousState, Status newState)
+		{
+			base.onStateChange(previousState, newState);
+			CMDRefresh.CanExecute = IsRunning;
+		}
+		
 		public Project ActiveSolution {
 			get => activeSolution;
 			set {
@@ -406,6 +338,90 @@ namespace Crow
 			}
 		}
 
+		bool updateCrowDesignAssemblyLocation() {
+			if (!File.Exists (CrowDbgAssemblyLocation))	{
+				DebugLogIsEnabled = false;
+				updateCrowDebuggerState($"Crow.dll for debugging file not found");
+				return false;
+			}
+
+			if (crowAssembly != null)
+				crowLoadCtx.Unload();
+
+			crowAssembly = crowLoadCtx.LoadFromAssemblyPath (CrowDbgAssemblyLocation);
+
+			Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
+			DebugLogIsEnabled = (bool)debuggerType.GetField("IsEnabled").GetValue(null);
+
+			thisAssembly = crowLoadCtx.LoadFromAssemblyPath (Assembly.GetExecutingAssembly().Location);
+
+			foreach (string assemblyPath in crowAssemblies) {
+				if (File.Exists(assemblyPath)) {
+					crowLoadCtx.LoadFromAssemblyPath (assemblyPath);
+				} else {
+					Log(LogType.Error, $"[{Name}] crow assembly not found: {assemblyPath}");
+				}
+			}
+
+			dbgIfaceType = thisAssembly.GetType("CECrowPlugin.DebugInterface");
+
+			dbgIFace = Activator.CreateInstance (dbgIfaceType, new object[] {CrowEditBase.CrowEditBase.App.WindowHandle});
+
+			delResize = (Action<int, int>)Delegate.CreateDelegate(typeof(Action<int, int>),
+										dbgIFace, dbgIfaceType.GetMethod("Resize"));
+
+			delMouseMove = (Func<int, int, bool>)Delegate.CreateDelegate(typeof(Func<int, int, bool>),
+										dbgIFace, dbgIfaceType.GetMethod("OnMouseMove"));
+
+			delMouseWheelChanged = (Func<float, bool>)Delegate.CreateDelegate(typeof(Func<float, bool>),
+										dbgIFace, dbgIfaceType.GetMethod("OnMouseWheelChanged"));
+
+
+			delMouseDown = (Func<MouseButton, bool>)Delegate.CreateDelegate(typeof(Func<MouseButton, bool>),
+										dbgIFace, dbgIfaceType.GetMethod("OnMouseButtonDown"));
+
+			delMouseUp = (Func<MouseButton, bool>)Delegate.CreateDelegate(typeof(Func<MouseButton, bool>),
+										dbgIFace, dbgIfaceType.GetMethod("OnMouseButtonUp"));
+
+			delKeyDown = (Func<Key, int, Modifier, bool>)Delegate.CreateDelegate(typeof(Func<Key, int, Modifier, bool>),
+										dbgIFace, dbgIfaceType.GetMethod("OnKeyDown", new Type[] { typeof(Key), typeof(int), typeof (Modifier)}));
+			delKeyUp = (Func<Key, int, Modifier, bool>)Delegate.CreateDelegate(typeof(Func<Key, int, Modifier, bool>),
+										dbgIFace, dbgIfaceType.GetMethod("OnKeyUp", new Type[] { typeof(Key), typeof(int), typeof (Modifier)}));
+			delKeyPress = (Func<char, bool>)Delegate.CreateDelegate(typeof(Func<char, bool>),
+										dbgIFace, dbgIfaceType.GetMethod("OnKeyPress"));
+
+
+			delGetMainSurface = (Func<ISurface>)Delegate.CreateDelegate(typeof(Func<ISurface>),
+										dbgIFace, dbgIfaceType.GetProperty("MainSurface").GetGetMethod());
+			delSetSource = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>),
+										dbgIFace, dbgIfaceType.GetProperty("Source").GetSetMethod());
+			delReloadIml = (Action)Delegate.CreateDelegate(typeof(Action), dbgIFace, dbgIfaceType.GetMethod("ReloadIml"));
+
+			/*delGetZoomFactor = (Func<double>)Delegate.CreateDelegate(typeof(Func<double>),
+										dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetGetMethod());
+			delSetZoomFactor = (Action<double>)Delegate.CreateDelegate(typeof(Action<double>),
+										dbgIFace, dbgIfaceType.GetProperty("ZoomFactor").GetSetMethod());*/
+
+			fiDbgIFace_Terminate = dbgIfaceType.GetField("Terminate");
+			fiDbgIFace_IsDirty = dbgIfaceType.GetField("IsDirty");
+			fiDbgIFace_MaxLayoutingTries = dbgIfaceType.GetField("MaxLayoutingTries", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+			fiDbgIFace_MaxDiscardCount = dbgIfaceType.GetField("MaxDiscardCount", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+
+			fiDbg_IncludedEvents = debuggerType.GetField("IncludedEvents");
+			fiDbg_ConsoleOutput = debuggerType.GetField("ConsoleOutput");
+			delResetDebugger = (Action)Delegate.CreateDelegate(typeof(Action), null, debuggerType.GetMethod("Reset"));
+			/*delSaveDebugLog = (Action<object, string>)Delegate.CreateDelegate(typeof(Action<object, string>),
+										null, debuggerType.GetMethod("Save", new Type[] {dbgIfaceType, typeof(string)}));*/
+			//HasVkvgBackend = (bool)dbgIfaceType.GetField ("HaveVkvgBackend", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).GetValue (null);
+			dbgIfaceType.GetMethod("RegisterDebugInterfaceCallback").Invoke (dbgIFace, new object[] {this} );
+			dbgIfaceType.GetMethod("Run").Invoke (dbgIFace, null);
+
+			fiDbgIFace_MaxLayoutingTries.SetValue (null, MaxLayoutingTries);
+			fiDbgIFace_MaxDiscardCount.SetValue (null, MaxDiscardCount);
+
+			return true;
+		}
+
 		public string CrowDbgAssemblyLocation {
 			get => Configuration.Global.Get<string> ("CrowDbgAssemblyLocation", defaultCrowAssemblyLocation);
 			set {
@@ -413,17 +429,6 @@ namespace Crow
 					return;
 				Configuration.Global.Set ("CrowDbgAssemblyLocation", value);
 				NotifyValueChanged(value);
-			}
-		}
-		public double ZoomFactor {
-			get => Configuration.Global.Get<Double> ("CrowPreviewZoomFactor", 1.0);
-			set {
-				if (ZoomFactor == value)
-					return;
-				Configuration.Global.Set<Double> ("CrowPreviewZoomFactor", value);
-				NotifyValueChanged (value);
-				if (CurrentState == Status.Running)
-					delSetZoomFactor (value);
 			}
 		}
 		//assemblies with crow resources in order of loading
@@ -435,7 +440,7 @@ namespace Crow
 			else
 				Configuration.Global.Set ("CrowAssemblies", "");
 		}
-		void loadCrowAssemblies () {
+		void restoreCrowAssemblies () {
 			crowAssemblies.Clear ();
 			if (!Configuration.Global.TryGet<string> ("CrowAssemblies", out string assemblies))
 				return;
@@ -443,11 +448,6 @@ namespace Crow
 				crowAssemblies.Add (a);
 		}
 
-		protected override void onStateChange(Status previousState, Status newState)
-		{
-			base.onStateChange(previousState, newState);
-			CMDRefresh.CanExecute = IsRunning;
-		}
 		
 		#region Mouse & Keyboard		
 		Point mouseScreenPos;//absolute on screen position.
@@ -460,7 +460,7 @@ namespace Crow
 				}
 				catch (System.Exception ex)
 				{
-					Console.WriteLine($"[Error][DebugIFace key down]{ex}");
+					Log(LogType.Error, $"[Error][DebugIFace key down]{ex}");
 				}
 			}
 		}
@@ -473,7 +473,7 @@ namespace Crow
 				}
 				catch (System.Exception ex)
 				{
-					Console.WriteLine($"[Error][DebugIFace key up]{ex}");
+					Log(LogType.Error, $"[Error][DebugIFace key up]{ex}");
 				}
 			}
 		}
@@ -486,7 +486,7 @@ namespace Crow
 				}
 				catch (System.Exception ex)
 				{
-					Console.WriteLine($"[Error][DebugIFace key press]{ex}");
+					Log(LogType.Error, $"[Error][DebugIFace key press]{ex}");
 				}
 			}
 		}
@@ -500,7 +500,7 @@ namespace Crow
 				}
 				catch (System.Exception ex)
 				{
-					Console.WriteLine($"[Error][DebugIFace mouse move]{ex}");
+					Log(LogType.Error, $"[Error][DebugIFace mouse move]{ex}");
 				}
 			}
 		}
@@ -513,7 +513,7 @@ namespace Crow
 				}
 				catch (System.Exception ex)
 				{
-					Console.WriteLine($"[Error][DebugIFace mouse down]{ex}");
+					Log(LogType.Error, $"[Error][DebugIFace mouse down]{ex}");
 				}
 			}
 		}
@@ -526,7 +526,7 @@ namespace Crow
 				}
 				catch (System.Exception ex)
 				{
-					Console.WriteLine($"[Error][DebugIFace mouse up]{ex}");
+					Log(LogType.Error, $"[Error][DebugIFace mouse up]{ex}");
 				}
 			}
 		}
@@ -539,22 +539,11 @@ namespace Crow
 				}
 				catch (System.Exception ex)
 				{
-					Console.WriteLine($"[Error][DebugIFace mouse wheel change]{ex}");
+					Log(LogType.Error, $"[Error][DebugIFace mouse wheel change]{ex}");
 				}
 			}
 		}
 		#endregion
-
-		public ISurface MainSurface => IsRunning ? delGetMainSurface() : null;
-		public void Resize (int width, int height) {
-			if (IsRunning)
-				delResize (width, height);
-		}
-		public void ResetDirtyState () {
-			if (IsRunning)
-				fiDbgIFace_IsDirty.SetValue (dbgIFace, false);
-		}
-		public bool GetDirtyState => IsRunning ? (bool)fiDbgIFace_IsDirty.GetValue (dbgIFace) : false;
 
 		#region Debug log
 		IList<DbgEvent> events;

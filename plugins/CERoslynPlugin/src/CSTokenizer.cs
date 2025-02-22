@@ -15,7 +15,8 @@ namespace CERoslynPlugin
 {
 	public class CSTokenizer : Tokenizer
 	{
-		//CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge();
+		
+
 		int startOfTok;
 		protected List<Token> Toks;
 		void addTok (ref SpanCharReader reader, Enum tokType) {
@@ -26,7 +27,7 @@ namespace CERoslynPlugin
 		}
 		void skipWhiteSpacesAndLineBreaks (ref SpanCharReader reader) {
 			while(!reader.EndOfSpan) {
-				switch (reader.Peak) {
+				switch (reader.Peek) {
 					case '\x85':
 					case '\x2028':
 					case '\xA':
@@ -42,7 +43,7 @@ namespace CERoslynPlugin
 					case '\x20':
 					case '\x9':
 						char c = reader.Read();
-						while (reader.TryPeak (c))
+						while (reader.TryPeek (c))
 							reader.Read();
 						addTok (ref reader, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
 						break;
@@ -53,11 +54,11 @@ namespace CERoslynPlugin
 		}
 		void skipWhiteSpaces (ref SpanCharReader reader) {
 			while(!reader.EndOfSpan) {
-				switch (reader.Peak) {
+				switch (reader.Peek) {
 					case '\x20':
 					case '\x9':
 						char c = reader.Read();
-						while (reader.TryPeak (c))
+						while (reader.TryPeek (c))
 							reader.Read();
 						addTok (ref reader, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
 						break;
@@ -69,11 +70,14 @@ namespace CERoslynPlugin
 
 		public override Token[] Tokenize(string source)
 		{
-			SpanCharReader reader = new SpanCharReader(source);
+			var tree = CSharpSyntaxTree.ParseText(source);
+			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge();
+			bridge.Visit(tree.GetRoot());
+			//SpanCharReader reader = new SpanCharReader(source);
 
-			startOfTok = 0;
+			//startOfTok = 0;
 			//curState = States.Init;
-			Toks = new List<Token>(100);
+			
 
 			/*while(!reader.EndOfSpan) {
 
@@ -82,20 +86,21 @@ namespace CERoslynPlugin
 				if (reader.EndOfSpan)
 					break;
 
-				switch (reader.Peak) {
+				switch (reader.Peek) {
 					case '/':
 						reader.Advance ();
 
 						break;
 				}
 			}*/
+			Toks = bridge.Toks;
 
 			return Toks.ToArray();
 		}
 	}
 	class CsharpSyntaxWalkerBridge : CSharpSyntaxWalker
 	{
-		List<Token> Toks;
+		public List<Token> Toks;
 		public CsharpSyntaxWalkerBridge () : base (SyntaxWalkerDepth.StructuredTrivia)
 		{
 			Toks = new List<Token>(100);
@@ -104,8 +109,16 @@ namespace CERoslynPlugin
 		{
 			base.Visit (node);
 		}
+		
 		public override void VisitToken (SyntaxToken token)
 		{
+			/*Console.ForegroundColor = ConsoleColor.Blue;
+			Console.Write(((uint)token.Kind()));
+			Console.ForegroundColor = ConsoleColor.Gray;
+			Console.Write(token.ToFullString());*/
+
+			
+			
 			VisitLeadingTrivia (token);
 
 			if (SyntaxFacts.IsLiteralExpression (token.Kind ())) {
@@ -132,10 +145,12 @@ namespace CERoslynPlugin
 		}
 
 		void addMultilineTok (SyntaxTrivia trivia) {
-
+			Microsoft.CodeAnalysis.Text.TextSpan span = trivia.Span;
+			Toks.Add (new Token(span.Start, span.Length, (TokenType)trivia.RawKind));
 		}
 		void addMultilineTok (SyntaxToken token) {
-
+			Microsoft.CodeAnalysis.Text.TextSpan span = token.Span;
+			Toks.Add (new Token(span.Start, span.Length, (TokenType)token.RawKind));
 		}
 
 	}

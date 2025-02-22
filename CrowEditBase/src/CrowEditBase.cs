@@ -15,20 +15,78 @@ using Drawing2D;
 namespace CrowEditBase
 {
 	public abstract class CrowEditBase : Interface {
+		public static CrowEditBase App;
+		public CrowEditBase (int width, int height, bool singleThreaded = true) : base (width, height, singleThreaded) {
+			App = this;
+			MainLog = GetLog("CrowEdit");
+			MainLog.IsOpened = true;
+			Log(LogType.Normal,"Crow edit started");
+		}
+
+		#region logging
+		LogItem currentLog;
+		public LogItem CurrentLog {
+			get => currentLog;
+			set {
+				if (currentLog == value)
+					return;
+
+				if (currentLog != null)
+					currentLog.IsSelected = false;
+
+				currentLog = value;
+				NotifyValueChanged (currentLog);
+
+				if (currentLog == null)
+					return;
+
+				currentLog.IsSelected = true;
+			}
+		}		
+		public ObservableList<LogItem> Logs = new ObservableList<LogItem>();
+		public ObservableList<LogItem> OpenedLogs = new ObservableList<LogItem>();
+		internal LogItem MainLog;
+		[Obsolete]public void Log(LogType type, string message) {
+			MainLog.Add (type, message);
+		}
+		[Obsolete]public void ResetLog () {
+			MainLog.ResetLog();
+		}
+		public LogItem GetLog(string name) {
+			LogItem li = Logs.FirstOrDefault(l=>string.Equals(l.Name,name,StringComparison.OrdinalIgnoreCase));
+			if (li == null) {
+				li = new LogItem(name);
+				lock (Logs)	{
+					lock(UpdateMutex)
+						Logs.Add(li);
+				}
+			}
+			return li;
+		}
+		internal void OpenLog(LogItem li) {
+			lock(OpenedLogs)
+				OpenedLogs.Add(li);
+		}
+		internal void CloseLog(LogItem li) {
+			lock(OpenedLogs) {
+				if (li.IsSelected) {
+					int idx = OpenedLogs.IndexOf(li);
+					OpenedLogs.RemoveAt(idx);
+					int count = OpenedLogs.Count();
+					if (idx < count)
+						OpenedLogs[idx].IsSelected = true;
+					else if (count > 0)
+						OpenedLogs[count-1].IsSelected = true;
+				} else
+					OpenedLogs.Remove(li);
+			}
+		}
+
+		#endregion
+
+		#region File associations and supported editors
 		protected Dictionary<string, List<Type>> FileAssociations = new Dictionary<string, List<Type>> ();
 		protected Dictionary<Type, List<string>> SupportedEditors = new Dictionary<Type, List<string>> ();
-		ObservableList<LogEntry> logs = new ObservableList<LogEntry>();
-		public ObservableList<LogEntry> MainLog => logs;
-
-		public void Log(LogType type, string message) {
-			lock (logs)
-				logs.Add (new LogEntry(type, message));
-		}
-		public void ResetLog () {
-			lock (logs)
-				logs.Clear ();
-		}
-
 		public void AddFileAssociation (string extension, Type clientClass) {
 			if (!FileAssociations.ContainsKey (extension))
 				FileAssociations.Add (extension, new List<Type> ());
@@ -55,13 +113,8 @@ namespace CrowEditBase
 			editorPath = SupportedEditors.ContainsKey (clientType) ? SupportedEditors[clientType].FirstOrDefault () : null;
 			return editorPath != null;
 		}
+		#endregion
 
-
-
-		public static CrowEditBase App;
-		public CrowEditBase (int width, int height) : base (width, height, true) {
-			App = this;
-		}
 
 		protected const string _defaultFileName = "unnamed.txt";
 
@@ -179,13 +232,13 @@ namespace CrowEditBase
 				NotifyValueChanged (CurrentDir);
 			}
 		}
-		public string PluginsDirecory {
-			get => Configuration.Global.Get<string>("PluginsDirecory", defaultPluginsDirectory);
+		public string PluginsDirectory {
+			get => Configuration.Global.Get<string>("PluginsDirectory", defaultPluginsDirectory);
 			set {
-				if (PluginsDirecory == value)
+				if (PluginsDirectory == value)
 					return;
-				Configuration.Global.Set ("PluginsDirecory", value);
-				NotifyValueChanged (PluginsDirecory);
+				Configuration.Global.Set ("PluginsDirectory", value);
+				NotifyValueChanged (PluginsDirectory);
 			}
 		}
 		public string CurrentFilePath {
@@ -270,7 +323,7 @@ namespace CrowEditBase
 				g.DataSource = dataSource;
 				return g as Window;
 			} catch (Exception ex) {
-				Console.WriteLine (ex.ToString ());
+				Log (LogType.Error, ex.ToString ());
 			}
 			return null;
 		}
@@ -287,72 +340,84 @@ namespace CrowEditBase
 		public ActionCommand CMDOptions_SelectPluginsDirectory => new ActionCommand ("...",
 			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select CrowEdit Directory' CurrentDirectory='{PluginsDirecory}'
+				<FileDialog Caption='Select CrowEdit Directory' CurrentDirectory='{PluginsDirectory}'
 							ShowFiles='false' ShowHidden='true' />");
-				dlg.OkClicked += (sender, e) => PluginsDirecory = (sender as FileDialog).SelectedFileFullPath;
+				dlg.OkClicked += (sender, e) => PluginsDirectory = (sender as FileDialog).SelectedFileFullPath;
 				dlg.DataSource = this;
 			}
 		);
 		public ActionCommand CMDOptions_ResetPluginsDirectory => new ActionCommand ("Reset",
 			() => {
-				PluginsDirecory = defaultPluginsDirectory;
+				PluginsDirectory = defaultPluginsDirectory;
 			}
 		);
 		static string defaultPluginsDirectory =>
 			Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".config", "CrowEdit", "plugins");
 		protected void loadPlugins () {
-			if (!Directory.Exists (PluginsDirecory))
-				return;
+			Log(LogType.Message, $"Searching for plugins in {PluginsDirectory}");
 
-			foreach (string pluginDir in Directory.GetDirectories (PluginsDirecory)) {
+			if (!Directory.Exists (PluginsDirectory)) {
+				Log(LogType.Error, $"Plugins directory not found: {PluginsDirectory}");
+				return;
+			}
+				
+			List<Plugin> pluginsToReload = new List<Plugin>();
+			foreach (string pluginDir in Directory.GetDirectories (PluginsDirectory)) {
 				Plugin plugin = new Plugin (pluginDir);
 				Plugins.Add (plugin);
-				plugin.Load ();
+				if (!plugin.Load ())
+					pluginsToReload.Add(plugin);
+				
 			}
+			foreach (Plugin p in pluginsToReload) {
+				p.Unload();
+				if (!p.Load())
+					App.Log(LogType.Warning, $"Plugin load failed: {p.Name}");
+			}
+				
 		}
 		public IEnumerable<AssemblyLoadContext> AllLoadContexts =>
 			System.Runtime.Loader.AssemblyLoadContext.All;
 
 
-	#region Editor item templates
-	public string EditorItemTemplates {
-		get {
-			StringBuilder sb = new StringBuilder (1024);
-			sb.Append (defaultEditorITemps);
-			foreach	(string editorPath in SupportedEditors.Values.SelectMany (a=>a).Distinct ())
-				sb.Append ($"<ItemTemplate Path='{editorPath}' DataTest='EditorPath' DataType='{editorPath}'/>");
-			return sb.ToString ();
+		#region Editor item templates
+		public string EditorItemTemplates {
+			get {
+				StringBuilder sb = new StringBuilder (1024);
+				sb.Append (defaultEditorITemps);
+				foreach	(string editorPath in SupportedEditors.Values.SelectMany (a=>a).Distinct ())
+					sb.Append ($"<ItemTemplate Path='{editorPath}' DataTest='EditorPath' DataType='{editorPath}'/>");
+				return sb.ToString ();
+			}
 		}
-	}
-	string defaultEditorITemps = @"
-		<ItemTemplate>
-			<ListItem IsVisible='{IsSelected}' IsSelected='{²IsSelected}' Selected=""{/tb.HasFocus='true'}"">
-				<VerticalStack Spacing='0'>
-					<HorizontalStack Spacing='0' Background='White'>
-						<Editor Name='tb' Font='consolas, 12' Margin='5'
-								Document='{}' TextChanged='onTextChanged'/>
-						<ScrollBar Value='{²../tb.ScrollY}'
-								LargeIncrement='{../tb.PageHeight}' SmallIncrement='1'
-								CursorRatio='{../tb.ChildHeightRatio}' Maximum='{../tb.MaxScrollY}' />
-					</HorizontalStack>
-					<ScrollBar Style='HScrollBar' Value='{²../tb.ScrollX}'
-							LargeIncrement='{../tb.PageWidth}' SmallIncrement='1'
-							CursorRatio='{../tb.ChildWidthRatio}' Maximum='{../tb.MaxScrollX}' />
-					<HorizontalStack Height='Fit' Spacing='3'>
-						<Widget Width='Stretched'/>
-						<Label Text='Line:' Foreground='Grey'/>
-						<Label Text='{../../tb.CurrentLine}' Margin='3'/>
-						<Label Text='col:' Foreground='Grey'/>
-						<Label Text='{../../tb.CurrentColumn}' Margin='3'/>
-					</HorizontalStack>
-				</VerticalStack>
-			</ListItem>
-		</ItemTemplate>
-	";
-	#endregion
+		string defaultEditorITemps = @"
+			<ItemTemplate>
+				<ListItem IsVisible='{IsSelected}' IsSelected='{²IsSelected}' Selected=""{/tb.HasFocus='true'}"">
+					<VerticalStack Spacing='0'>
+						<HorizontalStack Spacing='0' Background='White'>
+							<Editor Name='tb' Font='consolas, 12' Margin='5'
+									Document='{}' TextChanged='onTextChanged'/>
+							<ScrollBar Value='{²../tb.ScrollY}'
+									LargeIncrement='{../tb.PageHeight}' SmallIncrement='1'
+									CursorRatio='{../tb.ChildHeightRatio}' Maximum='{../tb.MaxScrollY}' />
+						</HorizontalStack>
+						<ScrollBar Style='HScrollBar' Value='{²../tb.ScrollX}'
+								LargeIncrement='{../tb.PageWidth}' SmallIncrement='1'
+								CursorRatio='{../tb.ChildWidthRatio}' Maximum='{../tb.MaxScrollX}' />
+						<HorizontalStack Height='Fit' Spacing='3'>
+							<Widget Width='Stretched'/>
+							<Label Text='Line:' Foreground='Grey'/>
+							<Label Text='{../../tb.CurrentLine}' Margin='3'/>
+							<Label Text='col:' Foreground='Grey'/>
+							<Label Text='{../../tb.CurrentColumn}' Margin='3'/>
+						</HorizontalStack>
+					</VerticalStack>
+				</ListItem>
+			</ItemTemplate>
+		";
+		#endregion
 
-
-#region main options
+		#region main options
 		public int CrowUpdateInterval {
 			get => Crow.Interface.UPDATE_INTERVAL;
 			set {
@@ -441,6 +506,6 @@ namespace CrowEditBase
 			}
 		}
 
-#endregion
+		#endregion
 	}
 }

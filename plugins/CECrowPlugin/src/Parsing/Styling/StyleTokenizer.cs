@@ -22,10 +22,10 @@ namespace CECrowPlugin.Style {
 		bool readName (ref SpanCharReader reader) {
 			if (reader.EndOfSpan)
 				return false;
-			char c = reader.Peak;
+			char c = reader.Peek;
 			if (char.IsLetter(c) || c == '_' ) {
 				reader.Advance ();
-				while (reader.TryPeak (ref c)) {
+				while (reader.TryPeek (ref c)) {
 					if (!char.IsLetterOrDigit(c)) {
 						UnicodeCategory uc = Char.GetUnicodeCategory (c);
 						if (uc != UnicodeCategory.NonSpacingMark &&
@@ -67,15 +67,15 @@ namespace CECrowPlugin.Style {
 				if (reader.EndOfSpan)
 					break;
 
-				switch (reader.Peak) {
+				switch (reader.Peek) {
 				case '/':
 					reader.Advance ();
-					if (reader.TryPeak ('/')) {
+					if (reader.TryPeek ('/')) {
 						reader.Advance ();
 						addTok (ref reader, StyleTokenType.LineCommentStart);
 						reader.AdvanceUntilEol ();
 						addTok (ref reader, StyleTokenType.LineComment);
-					} else if (reader.TryPeak ('*')) {
+					} else if (reader.TryPeek ('*')) {
 						reader.Advance ();
 						addTok (ref reader, StyleTokenType.BlockCommentStart);
 						while (!reader.EndOfSpan) {
@@ -85,7 +85,7 @@ namespace CECrowPlugin.Style {
 								addTok (ref reader, StyleTokenType.LineBreak);
 								continue;
 							}
-							if (reader.TryPeak ("*/")) {
+							if (reader.TryPeek ("*/")) {
 								addTok (ref reader, StyleTokenType.BlockComment);
 								reader.Advance (2);
 								addTok (ref reader, StyleTokenType.BlockCommentEnd);
@@ -120,13 +120,13 @@ namespace CECrowPlugin.Style {
 					addTok (ref reader, StyleTokenType.MemberValueOpen);
 
 					while (!reader.EndOfSpan) {
-						if (reader.TryPeak ("${")) {
+						if (reader.TryPeek ("${")) {
 							addTok (ref reader, StyleTokenType.MemberValuePart);
 							reader.Advance (2);
 							addTok (ref reader, StyleTokenType.ConstantRefOpen);
 
 							while (!reader.EndOfSpan) {
-								if (reader.TryPeak ('}')) {
+								if (reader.TryPeek ('}')) {
 									addTok (ref reader, StyleTokenType.ConstantName);
 									reader.Read ();
 									addTok (ref reader, StyleTokenType.ClosingBrace);
@@ -135,7 +135,7 @@ namespace CECrowPlugin.Style {
 								reader.Advance ();
 							}
 							continue;
-						} else if (reader.TryPeak ('\"')) {
+						} else if (reader.TryPeek ('\"')) {
 							addTok (ref reader, StyleTokenType.MemberValuePart);
 							reader.Advance ();
 							addTok (ref reader, StyleTokenType.MemberValueClose);

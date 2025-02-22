@@ -7,7 +7,7 @@
 		<Template>
 			<HorizontalStack Background="{./Background}" Width="Stretched" Height="Fit" Margin="3">
 				<Image Style="MenuIcon" Picture="{./Icon}"/>
-				<Label Text="{./Caption}" Height="Stretched"/>
+				<Label Text="{./Caption}" Height="Fit"/>
 				<Label Text="..." Width="Fit"/>
 			</HorizontalStack>
 		</Template>

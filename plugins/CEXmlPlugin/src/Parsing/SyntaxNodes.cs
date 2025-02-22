@@ -8,21 +8,21 @@ using CrowEditBase;
 namespace CrowEdit.Xml
 {
 
-	public class IMLRootSyntax : SyntaxRootNode {
-		public IMLRootSyntax (XmlDocument source)
+	public class XMLRootSyntax : SyntaxRootNode {
+		public XMLRootSyntax (XmlDocument source)
 			: base (source) {
 		}
 	}
 	public class ProcessingInstructionSyntax : SyntaxNode {
-		internal int? PIOpen, PIClose, name;
-		public override bool IsComplete => base.IsComplete & name.HasValue & PIOpen.HasValue & PIClose.HasValue;
+		public int? PIClose, name;
+		public override bool IsComplete => base.IsComplete & name.HasValue & PIClose.HasValue;
 		public ProcessingInstructionSyntax (int startLine, int tokenBase)
 			: base (startLine, tokenBase) {
 		}
 	}
 
 	public abstract class ElementTagSyntax : SyntaxNode {
-		internal int? name, close;
+		public int? name, close;
 		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
 		public string Name => Root.GetTokenStringByIndex (TokenIndexBase + name.Value);
 		protected ElementTagSyntax (int startLine, int tokenBase)
@@ -50,7 +50,7 @@ namespace CrowEdit.Xml
 
 	public class ElementSyntax : SyntaxNode {
 		public readonly ElementStartTagSyntax StartTag;
-		public ElementEndTagSyntax EndTag { get; internal set; }
+		public ElementEndTagSyntax EndTag { get; set; }
 
 		public override bool IsComplete => base.IsComplete & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
 
@@ -62,12 +62,7 @@ namespace CrowEdit.Xml
 	}
 
 	public class AttributeSyntax : SyntaxNode {
-		internal int? name, equal, valueOpen, valueClose, valueTok;
-		/*public Token? NameToken => name.HasValue ? getTokenByIndex (TokenIndexBase + name.Value) : default;
-		public int? EqualToken { get; internal set; }
-		public int? ValueOpenToken { get; internal set; }
-		public int? ValueCloseToken { get; internal set; }
-		public int? ValueToken { get; internal set; }*/
+		public int? name, equal, valueOpen, valueClose, valueTok;
 		public string Name => name.HasValue ? Root.GetTokenStringByIndex (TokenIndexBase + name.Value) : null;
 		public string Value => valueTok.HasValue ? Root.GetTokenStringByIndex (TokenIndexBase + valueTok.Value) : null;
 		public Token? ValueToken => valueTok.HasValue ? Root.GetTokenByIndex (TokenIndexBase + valueTok.Value) : null;

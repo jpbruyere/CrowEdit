@@ -32,6 +32,8 @@ namespace CECrowPlugin
 			}*/
 		}
 		protected override Tokenizer CreateTokenizer() => new ImlTokenizer ();
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (this);
+		public override string GetTokenTypeString (TokenType tokenType) => ((ImlTokenType)tokenType).ToString();
 
 		string[] allWidgetNames = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>typeof(Widget).IsAssignableFrom (t))
 					.Select (s => s.Name).ToArray ();
@@ -53,10 +55,6 @@ namespace CECrowPlugin
 			IList sugs = base.GetSuggestions (loc);
 			if (sugs != null)
 				return sugs;
-
-#if DEBUG
-			Console.WriteLine ($"Current Token: {CurrentTokenString} Current Node: {CurrentNode}");
-#endif
 
 			if (currentToken.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);
@@ -129,6 +127,20 @@ namespace CECrowPlugin
 
 		public override Color GetColorForToken(TokenType tokType)
 		{
+			switch ((ImlTokenType)tokType) {
+				case ImlTokenType.BindingOpen:
+				case ImlTokenType.BindingClose:
+					return Colors.DarkGreen;
+				case ImlTokenType.BindingName: return Colors.RoyalBlue;
+				case ImlTokenType.BindingDot: 
+				case ImlTokenType.BindingDoubleDot: 
+				case ImlTokenType.BindingLevel: 
+					return Colors.MediumVioletRed;
+				case ImlTokenType.ConstantName:
+				case ImlTokenType.ConstantRefOpen:
+				case ImlTokenType.ConstantRefClose:
+					return Colors.Brown;
+			}
 			return base.GetColorForToken (tokType);
 		}
 	}

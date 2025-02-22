@@ -22,6 +22,7 @@ namespace CrowEditBase
 			this.source = source;
 		}
 		public abstract void Process ();
+		protected Token curTok;
 		protected SyntaxNode currentNode;
 		protected int currentLine, tokIdx;
 
@@ -37,5 +38,8 @@ namespace CrowEditBase
 		}
 		protected void setCurrentNodeEndLine (int endLine)
 			=> currentNode.EndLine = endLine;
+
+
+		//bool EOF => tokIdx == tokens.Length;
 	}
 }

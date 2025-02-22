@@ -89,6 +89,7 @@ namespace CrowEditBase
 			}
 			origSource = source;
 			NotifyValueChanged ("IsDirty", IsDirty);
+			CMDSave.CanExecute = IsDirty;
 		}
 		protected override void readFromDisk()
 		{
@@ -120,7 +121,7 @@ namespace CrowEditBase
 
 
 
-		protected void saveFileDialog_OkClicked (object sender, EventArgs e)
+		protected override void saveFileDialog_OkClicked (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
 
@@ -180,6 +181,7 @@ namespace CrowEditBase
 		}
 		protected bool disableTextChangedEvent = false;
 		protected virtual void apply (TextChange change) {
+
 			Span<char> tmp = stackalloc char[source.Length + (change.ChangedText.Length - change.Length)];
 			ReadOnlySpan<char> src = source.AsSpan ();
 			src.Slice (0, change.Start).CopyTo (tmp);
@@ -189,6 +191,9 @@ namespace CrowEditBase
 			source = tmp.ToString ();
 
 			lines.Update (change);
+
+			NotifyValueChanged ("IsDirty", IsDirty);
+			CMDSave.CanExecute = IsDirty;			
 		}
 		protected void applyTextChange (TextChange change, object triggeringEditor = null) {
 			editorRWLock.EnterWriteLock ();

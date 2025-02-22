@@ -1,0 +1,30 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Call Stack"  Width="60%">
+	<Container DataSource="{DbgSession}">
+		<ListBox Data="{Frames}" SelectedItem="{²CurrentFrame}">		
+			<Template>
+				<Scroller  Name="scroller1"  >
+					<Table Columns="Level,Fit;Address,Fit;Function,Stretched;File,Fit;Line,Fit" 
+						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+				</Scroller>			
+			</Template>
+			<ItemTemplate>
+				<TableRow 	Selected = "{Background=${ControlHighlight}}"
+							Unselected = "{Background=Transparent}">
+					<Label Text="{Level}" TextAlignment="Right" />
+					<Label Text="{Address}" />
+					<Label Text="{Function}" />	
+					<Label Text="{File}" />
+					<Label Text="{Line}" />	
+				</TableRow>
+			</ItemTemplate>
+		</ListBox>
+	</Container>
+</DockWindow>
+<!--<HorizontalStack DataSource="{ClrAddress}" Background="Onyx" IsVisible="{HasCLRAddress}" Fit="true">
+	<Label Text="{ModuleID}" />							
+	<Label Text="{MethodToken}" />
+	<Label Text="{IlOffset}" />
+	<Label Text="{NativeOffset}" />
+</HorizontalStack>-->
+

@@ -21,19 +21,23 @@ using static CrowEditBase.CrowEditBase;
 
 using Project = CrowEditBase.Project;
 
+
+using System.Runtime.Loader;
+
 namespace CERoslynPlugin
 {
 	public class SolutionProject : Project {
 		RoslynService roslynService;
+		
 		public SolutionProject (string fullPath) : base (fullPath) {
 			roslynService = App.GetService<RoslynService> ();
 			roslynService?.Start ();
 
 			Load();
 
-			if (FlattenProjetcs.OfType<MSBuildProject>().Any (msb => msb.IsCrowProject)) {
+			/*if (FlattenProjetcs.OfType<MSBuildProject>().Any (msb => msb.IsCrowProject)) {
 				Console.WriteLine ("Is crow project!!");
-			}
+			}*/
 		}
 
 		SolutionFile solutionFile;
@@ -49,6 +53,7 @@ namespace CERoslynPlugin
 				if (ActiveConfiguration == value)
 					return;
 				UserConfig.Set ("ActiveConfiguration", value);
+				projectCollection.SetGlobalProperty ("Configuration", value);
 				NotifyValueChanged (value);
 			}
 		}
@@ -58,6 +63,7 @@ namespace CERoslynPlugin
 				if (ActiveConfiguration == value)
 					return;
 				UserConfig.Set ("ActivePlatform", value);
+				projectCollection.SetGlobalProperty ("Platform", value);
 				NotifyValueChanged (value);
 			}
 		}
@@ -92,51 +98,56 @@ namespace CERoslynPlugin
 		}
 
 		public override void Load () {
-			//Dictionary<string,string> globalProperties = new Dictionary<string, string>();
-			//globalProperties.Add ("Configuration", "Debug");
-			projectCollection = new ProjectCollection (
-				null,//globalProperties,
-				new ILogger [] { roslynService.Logger },
-				ToolsetDefinitionLocations.Default
-			);
+			using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
+				
+				//Dictionary<string,string> globalProperties = new Dictionary<string, string>();
+				//globalProperties.Add ("Configuration", "Debug");
+				projectCollection = new ProjectCollection (
+					null,//globalProperties,
+					new ILogger [] { roslynService.Logger}, //new ConsoleLogger (Microsoft.Build.Framework.LoggerVerbosity.Diagnostic) },
+					ToolsetDefinitionLocations.Default
+				);
 
 
-			solutionFile = SolutionFile.Parse (FullPath);
-			UserConfig = new Configuration (FullPath + ".user");
+				solutionFile = SolutionFile.Parse (FullPath);
+				UserConfig = new Configuration (FullPath + ".user");
 
 
-			//IDE.ProgressNotify (10);
+				//IDE.ProgressNotify (10);
 
-			//projectCollection has to be recreated to change global properties
-			if (string.IsNullOrEmpty (ActiveConfiguration))
-				ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
-			if (string.IsNullOrEmpty (ActivePlatform))
-				ActivePlatform = solutionFile.GetDefaultPlatformName ();
+				//projectCollection has to be recreated to change global properties
+				if (string.IsNullOrEmpty (ActiveConfiguration))
+					ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
+				if (string.IsNullOrEmpty (ActivePlatform))
+					ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
-			projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
-							Path.Combine (
-								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
-								"NuGet.Config"));
+				projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
+								Path.Combine (
+									Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
+									"NuGet.Config"));
 
-			projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
+				projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 
-			//projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine(roslynService.MSBuildRoot, "Roslyn"));
+				projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine(roslynService.MSBuildRoot, "Roslyn"));
+				//projectCollection.SetGlobalProperty ("NoWarn", "");
+				
 
-			//IDE.ProgressNotify (10);
+				//IDE.ProgressNotify (10);
 
-			//ide.projectCollection.HostServices
-			buildParams = new BuildParameters (projectCollection) {
-				Loggers = projectCollection.Loggers,
-				LogInitialPropertiesAndItems = true,
-				LogTaskInputs = true,
-				UseSynchronousLogging = true,
-				ResetCaches = true,
-				DetailedSummary = true
-			};
+				//ide.projectCollection.HostServices
+				buildParams = new BuildParameters (projectCollection) {
+					Loggers = projectCollection.Loggers,
+					LogInitialPropertiesAndItems = true,
+					LogTaskInputs = true,
+					UseSynchronousLogging = true,
+					ResetCaches = true,
+					DetailedSummary = true
+				};
 
-			//projectCollection.IsBuildEnabled = false;
+				//projectCollection.IsBuildEnabled = false;
 
-			BuildManager.DefaultBuildManager.ResetCaches ();
+				BuildManager.DefaultBuildManager.ResetCaches ();
+			}
 
 			//IDE.ProgressNotify (10);
 			//ide.projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine (Startup.msbuildRoot, @"Roslyn\"));
@@ -180,8 +191,8 @@ namespace CERoslynPlugin
 
 			IsLoaded = true;
 			//Console.WriteLine (projectCollection.Get ("Configuration"));
-			/*if (StartupProject is MSBuildProject msbProj)
-				msbProj?.DesignBuild();*/
+			if (StartupProject is MSBuildProject msbProj)
+				msbProj?.DesignBuild();
 		}
 
 		void build (params string[] targets) {

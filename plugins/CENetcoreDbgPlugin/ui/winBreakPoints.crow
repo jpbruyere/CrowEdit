@@ -1,0 +1,22 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="BreakPoints" Width="60%">
+	<ListBox DataSource="{DbgSession}" Data="{BreakPoints}" SelectedItem="{²CurrentBreakPoint}"
+				ContextCommands="{Commands}">
+		<Template>
+			<Scroller  Name="scroller1"  >
+				<Table Columns="Num,Fit;File,Stretched;Line,Fit;State,Fit"
+					Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+			</Scroller>
+		</Template>
+		<ItemTemplate>
+			<TableRow 	Selected = "{Background=${ControlHighlight}}"
+						Unselected = "{Background=Transparent}">
+				<Label Text="{Index}" TextAlignment="Right"/>
+				<Label Text="{FileName}" />
+				<Label Text="{Line}" TextAlignment="Right"/>
+				<Widget Width="10" Height="10" Background="Green" IsVisible="{IsEnabled}"/>
+			</TableRow>
+		</ItemTemplate>
+	</ListBox>
+
+</DockWindow>

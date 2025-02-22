@@ -241,7 +241,7 @@ namespace Crow
 			if (HasFocus && IFace.IsDown (MouseButton.Left)) {
 				CurrentLoc = hoverLoc;
 				autoAdjustScroll = true;
-				IFace.forceTextCursor = true;
+				IFace.forceTextCursor();
 				RegisterForRedraw ();
 			}
 		}
@@ -345,10 +345,10 @@ namespace Crow
 						case Key.Enter:
 						case Key.KeypadEnter:
 							//doc.updateCurrentTokAndNode (Selection.Start);
-							Console.WriteLine ($"*** Current Token: {doc.CurrentToken} Current Node: {doc.CurrentNode}");
+							//Console.WriteLine ($"*** Current Token: {doc.CurrentToken} Current Node: {doc.CurrentNode}");
 							update (new TextChange (selection.Start, selection.Length, Document.GetLineBreak ()));
 							autoAdjustScroll = true;
-							IFace.forceTextCursor = true;
+							IFace.forceTextCursor();
 							e.Handled = true;
 							return;
 					}
@@ -590,8 +590,7 @@ namespace Crow
 						selStart = selectionStart.Value;
 						selEnd = CurrentLoc.Value;
 					}
-				} else
-					IFace.forceTextCursor = true;
+				}
 
 
 				double spacePixelWidth = gr.TextExtents (" ").XAdvance;
@@ -643,7 +642,7 @@ namespace Crow
 
 						int size = buff.Length * 4 + 1;
 						if (bytes.Length < size)
-							bytes = size > 512 ? new byte[size] : stackalloc byte[size];
+							bytes = new byte[size];
 
 						int encodedBytes = buff.ToUtf8 (bytes);
 
@@ -663,7 +662,7 @@ namespace Crow
 
 					RectangleD lineRect = new RectangleD (cb.X, pixY, pixX - cb.X, lineHeight);
 					if (CurrentNode != null && l >= nodeStart.Value.Line && l <= nodeEnd.Value.Line)
-						fillHighlight (gr, l, nodeStart.Value, nodeEnd.Value, lineRect, new Color(0.0,0.1,0.0,0.1));;
+						fillHighlight (gr, l, nodeStart.Value, nodeEnd.Value, lineRect, new Color(0.0,0.1,0.0,0.08));;
 #if DEBUG_NODES
 					if (doc.EditedNode != null && l >= editNodeStart.Value.Line && l <= editNodeEnd.Value.Line)
 						fillHighlight (gr, l, editNodeStart.Value, editNodeEnd.Value, lineRect, new Color(0,0.5,0,0.2));;
@@ -796,5 +795,6 @@ namespace Crow
 			}
 			//Console.WriteLine ($"{pos}: {suggestionTok.AsString (_text)} {suggestionTok}");
 		}
+		
 	}
 }

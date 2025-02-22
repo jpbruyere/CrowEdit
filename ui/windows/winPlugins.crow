@@ -3,21 +3,26 @@
 	<VerticalStack Margin="5">
 		<Label Fit="true" Text="Plugins directory path:"/>
 		<HorizontalStack Height="Fit">
-			<TextBox Height="Fit" Text="{²PluginsDirecory}" Margin="2"/>
+			<TextBox Height="Fit" Text="{²PluginsDirectory}" Margin="2"/>
 			<Button Command="{CMDOptions_SelectPluginsDirectory}" MinimumSize="0,0"/>
 			<Button Command="{CMDOptions_ResetPluginsDirectory}" MinimumSize="0,0"/>
 		</HorizontalStack>
 		<ListBox Data="{Plugins}" Height="50%">
 			<ItemTemplate>
-				<HorizontalStack Height="Fit">
-					<Label Text="{Name}" Width="Stretched"/>
-					<ListBox Data="{Commands}" Fit="true">
-						<Template>
-							<HorizontalStack Name="ItemsContainer" />
-						</Template>
-						<ItemTemplate Path="#ui.IconCommand.itmp"/>
-					</ListBox>
-				</HorizontalStack>
+				<ListItem CornerRadius="2" Margin="0" Height="Fit" Width="Stretched"
+						Selected="{Background=${ControlHighlight}}"
+						Unselected="{Background=Transparent}">
+					<HorizontalStack Height="Fit" Spacing="10" ContextCommands="{Commands}">
+						<Border Width="30" Height="20" Background='{ColorStatus}' Margin='1' BorderWidth="2" Foreground="White" CornerRadius="2"/>
+						<Label Text="{Name}" Width="Stretched"/>
+						<ListBox Data="{Commands}" Fit="true">
+							<Template>
+								<HorizontalStack Name="ItemsContainer" />
+							</Template>
+							<ItemTemplate Path="#ui.IconCommand.itmp"/>
+						</ListBox>
+					</HorizontalStack>
+				</ListItem>
 			</ItemTemplate>
 		</ListBox>
 		<Splitter/>

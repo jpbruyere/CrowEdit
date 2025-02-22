@@ -3,13 +3,10 @@
 		<SolutionDir>$(MSBuildThisFileDirectory)..\</SolutionDir>
 		<License>MIT</License>
 		<Authors>Jean-Philippe Bruyère</Authors>
-		<LangVersion>7.2</LangVersion>
 
+		<EnableDynamicLoading>true</EnableDynamicLoading>
 	</PropertyGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="$(SolutionDir)CrowEditBase\CrowEditBase.csproj" />
 	</ItemGroup>
-
-
 </Project>

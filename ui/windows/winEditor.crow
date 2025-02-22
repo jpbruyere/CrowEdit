@@ -33,9 +33,9 @@
 								Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}"
 								BubbleEvents="MouseWheel">
 							<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
-
+								<!--<Image Style="TreeIcon" Path="{Icon}" SvgSub="{IconSub}"/> No icon in Document class-->
+								<Label Text="{FileName}" Tooltip="{FullPath}" ContextCommands="{TabCommands}" Foreground="{../../Foreground}" Margin="3" />
 								<Widget Width="10" Height="10" Background="RoyalBlue" IsVisible="{IsDirty}"/>
-								<Label Text="{FileName}" Tooltip="{FullPath}" ContextCommands="{TabCommands}" Foreground="{../../Foreground}" />
 								<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
 											MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
 									<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
