@@ -18,12 +18,12 @@ namespace CrowEditBase
 		protected int startOfTok;
 
 		public Tokenizer  () {}
-		public abstract Token[] Tokenize (string source);
+		public abstract Token[] Tokenize (ReadOnlySpan<char> source);
 		/// <summary>
 		/// First method to call in tokenizers to init parsing variables
 		/// </summary>
 		/// <returns></returns>
-		protected virtual SpanCharReader initParsing (string source) {
+		protected virtual SpanCharReader initParsing (ReadOnlySpan<char> source) {
 			startOfTok = 0;
 			Toks = new List<Token>(100);
 			return new SpanCharReader(source);

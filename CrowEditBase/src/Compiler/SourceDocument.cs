@@ -111,8 +111,7 @@ namespace CrowEditBase
 			SyntaxNode changedNode = RootNode.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));
 			
 			
-			tokens = tokenizer.Tokenize (Source);
-
+			tokens = tokenizer.Tokenize (buffer.Span);
 
 
 			syntaxAnalyser.Process ();
@@ -193,7 +192,7 @@ namespace CrowEditBase
 		protected bool previousTokHasFlag(TokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
 		void parse () {
 			Tokenizer tokenizer = CreateTokenizer ();
-			tokens = tokenizer?.Tokenize (Source);
+			tokens = tokenizer?.Tokenize (source);
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
 			Stopwatch sw = Stopwatch.StartNew ();
 			syntaxAnalyser?.Process ();

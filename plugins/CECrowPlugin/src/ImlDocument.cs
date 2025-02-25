@@ -72,7 +72,7 @@ namespace CECrowPlugin
 			if (tok.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);
 			if (tok.GetTokenType() == XmlTokenType.ElementName)
-				return allWidgetNames.Where (s => s.StartsWith (tok.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
+				return allWidgetNames.Where (s => s.StartsWith (RootNode.Root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
 			if ((tok.Type.HasFlag(TokenType.WhiteSpace) || previousTokHasFlag(TokenType.WhiteSpace)) &&
 						tryCast(CurrentNode, out ElementTagSyntax ets)) {
 				if (ets.name.HasValue)
@@ -85,7 +85,7 @@ namespace CECrowPlugin
 					if (!string.IsNullOrEmpty (eltTag.Name)) {
 						if (tok.GetTokenType() == XmlTokenType.AttributeName) {
 							return getAllCrowTypeMembers (eltTag.Name)
-								.Where (s => s.Name.StartsWith (tok.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
+								.Where (s => s.Name.StartsWith (RootNode.Root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
 						} else if (!string.IsNullOrEmpty (attribNode.Name)) {
 							if (tok.GetTokenType() == XmlTokenType.AttributeValue) {
 								MemberInfo mi = getCrowTypeMember (
@@ -93,19 +93,19 @@ namespace CECrowPlugin
 								if (mi is PropertyInfo pi) {
 									if (pi.Name == "Style")
 										return App.Styling.Keys
-											.Where (s => s.StartsWith (tok.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
+											.Where (s => s.StartsWith (RootNode.Root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
 									if (pi.PropertyType.IsEnum)
 										return Enum.GetNames (pi.PropertyType)
-											.Where (s => s.StartsWith (tok.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
+											.Where (s => s.StartsWith (RootNode.Root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
 									if (pi.PropertyType == typeof(bool))
 										return  (new string[] {"true", "false"}).
-											Where (s => s.StartsWith (tok.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
+											Where (s => s.StartsWith (RootNode.Root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
 									if (pi.PropertyType == typeof (Measure))
 										return (new string[] {"Stretched", "Fit"}).
-											Where (s => s.StartsWith (tok.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
+											Where (s => s.StartsWith (RootNode.Root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
 									if (pi.PropertyType == typeof (Fill))
 										return  EnumsNET.Enums.GetValues<Colors> ()
-											.Where (s => s.ToString().StartsWith (tok.AsString (Source), StringComparison.OrdinalIgnoreCase)).ToList ();
+											.Where (s => s.ToString().StartsWith (RootNode.Root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
 								}
 							} else if (tok.GetTokenType() == XmlTokenType.AttributeValueOpen) {
 								MemberInfo mi = getCrowTypeMember (

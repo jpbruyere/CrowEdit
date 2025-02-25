@@ -64,7 +64,7 @@ namespace CrowEdit.Xml
 				reader.Read ();
 			}
 		}
-		public override Token[] Tokenize (string source) {
+		public override Token[] Tokenize (ReadOnlySpan<char> source) {
 			SpanCharReader reader = initParsing (source);
 
 			int curObjectLevel = 0;

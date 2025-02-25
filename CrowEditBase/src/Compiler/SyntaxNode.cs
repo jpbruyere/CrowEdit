@@ -21,11 +21,13 @@ namespace CrowEditBase
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;
 		public override void UnfoldToTheTop() {}
 		public string GetTokenStringByIndex (int idx) =>
-			idx >= 0 && idx < source.Tokens.Length ? source.Tokens[idx].AsString (source.Source) : null;
+			idx >= 0 && idx < source.Tokens.Length ? Root.GetText(source.Tokens[idx].Span).ToString() : null;
 		public Token GetTokenByIndex (int idx) =>
 			idx >= 0 && idx < source.Tokens.Length ? source.Tokens[idx] : default;
 		public ReadOnlySpan<char> GetText(TextSpan span) =>
 			source.GetText(span);
+		public string GetTokenString(Token tok) =>
+			source.GetText(tok.Span).ToString();
 	}
 	public class SyntaxNode : CrowEditComponent {
 		internal SyntaxNode () {}

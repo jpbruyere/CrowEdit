@@ -68,9 +68,9 @@ namespace CERoslynPlugin
 			}
 		}
 
-		public override Token[] Tokenize(string source)
+		public override Token[] Tokenize(ReadOnlySpan<char> source)
 		{
-			var tree = CSharpSyntaxTree.ParseText(source);
+			var tree = CSharpSyntaxTree.ParseText(source.ToString());
 			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge();
 			bridge.Visit(tree.GetRoot());
 			//SpanCharReader reader = new SpanCharReader(source);

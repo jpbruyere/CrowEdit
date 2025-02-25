@@ -51,7 +51,7 @@ namespace CrowEdit.Ebnf
 		public static bool IsValidHexDigit (char c) =>
 			char.IsDigit (c) || (c > 64 && c < 71) || (c > 96 && c < 103);
 
-		public override Token[] Tokenize (string source) {
+		public override Token[] Tokenize (ReadOnlySpan<char> source) {
 			SpanCharReader reader = new SpanCharReader(source);
 
 			startOfTok = 0;

@@ -9,37 +9,72 @@ using System.IO;
 using Crow;
 using Crow.Text;
 using static CrowEditBase.CrowEditBase;
+using System.Collections.Immutable;
+using System.Reflection.Metadata;
 
 namespace CrowEditBase
 {
+	public class TextBuffer {
+		static int bufferExpension = 100;
+		int lenght;
+		Memory<char> buffer;
+		ReadOnlyMemory<char> origBuffer;
+		public Span<char> Span => buffer.Span.Slice(0, lenght);
+		public bool IsEmpty => lenght == 0;
+		public bool IsDirty => origBuffer.Span.Equals(buffer.Span, StringComparison.Ordinal);
+		public void ResetDirtyState () {
+			origBuffer = buffer.ToArray();
+		}
+		public TextBuffer(ReadOnlySpan<char> origText) {
+			lenght = origText.Length;
+			buffer = new char[lenght + bufferExpension];
+			origText.CopyTo(buffer.Span);
+		}
+		public void Update (TextChange change) {
+			ReadOnlySpan<char> orig = buffer.Span;
+			char[] newBuff = null;
+			Span<char> tmp;
+			if (buffer.Length < lenght + change.CharDiff) {
+				newBuff = new char[lenght + change.CharDiff + bufferExpension];
+				tmp = newBuff;
+				orig.Slice(0, change.Start).CopyTo(tmp);
+				if (change.CharDiff == 0)
+					orig.Slice(change.End, lenght - change.End).CopyTo(tmp.Slice(change.End));
+			} else
+				tmp = buffer.Span;
+			
+			if (change.CharDiff != 0)
+				orig.Slice(change.End, lenght - change.End).CopyTo(tmp.Slice(change.End2));
+			if (!string.IsNullOrEmpty (change.ChangedText))
+				change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
+			
+			if (newBuff != null)
+				buffer = newBuff;
+			lenght += change.CharDiff;
+		}		
+	}
 	public class TextDocument : Document {
 		public TextDocument (string fullPath, string editorPath = "default")
 			: base (fullPath, editorPath) {
 			reloadFromFile ();
 		}
 
-		string source, origSource;
+		protected TextBuffer buffer;
+		public ReadOnlySpan<char> source => buffer.Span;
+
 		System.Text.Encoding encoding = System.Text.Encoding.UTF8;
 		protected bool mixedLineBreak = false;
 		protected string lineBreak = null;
 
-		public string Source {
-			get => source;
-			set {
-				if (source == value)
-					return;
-				source = value;
 
-				getLines();
+				
 
-				NotifyValueChanged (source);
-				NotifyValueChanged ("IsDirty", IsDirty);
-				CMDSave.CanExecute = IsDirty;
-			}
-		}
+//				NotifyValueChanged ("IsDirty", IsDirty);
+//				CMDSave.CanExecute = IsDirty;
+
 		protected LineCollection lines;
 
-		public override bool IsDirty => origSource != source;
+		public override bool IsDirty => buffer.IsDirty;
 				/// dictionnary of object per document client, when not null, client must reload content of document.
 		Dictionary<object, List<TextChange>> registeredClients = new Dictionary<object, List<TextChange>>();
 		public override bool TryGetState<T>(object client, out T state) {
@@ -85,9 +120,9 @@ namespace CrowEditBase
 		protected override void writeToDisk () {
 			using (Stream s = new FileStream(FullPath, FileMode.Create)) {
 				using (StreamWriter sw = new StreamWriter (s, encoding))
-					sw.Write (source);
+					sw.Write (buffer.Span);
 			}
-			origSource = source;
+			buffer.ResetDirtyState();
 			NotifyValueChanged ("IsDirty", IsDirty);
 			CMDSave.CanExecute = IsDirty;
 		}
@@ -95,14 +130,14 @@ namespace CrowEditBase
 		{
 			using (Stream s = new FileStream (FullPath, FileMode.Open)) {
 				using (StreamReader sr = new StreamReader (s)) {
-					Source = origSource = sr.ReadToEnd ();
+					buffer = new TextBuffer(sr.ReadToEnd ());
 					encoding = sr.CurrentEncoding;
 				}
 			}
 		}
 		protected override void initNewFile()
 		{
-			Source = origSource = "";
+			buffer = new TextBuffer("");
 		}
 		protected override void reloadFromFile () {
 			editorRWLock.EnterWriteLock ();
@@ -178,14 +213,7 @@ namespace CrowEditBase
 		protected bool disableTextChangedEvent = false;
 		protected virtual void apply (TextChange change) {
 
-			Span<char> tmp = stackalloc char[source.Length + (change.ChangedText.Length - change.Length)];
-			ReadOnlySpan<char> src = source.AsSpan ();
-			src.Slice (0, change.Start).CopyTo (tmp);
-			if (!string.IsNullOrEmpty (change.ChangedText))
-				change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
-			src.Slice (change.End).CopyTo (tmp.Slice (change.Start + change.ChangedText.Length));
-			source = tmp.ToString ();
-
+			buffer.Update(change);
 			lines.Update (change);
 
 			NotifyValueChanged ("IsDirty", IsDirty);
@@ -215,7 +243,7 @@ namespace CrowEditBase
 			else
 				lines.Clear ();
 
-			if (string.IsNullOrEmpty (source))
+			if (buffer.IsEmpty)
 				lines.Add (new TextLine (0, 0, 0));
 			else
 				lines.Update (source);
@@ -274,6 +302,8 @@ namespace CrowEditBase
 		}
 		public int LinesCount {
 			get {
+				if (lines == null)
+					getLines();
 				editorRWLock.EnterReadLock ();
 				try {
 					return lines.Count;
@@ -311,7 +341,7 @@ namespace CrowEditBase
 		public ReadOnlySpan<char> GetText (TextSpan span) {
 			editorRWLock.EnterReadLock ();
 			try {
-				return source.AsSpan (span.Start, span.Length);
+				return source.Slice (span.Start, span.Length);
 			} finally {
 				editorRWLock.ExitReadLock();
 			}

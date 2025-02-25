@@ -254,7 +254,7 @@ namespace Crow
 			using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
 				gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 				gr.SetFontSize (Font.Size);
-				updateLocation (gr, ClientRectangle.Width, ref hoverLoc);
+				updateLocation (gr, ref hoverLoc);
 			}
 #if DEBUG_NODES
 			if (Document is SourceDocument doc) {
@@ -605,7 +605,7 @@ namespace Crow
 				Foreground.SetAsSource (IFace, gr);
 				gr.Translate (-ScrollX, -ScrollY);
 
-				ReadOnlySpan<char> sourceBytes = doc.Source.AsSpan();
+				ReadOnlySpan<char> sourceBytes = doc.source;
 				Span<byte> bytes = stackalloc byte[128];
 				TextExtents extents;
 				int tokPtr = 0;

@@ -36,7 +36,7 @@ namespace CERoslynPlugin
 		CSharpSyntaxTree tree;
 		public CSDocument (string fullPath, string editorPath)	: base (fullPath, editorPath) {
 
-			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (Source, CSharpParseOptions.Default);
+			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default);
 			var root = tree.GetRoot();
 			/*foreach (SyntaxKind v in Enum.GetValues<SyntaxKind>().OrderBy(k=>(uint)k)) {
 				Console.WriteLine($"{v,50} {(((uint)v) ).ToString("B16") } {(((uint)v) ).ToString("X4") }");

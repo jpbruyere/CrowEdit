@@ -33,7 +33,7 @@ namespace CrowEdit.Xml
 				CurrentNode is ElementEndTagSyntax eltEndTag && !eltEndTag.IsComplete) {
 				ElementSyntax es = eltEndTag.Parent as ElementSyntax;
 				if (es?.StartTag.name != null)
-					return new List<string> (new string[] {tokens[es.StartTag.name.Value].AsString(Source)});
+					return new List<string> (new string[] {es.StartTag.Name});
 			}			
 			return null;
 		}
@@ -84,7 +84,7 @@ namespace CrowEdit.Xml
 				} else {
 					int offset = 1;
 					if (!attrib.valueClose.HasValue) {
-						selectedSugg += tokens[attrib.valueClose.Value].AsString(Source);
+						selectedSugg += RootNode.Root.GetTokenStringByIndex(attrib.valueClose.Value);
 						offset = 0;
 					}
 					if (tokType == XmlTokenType.AttributeValueOpen)
