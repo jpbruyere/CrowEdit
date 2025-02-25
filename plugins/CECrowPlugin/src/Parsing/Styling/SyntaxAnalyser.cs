@@ -17,14 +17,13 @@ namespace CECrowPlugin.Style
 		}
 	}
 	public class StyleSyntaxAnalyser : SyntaxAnalyser {
-		public override SyntaxNode Root => currentNode;
 		public StyleSyntaxAnalyser (StyleDocument source) : base (source) {
 			this.source = source;
 		}
 
 		public override void Process () {
 			StyleDocument doc = source as StyleDocument;
-			currentNode = new StyleRootSyntax (doc);
+			currentNode = Root = new StyleRootSyntax (doc);
 			currentLine = 0;
 			Span<Token> toks = source.Tokens;
 			tokIdx = 0;

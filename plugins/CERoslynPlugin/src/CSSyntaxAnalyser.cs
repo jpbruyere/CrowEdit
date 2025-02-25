@@ -14,7 +14,6 @@ namespace CERoslynPlugin
 		}
 	}
 	public class CSSyntaxAnalyser : SyntaxAnalyser {
-		public override SyntaxNode Root => currentNode;
         /*protected override void Parse(SyntaxNode node)
         {
             throw new NotImplementedException();
@@ -25,7 +24,7 @@ namespace CERoslynPlugin
 		}
 
 		public override void Process () {
-			currentNode = new CSRootSyntax (source);
+			currentNode = Root = new CSRootSyntax (source);
 		}
 	}
 }

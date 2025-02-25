@@ -23,6 +23,18 @@ namespace CrowEditBase
 			Log(LogType.Normal,"Crow edit started");
 		}
 
+		protected DockStack mainDock;
+		protected const string _defaultFileName = "unnamed.txt";
+		Document currentDocument;
+		Editor currentEditor;
+		Project currentProject;
+		public CommandGroup CommandsRoot, FileCommands, EditCommands, ViewCommands;
+		public ObservableList<Document> OpenedDocuments = new ObservableList<Document> ();
+		public ObservableList<Service> Services = new ObservableList<Service> ();
+		public ObservableList<Plugin> Plugins = new ObservableList<Plugin> ();
+		public ObservableList<Project> Projects = new ObservableList<Project> ();
+
+
 		#region logging
 		LogItem currentLog;
 		public LogItem CurrentLog {
@@ -116,16 +128,7 @@ namespace CrowEditBase
 		#endregion
 
 
-		protected const string _defaultFileName = "unnamed.txt";
 
-		Document currentDocument;
-		Editor currentEditor;
-		Project currentProject;
-		public CommandGroup CommandsRoot, FileCommands, EditCommands, ViewCommands;
-		public ObservableList<Document> OpenedDocuments = new ObservableList<Document> ();
-		public ObservableList<Service> Services = new ObservableList<Service> ();
-		public ObservableList<Plugin> Plugins = new ObservableList<Plugin> ();
-		public ObservableList<Project> Projects = new ObservableList<Project> ();
 		public T GetService<T> () where T : Service {
 			T service = Services.OfType<T>().FirstOrDefault ();
 			if (service == null) {
@@ -375,7 +378,6 @@ namespace CrowEditBase
 
 			Configuration.Global.Save ();
 		}
-		protected DockStack mainDock;
 		protected void reloadWinConfigs() {
 
 			if (Configuration.Global.TryGet<string>("WinConfigs", out string conf) && !string.IsNullOrEmpty(conf))

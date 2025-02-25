@@ -117,6 +117,7 @@ namespace CrowEdit
 			ViewCommands = new CommandGroup ("View",
 	 			new ActionCommand("Explorer", () => LoadWindow ("#CrowEdit.ui.windows.winFileExplorer.crow", this)),
 				new ActionCommand("Editors", () => LoadWindow ("#CrowEdit.ui.windows.winEditor.crow", this)),
+				new ActionCommand("Exceptions", () => LoadWindow ("#CrowEdit.ui.windows.winExceptions.crow", this)),
 				new ActionCommand("Projects", () => LoadWindow ("#CrowEdit.ui.windows.winProjects.crow", this)),
 				new ActionCommand("Logs", () => LoadWindow ("#CrowEdit.ui.windows.winLogs.crow", this), "#icons.log.svg"),
 				new ActionCommand("Services", () => LoadWindow ("#CrowEdit.ui.windows.winServices.crow", this), "#icons.services.svg"),

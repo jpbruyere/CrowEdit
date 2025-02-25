@@ -36,7 +36,5 @@
 				<Label Text="Col:" Foreground="Grey"/>
 				<Label Text="{../../tb.TabulatedColumn}" Margin="3"/>
 			</HorizontalStack>
-		<Splitter/>
-		<ListBox Data='{Exceptions}' Height='100' Width='Stretched'/>
 	</VerticalStack>
 </ListItem>

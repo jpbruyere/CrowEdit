@@ -10,7 +10,6 @@ namespace CrowEdit.Ebnf
 {
 
 	public class EbnfSyntaxAnalyser : SyntaxAnalyser {
-        public override SyntaxNode Root => currentNode;
 		public EbnfSyntaxAnalyser  (EbnfDocument source) : base (source) {
 			this.source = source;
 		}
@@ -27,7 +26,7 @@ namespace CrowEdit.Ebnf
         public override void Process()
         {
             EbnfDocument doc = source as EbnfDocument;
-			currentNode = new EbnfRootSyntax (doc);
+			currentNode = Root = new EbnfRootSyntax (doc);
 			currentLine = 0;
 			tokIdx = 0;
 			tokens = doc.Tokens;

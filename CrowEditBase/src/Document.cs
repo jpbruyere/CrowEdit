@@ -28,11 +28,11 @@ namespace CrowEditBase
 		public string EditorPath { get; private set; }//the ressource path is used as an id for editor template selection.
 		public event EventHandler CloseEvent;
 
-		protected ReaderWriterLockSlim editorRWLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-		public void EnterReadLock () => editorRWLock.EnterReadLock ();
-		public void ExitReadLock () => editorRWLock.ExitReadLock ();
-		public void EnterWriteLock () => editorRWLock.EnterWriteLock ();
-		public void ExitWriteLock () => editorRWLock.ExitWriteLock ();
+		protected ReaderWriterLockSlim documentRWLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+		public void EnterReadLock () => documentRWLock.EnterReadLock ();
+		public void ExitReadLock () => documentRWLock.ExitReadLock ();
+		public void EnterWriteLock () => documentRWLock.EnterWriteLock ();
+		public void ExitWriteLock () => documentRWLock.ExitWriteLock ();
 
 		public abstract bool TryGetState<T> (object client, out T state);
 		public abstract void RegisterClient (object client);
@@ -98,14 +98,14 @@ namespace CrowEditBase
 		protected abstract void readFromDisk ();
 		protected abstract void initNewFile ();
 		protected virtual void reloadFromFile () {
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			try {
 				if (File.Exists (FullPath))
 					readFromDisk ();
 				else
 					initNewFile ();
 			} finally {
-				editorRWLock.ExitWriteLock ();
+				documentRWLock.ExitWriteLock ();
 			}
 		}
 		public abstract bool IsDirty { get; }

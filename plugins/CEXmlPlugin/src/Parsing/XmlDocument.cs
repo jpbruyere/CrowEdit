@@ -84,7 +84,7 @@ namespace CrowEdit.Xml
 				} else {
 					int offset = 1;
 					if (!attrib.valueClose.HasValue) {
-						selectedSugg += RootNode.Root.GetTokenStringByIndex(attrib.valueClose.Value);
+						selectedSugg += root.GetTokenStringByIndex(attrib.valueClose.Value);
 						offset = 0;
 					}
 					if (tokType == XmlTokenType.AttributeValueOpen)

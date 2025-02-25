@@ -1,0 +1,6 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Exceptions"  Width="40%" Height="20%">
+	<ListBox DataSource="{CurrentDocument}" Data='{Exceptions}' Height='Stretched' Width='Stretched'/>
+</DockWindow>
+
+

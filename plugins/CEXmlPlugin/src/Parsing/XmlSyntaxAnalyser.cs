@@ -9,24 +9,15 @@ using CrowEditBase;
 namespace CrowEdit.Xml
 {
 	public class XmlSyntaxAnalyser : SyntaxAnalyser {
-		public override SyntaxNode Root => currentNode;
-        /*protected override void Parse(SyntaxNode node)
-        {
-            throw new NotImplementedException();
-        }*/
         public XmlSyntaxAnalyser (XmlDocument source) : base (source) {
 			this.source = source;
 		}
-
-		/*public virtual SyntaxNode Process (SyntaxNode startingNode) {
-
-		}*/
 		public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
 			attrib.valueTok = tokIdx - attrib.TokenIndexBase;
 		}
 		public override void Process () {
 			XmlDocument xmlDoc = source as XmlDocument;
-			currentNode = new XMLRootSyntax (xmlDoc);
+			currentNode = Root = new XMLRootSyntax (xmlDoc);
 			currentLine = 0;
 			tokIdx = 0;
 			tokens = source.Tokens;

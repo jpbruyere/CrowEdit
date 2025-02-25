@@ -331,7 +331,7 @@ namespace Crow
 				if (Document is SourceDocument doc) {
 					switch (e.Key) {
 						case Key.F3:
-							doc.SyntaxRootNode?.Dump();
+							doc.Root?.Dump();
 							break;
 						case Key.Enter:
 						case Key.KeypadEnter:
@@ -355,7 +355,7 @@ namespace Crow
 		SyntaxNode getFoldStartingAt (int line) {
 			if (!(Document is SourceDocument doc))
 				return null;
-			IEnumerable<SyntaxNode> folds = doc.SyntaxRootNode.FoldableNodes;
+			IEnumerable<SyntaxNode> folds = doc.Root.FoldableNodes;
 			if (folds == null)
 				return null;
 			return folds.FirstOrDefault (n => n.StartLine == line);
@@ -365,7 +365,7 @@ namespace Crow
 				return null;
 			doc.EnterReadLock();
 			try {
-				IEnumerable<SyntaxNode> folds = doc.SyntaxRootNode.FoldableNodes;
+				IEnumerable<SyntaxNode> folds = doc.Root.FoldableNodes;
 				if (folds == null)
 					return null;
 				return folds.LastOrDefault (n => n.StartLine <= line && n.EndLine >= line);
@@ -380,7 +380,7 @@ namespace Crow
 			doc.EnterReadLock();
 			try {
 				int foldedLines = 0;
-				IEnumerator<SyntaxNode> foldsEnum = doc.SyntaxRootNode.FoldableNodes.GetEnumerator();
+				IEnumerator<SyntaxNode> foldsEnum = doc.Root.FoldableNodes.GetEnumerator();
 				bool notEndOfFolds = foldsEnum.MoveNext();
 				while (notEndOfFolds && foldsEnum.Current.StartLine < absoluteLine) {
 					if (foldsEnum.Current.isFolded) {
@@ -405,7 +405,7 @@ namespace Crow
 			doc.EnterReadLock();
 			try {
 				int foldedLines = 0;
-				IEnumerator<SyntaxNode> nodeEnum = doc.SyntaxRootNode.FoldableNodes.GetEnumerator ();
+				IEnumerator<SyntaxNode> nodeEnum = doc.Root.FoldableNodes.GetEnumerator ();
 				if (!nodeEnum.MoveNext())
 					return 0;
 
@@ -615,7 +615,7 @@ namespace Crow
 
 				SyntaxNode curNode = null;
 
-				IEnumerator<SyntaxNode> nodeEnum = doc.SyntaxRootNode.FoldableNodes.GetEnumerator ();
+				IEnumerator<SyntaxNode> nodeEnum = doc.Root.FoldableNodes.GetEnumerator ();
 				bool notEndOfNodes = nodeEnum.MoveNext();
 
 				gr.LineWidth = 1;

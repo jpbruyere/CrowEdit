@@ -805,9 +805,12 @@ namespace Crow
 		public override void onKeyPress (object sender, KeyPressEventArgs e) {
 			base.onKeyPress (sender, e);
 
-			TextSpan selection = Selection;
-			update (new TextChange (selection.Start, selection.Length, e.KeyChar.ToString ()));
+			if (!e.Handled) {
+				TextSpan selection = Selection;
+				update (new TextChange (selection.Start, selection.Length, e.KeyChar.ToString ()));
 
+				e.Handled = true;
+			}
 			/*Insert (e.KeyChar.ToString());
 
 			SelRelease = -1;

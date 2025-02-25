@@ -79,28 +79,28 @@ namespace CrowEditBase
 		Dictionary<object, List<TextChange>> registeredClients = new Dictionary<object, List<TextChange>>();
 		public override bool TryGetState<T>(object client, out T state) {
 			state = default;
-			if (editorRWLock.TryEnterReadLock (10)) {
+			if (documentRWLock.TryEnterReadLock (10)) {
 				try {
 					state = (T)(object)registeredClients[client];
 					registeredClients[client] = null;
 				} finally {
-					editorRWLock.ExitReadLock ();
+					documentRWLock.ExitReadLock ();
 				}
 			}
 			return state != null;
 		}
 		public override void RegisterClient(object client)
 		{
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			registeredClients.Add (client, null);
 			//notifyClient (client, new TextChange (0, 0, source));
-			editorRWLock.ExitWriteLock ();
+			documentRWLock.ExitWriteLock ();
 		}
 		public override void UnregisterClient(object client)
 		{
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			registeredClients.Remove (client);
-			editorRWLock.ExitWriteLock ();
+			documentRWLock.ExitWriteLock ();
 		}
 		void notifyClients (TextChange tc, object triggeringClient = null) {
 			object[] clients = registeredClients.Keys.ToArray ();
@@ -140,7 +140,7 @@ namespace CrowEditBase
 			buffer = new TextBuffer("");
 		}
 		protected override void reloadFromFile () {
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			try {
 				if (File.Exists (FullPath))
 					readFromDisk ();
@@ -148,7 +148,7 @@ namespace CrowEditBase
 					initNewFile ();
 				resetUndoRedo ();
 			} finally {
-				editorRWLock.ExitWriteLock ();
+				documentRWLock.ExitWriteLock ();
 			}
 		}
 		protected Stack<TextChange> undoStack = new Stack<TextChange> ();
@@ -173,7 +173,7 @@ namespace CrowEditBase
 		}
 
 		protected override void undo () {
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			try {
 				if (undoStack.TryPop (out TextChange tc)) {
 					redoStack.Push (tc.Inverse (source));
@@ -185,11 +185,11 @@ namespace CrowEditBase
 				if (undoStack.Count == 0)
 					CMDUndo.CanExecute = false;
 			} finally {
-				editorRWLock.ExitWriteLock ();
+				documentRWLock.ExitWriteLock ();
 			}
 		}
 		protected override void redo () {
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			try {
 				if (redoStack.TryPop (out TextChange tc)) {
 					undoStack.Push (tc.Inverse (source));
@@ -200,7 +200,7 @@ namespace CrowEditBase
 				if (redoStack.Count == 0)
 					CMDRedo.CanExecute = false;
 			} finally {
-				editorRWLock.ExitWriteLock ();
+				documentRWLock.ExitWriteLock ();
 			}
 
 		}
@@ -220,7 +220,7 @@ namespace CrowEditBase
 			CMDSave.CanExecute = IsDirty;			
 		}
 		protected void applyTextChange (TextChange change, object triggeringEditor = null) {
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			try {
 				undoStack.Push (change.Inverse (source));
 				redoStack.Clear ();
@@ -229,15 +229,14 @@ namespace CrowEditBase
 				apply (change);
 				notifyClients (change, triggeringEditor);
 			} finally {
-				editorRWLock.ExitWriteLock ();
+				documentRWLock.ExitWriteLock ();
 			}
-
 		}
 		protected void onTextChanged (object sender, TextChangeEventArgs e) {
 			applyTextChange (e.Change, sender);
 		}
 		protected void getLines () {
-			editorRWLock.EnterWriteLock ();
+			documentRWLock.EnterWriteLock ();
 			if (lines == null)
 				lines = new LineCollection (10);
 			else
@@ -247,10 +246,10 @@ namespace CrowEditBase
 				lines.Add (new TextLine (0, 0, 0));
 			else
 				lines.Update (source);
-			editorRWLock.ExitWriteLock ();
+			documentRWLock.ExitWriteLock ();
 		}
 		public string GetLineBreak () {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				if (string.IsNullOrEmpty (lineBreak)) {
 					mixedLineBreak = false;
@@ -271,32 +270,32 @@ namespace CrowEditBase
 				}
 				return lineBreak;
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 		public CharLocation GetLocation (int absolutePosition) {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				return lines.GetLocation (absolutePosition);
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 		public int GetAbsolutePosition (CharLocation loc) {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				return lines.GetAbsolutePosition (loc);
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 		public CharLocation EndLocation {
 			get {
-				editorRWLock.EnterReadLock ();
+				documentRWLock.EnterReadLock ();
 				try {
 					return new CharLocation (lines.Count - 1, lines[lines.Count - 1].Length);
 				} finally {
-					editorRWLock.ExitReadLock();
+					documentRWLock.ExitReadLock();
 				}
 			}
 		}
@@ -304,59 +303,59 @@ namespace CrowEditBase
 			get {
 				if (lines == null)
 					getLines();
-				editorRWLock.EnterReadLock ();
+				documentRWLock.EnterReadLock ();
 				try {
 					return lines.Count;
 				} finally {
-					editorRWLock.ExitReadLock();
+					documentRWLock.ExitReadLock();
 				}
 			}
 		}
 		public int Lenght {
 			get {
-				editorRWLock.EnterReadLock ();
+				documentRWLock.EnterReadLock ();
 				try {
 					return source.Length;
 				} finally {
-					editorRWLock.ExitReadLock();
+					documentRWLock.ExitReadLock();
 				}
 			}
 		}
 		public TextLine GetLine (int index) {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				return lines[index];
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 		public ReadOnlySpan<char> GetText (TextLine line) {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				return source.GetLine (line);
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 		public ReadOnlySpan<char> GetText (TextSpan span) {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				return source.Slice (span.Start, span.Length);
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 		public char GetChar (int pos){
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				return source[pos];
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 
 		public virtual CharLocation GetWordStart (CharLocation loc) {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				int pos = lines.GetAbsolutePosition (loc);
 				//skip white spaces
@@ -366,11 +365,11 @@ namespace CrowEditBase
 					pos--;
 				return lines.GetLocation (pos);
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 		public virtual CharLocation GetWordEnd (CharLocation loc) {
-			editorRWLock.EnterReadLock ();
+			documentRWLock.EnterReadLock ();
 			try {
 				int pos = lines.GetAbsolutePosition (loc);
 				//skip white spaces
@@ -380,7 +379,7 @@ namespace CrowEditBase
 					pos++;
 				return lines.GetLocation (pos);
 			} finally {
-				editorRWLock.ExitReadLock();
+				documentRWLock.ExitReadLock();
 			}
 		}
 	}

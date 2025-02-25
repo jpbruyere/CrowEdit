@@ -17,7 +17,10 @@ namespace CrowEditBase
 			: base (fullPath, editorPath) {
 		}
 		protected Token[] tokens;
-		protected SyntaxNode RootNode;
+		protected SyntaxRootNode root;
+		protected int currentTokenIndex;
+		SyntaxNode currentNode;
+
 		protected Token currentToken => currentTokenIndex < 0 ? default : tokens[currentTokenIndex];
 		protected Token? previousToken {
 			get {
@@ -26,7 +29,6 @@ namespace CrowEditBase
 				return tokens[currentTokenIndex-1];
 			}
 		}
-		SyntaxNode currentNode;
 		public SyntaxNode CurrentNode {
 			get => currentNode;
 			set {
@@ -36,16 +38,15 @@ namespace CrowEditBase
 				NotifyValueChanged ("CurrentNode", currentNode);
 			}
 		}
-		public string CurrentTokenString => RootNode?.Root.GetTokenStringByIndex (currentTokenIndex);
+		public string CurrentTokenString => root?.GetTokenStringByIndex (currentTokenIndex);
 		public Token CurrentToken => currentToken;
-		public bool IsParsed => tokens.Length > 0 && RootNode != null;
+		public bool IsParsed => tokens.Length > 0 && root != null;
+		public SyntaxRootNode Root => root;
 
 		//public SyntaxNode EditedNode { get; protected set; }
-		protected int currentTokenIndex;
 
 		public Token[] Tokens => tokens;
-		public SyntaxNode SyntaxRootNode => RootNode;
-		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => RootNode?.children;
+		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
 		public LineCollection Lines => lines;
 		public Token FindTokenIncludingPosition (int pos) {
 			if (pos == 0 || tokens == null || tokens.Length == 0)
@@ -65,30 +66,30 @@ namespace CrowEditBase
 		/// if outermost is true, return oldest ancestor exept root node, useful for folding.
 		/// </summary>
 		public SyntaxNode FindNodeIncludingPosition (int pos, bool outerMost = false) {
-			if (RootNode == null)
+			if (root == null)
 				return null;
-			if (!RootNode.Contains (pos))
+			if (!root.Contains (pos))
 				return null;
-			SyntaxNode sn = RootNode.FindNodeIncludingPosition (pos);
+			SyntaxNode sn = root.FindNodeIncludingPosition (pos);
 			if (outerMost) {
-				while (sn.Parent != RootNode && sn.Span.Start == sn.Parent.Span.Start)
+				while (sn.Parent != root && sn.Span.Start == sn.Parent.Span.Start)
 					sn = sn.Parent;
 			}
 			return sn;
 		}
 		public T FindNodeIncludingPosition<T> (int pos) {
-			if (RootNode == null)
+			if (root == null)
 				return default;
-			if (!RootNode.Contains (pos))
+			if (!root.Contains (pos))
 				return default;
-			return RootNode.FindNodeIncludingPosition<T> (pos);
+			return root.FindNodeIncludingPosition<T> (pos);
 		}
 		public SyntaxNode FindNodeIncludingSpan (TextSpan span) {
-			if (RootNode == null)
+			if (root == null)
 				return null;
-			if (!RootNode.Contains (span))
+			if (!root.Contains (span))
 				return null;
-			return RootNode.FindNodeIncludingSpan (span);
+			return root.FindNodeIncludingSpan (span);
 		}
 		protected override void reloadFromFile () {
 			base.reloadFromFile ();
@@ -104,24 +105,23 @@ namespace CrowEditBase
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
 			
 			if (syntaxAnalyser == null) {
-				RootNode = null;
+				root = null;
 				return;
 			}
 
-			SyntaxNode changedNode = RootNode.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));
-			
+			//SyntaxNode changedNode = root.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));			
 			
 			tokens = tokenizer.Tokenize (buffer.Span);
-
-
 			syntaxAnalyser.Process ();
-			NotifyValueChanged("Exceptions", syntaxAnalyser.Exceptions);
 
+			root = syntaxAnalyser.Root;
+			NotifyValueChanged("Exceptions", syntaxAnalyser.Exceptions);
+			/*
 			SyntaxNode newNode = syntaxAnalyser.Root.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));
 
 			if (editedNode == null) {
 				//System.Diagnostics.Debugger.Break ();
-				RootNode = syntaxAnalyser.Root;
+				root = syntaxAnalyser.Root;
 			} else if (newNode.IsSimilar (editedNode)) {
 				if (!tryReplaceNode (editedNode, newNode))
 					RootNode = syntaxAnalyser.Root;
@@ -138,6 +138,7 @@ namespace CrowEditBase
 				//System.Diagnostics.Debugger.Break ();
 				RootNode = syntaxAnalyser.Root;
 			}
+			*/
 
 			//updateCurrentTokAndNode (change.End2);
 			//EditedNode = editedNode;
@@ -197,16 +198,11 @@ namespace CrowEditBase
 			Stopwatch sw = Stopwatch.StartNew ();
 			syntaxAnalyser?.Process ();
 			sw.Stop();
-			RootNode = syntaxAnalyser?.Root;
+			root = syntaxAnalyser?.Root;
 
 			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
 			if (syntaxAnalyser == null)
 				return;
-			LogItem log = CrowEditBase.App.GetLog(this.FileName);
-			log.ResetLog();
-			foreach (SyntaxException ex in syntaxAnalyser.Exceptions)
-				log.Add(LogType.Error, $"{ex}");
-
 				/*foreach (Token t in Tokens)
 					Console.WriteLine ($"{t,-40} {Source.AsSpan(t.Start, t.Length).ToString()}");
 				syntaxAnalyser.Root.Dump();*/

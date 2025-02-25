@@ -10,7 +10,7 @@ namespace CrowEditBase
 	public abstract class SyntaxAnalyser {
 		//protected abstract void Parse(SyntaxNode node);
 		protected SourceDocument source;
-		public abstract SyntaxNode Root { get; }
+		public SyntaxRootNode Root { get; protected set; }
 		public IEnumerable<SyntaxException> Exceptions => Root?.GetAllExceptions();
 		public SyntaxAnalyser (SourceDocument source) {
 			this.source = source;
