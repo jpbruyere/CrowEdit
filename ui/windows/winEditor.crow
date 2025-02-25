@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Editor"  Width="60%">
+<DockWindow Caption="Editor"  Width="50%" Height="80%">
 	<TabView ItemTemplate="{EditorItemTemplates}"
 			Data="{OpenedDocuments}" SelectedItem="{²CurrentDocument}"	DataTest="EditorPath">
 		<Template>

@@ -92,12 +92,25 @@ DockWindow {
 	Background = "${DockWindowBackground}";
 	Margin="0";
 	RootDataLevel = "true";
+	HorizontalAlignment = "Center";
+	VerticalAlignment = "Center";
 }
 DockWindow2 {
 	Template = "#ui.DockWindow2.template";
 	Background = "${DockWindowBackground}";
 	Margin="0";
 	RootDataLevel = "true";
+}
+DockWindowToolbar {
+	Template = "#ui.DockWindowToolbar.template";
+	Background = "${DockWindowBackground}";
+	Margin="0";
+	RootDataLevel = "true";
+	HorizontalAlignment = "Center";
+	VerticalAlignment = "Center";
+	Resizable = "false";
+	Height="Fit";
+	Width="Fit";
 }
 DockWinTitleBarMenu {
 	ItemTemplate = "#ui.DockWinTitleBarMenu.itemp";

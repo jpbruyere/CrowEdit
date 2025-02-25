@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Explorer"  Width="60%">
+<DockWindow Caption="Explorer"  Width="30%" Height="80%">
 	<VerticalStack  Spacing="0">
 		<HorizontalStack Height="Fit" Spacing="0" Margin="2" >
 			<Image Margin="2" Width="16" Height="16" Path="#Crow.Icons.level-up.svg" MouseClick="goUpDirClick"

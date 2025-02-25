@@ -1,0 +1,7 @@
+﻿<?xml version="1.0"?>
+<Border Background="{./Background}" Margin="5" CornerRadius="0">
+	<HorizontalStack>
+		<Widget Width="12" Height="Stretched" Background="Onyx" Name="MoveHandle" Focusable="true" CornerRadius="5"/>
+		<Container Name="Content" Width="Stretched"/>
+	</HorizontalStack>
+</Border>

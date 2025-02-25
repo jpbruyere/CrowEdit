@@ -16,20 +16,6 @@ namespace Crow
 {
 	public class SourceEditor : Editor {
 		object TokenMutex = new object();
-		/*protected override void backgroundThreadFunc () {
-			while (true) {
-				if (Document != null && Document.TryGetState (this, out List<TextChange> changes)) {
-					disableTextChangedEvent = true;
-					disableSuggestions = true;
-					foreach (TextChange tc in changes)
-						update (tc);
-					disableTextChangedEvent = false;
-					disableSuggestions = false;
-				}
-				System.Threading.Thread.Sleep (200);
-			}
-		}*/
-
 		SyntaxNode currentNode;
 #if DEBUG_NODE
 		SyntaxNode _hoverNode;
@@ -54,6 +40,7 @@ namespace Crow
 			}
 		}
 
+		#region suggestions and autocomplete
 		ListBox overlay;
 		IList suggestions;
 		volatile bool disableSuggestions;
@@ -71,7 +58,7 @@ namespace Crow
 		bool suggestionsActive => overlay != null && overlay.IsVisible;
 
 		protected void tryGetSuggestions () {
-			if (currentLoc.HasValue && Document is SourceDocument srcDoc) {
+			if (currentLoc.HasValue && Document is SourceDocument srcDoc && srcDoc.IsParsed) {
 				IList suggs = srcDoc.GetSuggestions (CurrentLoc.Value);
 				if (suggs != null && suggs.Count == 1 && (
 					(suggs[0] is System.Reflection.MemberInfo mi && mi.Name == srcDoc.CurrentTokenString) ||
@@ -141,12 +128,13 @@ namespace Crow
 			hideOverlay ();
 			tryGetSuggestions ();
 		}
-
+		#endregion
+		
+		#region  Margin
 		const int leftMarginGap = 5;//gap between margin start and numbering
 		const int leftMarginRightGap = 3;//gap between items in margin and text
 		const int foldSize = 9;//folding rectangles size
 		const int foldMargin = 9;
-
 		int leftMargin;
 		bool mouseIsInMargin, mouseIsInFoldRect;
 
@@ -159,6 +147,7 @@ namespace Crow
 			leftMargin += leftMarginRightGap;
 			//updateVisibleColumns ();
 		}
+		#endregion
 
 		protected override CharLocation? CurrentLoc {
 			get => currentLoc;
@@ -176,9 +165,11 @@ namespace Crow
 				}
 				NotifyValueChanged ("CurrentLine", CurrentLine);
 				NotifyValueChanged ("CurrentColumn", CurrentColumn);
+				NotifyValueChanged ("TabulatedColumn", TabulatedColumn);
 				CMDCopy.CanExecute = CMDCut.CanExecute = !SelectionIsEmpty;
 			}
 		}
+		
 		public override int measureRawSize(LayoutingType lt)
 		{
 			DbgLogger.StartEvent(DbgEvtType.GOMeasure, this, lt);
@@ -498,6 +489,13 @@ namespace Crow
 
 			gr.Operator = Operator.Over;
 		}
+		protected void drawLineNumber(IContext gr, int lineIndex, double x, double y) {
+			string strLN = (lineIndex+1).ToString ();
+			gr.MoveTo (x - gr.TextExtents (strLN).Width, y);
+			gr.ShowText (strLN);
+			gr.Fill ();
+
+		}
 		protected override void drawContent (IContext gr) {
 			if (!(Document is SourceDocument doc)) {
 				base.drawContent (gr);
@@ -506,43 +504,49 @@ namespace Crow
 
 			doc.EnterReadLock ();
 			try {
-				if (doc.Tokens == null || doc.Tokens.Length == 0) {
-					base.drawContent (gr);
-					return;
-				}
-
 				double lineHeight = fe.Ascent + fe.Descent;
 				updateMargin ();
 
 				bool printLineNumbers = App.PrintLineNumbers;
 				Color marginBG = App.MarginBackground;
 				Color marginFG = Colors.Ivory;
+				Rectangle cb = ClientRectangle;
+				RectangleD marginRect = new RectangleD (cb.X + ScrollX, cb.Y, leftMargin - leftMarginRightGap, cb.Height);
+
+				gr.SetSource (marginBG);
+				gr.Rectangle (marginRect);
+				gr.Fill();
+
+				
+				if (!doc.IsParsed) {
+					base.drawContent (gr);
+					return;
+				}
+
 				double lineNumWidth = gr.TextExtents (Document.LinesCount.ToString()).Width;
 
-				Rectangle cb = ClientRectangle;
-				RectangleD marginRect = new RectangleD (cb.X + ScrollX, cb.Y, leftMargin - leftMarginRightGap, lineHeight);
+				marginRect.Height = lineHeight;
 				cb.Left += leftMargin;
 
 
 				CharLocation selStart = default, selEnd = default;
 				bool selectionNotEmpty = false;
 				CharLocation? nodeStart = null, nodeEnd = null;
-
+#if DEBUG_NODES
 				CharLocation? editNodeStart = null, editNodeEnd = null;//debug
 				CharLocation? hoverNodeStart = null, hoverNodeEnd = null;
-
+#endif
 				if (currentLoc?.Column < 0) {
-					updateLocation (gr, cb.Width, ref currentLoc);
-					NotifyValueChanged ("CurrentColumn", CurrentColumn);
+					updateLocation (gr, ref currentLoc);
 				} else
-					updateLocation (gr, cb.Width, ref currentLoc);
+					updateLocation (gr, ref currentLoc);
 
 				if (CurrentNode != null) {
 					TextSpan nodeSpan = CurrentNode.Span;
 					nodeStart = Document.GetLocation  (nodeSpan.Start);
-					updateLocation (gr, cb.Width, ref nodeStart);
+					updateLocation (gr, ref nodeStart);
 					nodeEnd = Document.GetLocation  (nodeSpan.End);
-					updateLocation (gr, cb.Width, ref nodeEnd);
+					updateLocation (gr, ref nodeEnd);
 				}
 #if DEBUG_NODES
 				if (doc.EditedNode != null) {
@@ -566,13 +570,13 @@ namespace Crow
 					if (p.Y < 0 || p.X < 0)
 						hideOverlay ();
 					else {
-						p += ScreenCoordinates (Slot).TopLeft;
+						p += ScreenCoordinates (Slot).TopLeft + cb.TopLeft;
 						overlay.Left = p.X;
 						overlay.Top = p.Y;
 					}
 				}
 				if (selectionStart.HasValue) {
-					updateLocation (gr, cb.Width, ref selectionStart);
+					updateLocation (gr, ref selectionStart);
 					if (CurrentLoc.Value != selectionStart.Value)
 						selectionNotEmpty = true;
 				}
@@ -593,7 +597,7 @@ namespace Crow
 				}
 
 
-				double spacePixelWidth = gr.TextExtents (" ").XAdvance;
+				//double spacePixelWidth = gr.TextExtents (" ").XAdvance;
 				int x = 0;
 				double	pixX = cb.Left,
 						pixY = cb.Top;
@@ -614,6 +618,7 @@ namespace Crow
 				IEnumerator<SyntaxNode> nodeEnum = doc.SyntaxRootNode.FoldableNodes.GetEnumerator ();
 				bool notEndOfNodes = nodeEnum.MoveNext();
 
+				gr.LineWidth = 1;
 				int l = 0;
 				while (l < Document.LinesCount) {
 					//if (!cancelLinePrint (lineHeight, lineHeight * y, cb.Height)) {
@@ -635,6 +640,7 @@ namespace Crow
 					}
 
 					//buff = sourceBytes.Slice (lines[l].Start, lines[l].Length);
+					int encodedChar = 0;
 
 					while (tok.Start < Document.GetLine (l).End) {
 						buff = sourceBytes.Slice (tok.Start, tok.Length);
@@ -644,13 +650,26 @@ namespace Crow
 						if (bytes.Length < size)
 							bytes = new byte[size];
 
-						int encodedBytes = buff.ToUtf8 (bytes);
+						int encodedBytes = buff.ToUtf8 (bytes, ref encodedChar, tabSize);
 
 						if (encodedBytes > 0) {
 							bytes[encodedBytes++] = 0;
 							gr.TextExtents (bytes.Slice (0, encodedBytes), out extents);
-							gr.MoveTo (pixX, pixY + fe.Ascent);
-							gr.ShowText (bytes.Slice (0, encodedBytes));
+							if (extents.Width > 0) {
+								gr.MoveTo (pixX, pixY + fe.Ascent);
+								gr.ShowText (bytes.Slice (0, encodedBytes));
+							}
+
+							if (doc.CurrentToken.Equals(tok)) {
+								/*CharLocation? tokloc = Document.GetLocation  (tok.Start);
+								updateLocation (gr, cb.Width, ref tokloc);*/
+								Rectangle r = new RectangleD(pixX, pixY, extents.Width, lineHeight);
+								r.Inflate(1);
+								gr.Rectangle(r);
+								gr.SetSource(doc.GetColorForToken (tok.Type).AdjustAlpha(0.6));
+								gr.Stroke();
+							}
+
 							pixX += extents.XAdvance;
 							x += buff.Length;
 						}
@@ -662,7 +681,7 @@ namespace Crow
 
 					RectangleD lineRect = new RectangleD (cb.X, pixY, pixX - cb.X, lineHeight);
 					if (CurrentNode != null && l >= nodeStart.Value.Line && l <= nodeEnd.Value.Line)
-						fillHighlight (gr, l, nodeStart.Value, nodeEnd.Value, lineRect, new Color(0.0,0.1,0.0,0.08));;
+						fillHighlight (gr, l, nodeStart.Value, nodeEnd.Value, lineRect, new Color(0.0,0.1,0.0,0.04));;
 #if DEBUG_NODES
 					if (doc.EditedNode != null && l >= editNodeStart.Value.Line && l <= editNodeEnd.Value.Line)
 						fillHighlight (gr, l, editNodeStart.Value, editNodeEnd.Value, lineRect, new Color(0,0.5,0,0.2));;
@@ -670,22 +689,18 @@ namespace Crow
 						fillHighlight (gr, l, hoverNodeStart.Value, hoverNodeEnd.Value, lineRect, new Color(0,0,0.8,0.1));;
 #endif
 					if (selectionNotEmpty && l >= selStart.Line && l <= selEnd.Line)
-						fillHighlight (gr, l, selStart, selEnd, lineRect, SelectionBackground);
-
-
+						fillHighlight (gr, l, selStart, selEnd, lineRect, SelectionBackground);				
+					
 					//Draw line numbering
 					if (printLineNumbers){
 						marginRect.Y = lineRect.Y;
-
-						string strLN = (l+1).ToString ();
-						gr.SetSource (marginBG);
-						gr.Rectangle (marginRect);
-						gr.Fill();
 						gr.SetSource (marginFG);
-						gr.MoveTo (marginRect.X + leftMarginGap + lineNumWidth - gr.TextExtents (strLN).Width, marginRect.Y + fe.Ascent);
-						gr.ShowText (strLN);
-						gr.Fill ();
+
+						drawLineNumber (gr, l, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + fe.Ascent);
+						if (tokPtr + 1 == doc.Tokens.Length && l < doc.LinesCount-1)
+							drawLineNumber (gr, l+1, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + lineHeight + fe.Ascent);
 					}
+					
 					//draw fold
 					if (foldable) {
 						Rectangle rFld = new Rectangle (cb.X - leftMarginGap - foldMargin,
@@ -709,13 +724,17 @@ namespace Crow
 						gr.Stroke ();
 					}
 
-					if (++tokPtr >= doc.Tokens.Length)
+					if (++tokPtr >= doc.Tokens.Length) {
 						break;
+					}
+						
 					tok = doc.Tokens[tokPtr];
 
 					x = 0;
 					pixX = cb.Left;
 					pixY += lineHeight;
+					/*if (pixY > cb.Height)
+						break;*/
 
 					if (foldable && curNode.isFolded) {
 						TextSpan ns = curNode.Span;
@@ -741,6 +760,9 @@ namespace Crow
 								pixX += spacePixelWidth * tok2.Length;*/
 				}
 				//gr.Translate (ScrollX, ScrollY);
+			} catch (Exception e) {
+				Console.WriteLine(e.Message);
+				Console.WriteLine(e.StackTrace);
 			} finally {
 				doc.ExitReadLock ();
 			}

@@ -39,16 +39,20 @@ namespace CrowEditBase
 			Toks.Add (new Token((TokenType)tokType, startOfTok, reader.CurrentPosition));
 			startOfTok = reader.CurrentPosition;
 		}
-		protected virtual void skipWhiteSpaces (ref SpanCharReader reader) {
+		protected virtual void skipWhiteSpaces (ref SpanCharReader reader, bool skipLineBreaksToo = true) {
 			while(!reader.EndOfSpan) {
 				switch (reader.Peek) {
 					case '\x85':
 					case '\x2028':
 					case '\xA':
+						if (!skipLineBreaksToo)
+							return;
 						reader.Read();
 						addTok (ref reader, TokenType.LineBreak);
 						break;
 					case '\xD':
+						if (!skipLineBreaksToo)
+							return;
 						reader.Read();
 						if (reader.IsNextCharIn ('\xA', '\x85'))
 							reader.Read();

@@ -19,6 +19,13 @@ namespace CrowEditBase
 		protected Token[] tokens;
 		protected SyntaxNode RootNode;
 		protected Token currentToken => currentTokenIndex < 0 ? default : tokens[currentTokenIndex];
+		protected Token? previousToken {
+			get {
+				if (currentTokenIndex < 1) 
+					return null;
+				return tokens[currentTokenIndex-1];
+			}
+		}
 		SyntaxNode currentNode;
 		public SyntaxNode CurrentNode {
 			get => currentNode;
@@ -31,6 +38,7 @@ namespace CrowEditBase
 		}
 		public string CurrentTokenString => RootNode?.Root.GetTokenStringByIndex (currentTokenIndex);
 		public Token CurrentToken => currentToken;
+		public bool IsParsed => tokens.Length > 0 && RootNode != null;
 
 		//public SyntaxNode EditedNode { get; protected set; }
 		protected int currentTokenIndex;
@@ -44,7 +52,7 @@ namespace CrowEditBase
 				return default;
 			int idx = Array.BinarySearch (tokens, 0, tokens.Length, new  Token () {Start = pos});
 
-			return idx == 0 ? tokens[0] : idx < 0 ? tokens[~idx - 1] : tokens[idx - 1];
+			return idx == 0 ? tokens[0] : idx < 0 ? tokens[~idx - 1] : tokens[idx];
 		}
 		public int FindTokenIndexIncludingPosition (int pos) {
 			if (pos == 0 || tokens == null || tokens.Length == 0)
@@ -93,13 +101,19 @@ namespace CrowEditBase
 			base.apply(change);
 
 			Tokenizer tokenizer = CreateTokenizer ();
-			tokens = tokenizer.Tokenize (Source);
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
 			
 			if (syntaxAnalyser == null) {
 				RootNode = null;
 				return;
 			}
+
+			SyntaxNode changedNode = RootNode.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));
+			
+			
+			tokens = tokenizer.Tokenize (Source);
+
+
 
 			syntaxAnalyser.Process ();
 			NotifyValueChanged("Exceptions", syntaxAnalyser.Exceptions);
@@ -157,7 +171,7 @@ namespace CrowEditBase
 			if (tokType.HasFlag (TokenType.Punctuation))
 				return Colors.DarkGrey;
 			if (tokType.HasFlag (TokenType.Trivia))
-				return Colors.DimGrey;
+				return Colors.Silver;
 			if (tokType == TokenType.Keyword)
 				return Colors.DarkSlateBlue;
 			return Colors.Red;
@@ -176,6 +190,7 @@ namespace CrowEditBase
 		/// <param name="newSelection">new position or selection, null if normal position after text changes</param>
 		/// <returns>true if successed</returns>
 		public abstract bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection);
+		protected bool previousTokHasFlag(TokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
 		void parse () {
 			Tokenizer tokenizer = CreateTokenizer ();
 			tokens = tokenizer?.Tokenize (Source);

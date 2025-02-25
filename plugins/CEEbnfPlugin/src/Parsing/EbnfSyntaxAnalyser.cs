@@ -8,84 +8,91 @@ using CrowEditBase;
 
 namespace CrowEdit.Ebnf
 {
+
 	public class EbnfSyntaxAnalyser : SyntaxAnalyser {
         public override SyntaxNode Root => currentNode;
 		public EbnfSyntaxAnalyser  (EbnfDocument source) : base (source) {
 			this.source = source;
 		}
+		
+		
+		// ::= NCName '::=' Expression
+		// Link ::= '[' URL ']'
+		// Choice ::= SequenceOrDifference ( '|' SequenceOrDifference )*
+		// SequenceOrDifference ::= Item ( '-' Item | Item* )?
+		// Item ::= Primary ( '?' | '*' | '+' )?
+		//NCName | StringLiteral | CharCode | CharClass | '(' Choice ')'
+		// StringLiteral ::= '"' [^"]* '"' | "'" [^']* "'"	
+
         public override void Process()
         {
             EbnfDocument doc = source as EbnfDocument;
-			Exceptions = new List<SyntaxException>();
 			currentNode = new EbnfRootSyntax (doc);
 			currentLine = 0;
-			source2 = doc.Source;
-
-			Span<Token> toks = source.Tokens;
 			tokIdx = 0;
-
-			while (tokIdx < toks.Length) {
-				curTok = toks[tokIdx];
-
-				switch (curTok.GetTokenType())
-				{
-					case EbnfTokenType.LineBreak:
-						currentLine++;
-						break;
-					case EbnfTokenType.SymbolName:
-						currentNode = currentNode.AddChild(new ProductionSyntax(0, currentLine, tokIdx));
-						break;
+			tokens = doc.Tokens;
+			
+			/*while(tokIdx < tokens.Length) {
+				skipTrivia();
+				
+				if (currentNode is EbnfRootSyntax root) {
+					if (curTok.GetTokenType() == EbnfTokenType.SymbolName)
+						currentNode = root.AddChild(
+							new ProductionSyntax(0, currentLine, tokIdx));
+					else
+						addException("Unexpected token");
 					
+				} else if (currentNode is ProductionSyntax prod) {
+					if (curTok.GetTokenType() == EbnfTokenType.SymbolAffectation) {
+						prod.equal = tokIdx;
+						tokIdx++;
+						if (!skipTrivia())
+							break;
+						currentNode = currentNode.AddChild(
+							new ExpressionSyntax(currentLine, tokIdx));
+					} else {
+						addException("'::=' expected.");
+						currentNode = Root;
+					}
+				} else if (currentNode is ExpressionSyntax exp) {
+					if (curTok.GetTokenType() == EbnfTokenType.OpenBracket) {
+						//either CharClass or link
+						int openBraketIdx = tokIdx;
+						tokIdx++;
+						if (tryPeek(EbnfTokenType.CharMatchNegation)) {
+							currentNode = currentNode.AddChild(
+								new CharClassSyntax(currentLine, openBraketIdx) );
+						} else {
+							while(tryPeek(out Token tok) && !tok.Type.HasFlag(TokenType.Trivia)) {
+								EbnfTokenType tokType = tok.GetTokenType();
+								if (tokType == EbnfTokenType.ClosingBracket) {
+
+
+								}
+							}
+						}
+					} else {
+
+					}
 
 				}
+				
 				tokIdx++;
-			}
-
+			}*/
+				
 
 			setCurrentNodeEndLine (currentLine);
         }
 		
-		Token[] tokens;
+
 		Stack<object> resolveStack;//expression resolutions
 		string source2;
 
-		bool EOF => tokIdx == tokens.Length;
+		
 		bool EndOfExpression =>
 			EOF || tokIdx > tokens.Length - 2 || tokens[tokIdx + 1].GetTokenType() == EbnfTokenType.SymbolAffectation;
-		bool tryRead (out Token tok) {
-			if (EOF) {
-				tok = default;
-				return false;
-			}
-			tok = tokens [tokIdx++];
-			return true;
-		}
-		bool tryPeek (out Token tok) {
-			if (EOF) {
-				tok = default;
-				return false;
-			}
-			tok = tokens [tokIdx];
-			return true;
-		}
-		bool tryRead (out Token tok, EbnfTokenType expectedType) {
-			if (EOF) {
-				tok = default;
-				return false;
-			}
-			tok = tokens [tokIdx++];
-			return tok.GetTokenType() == expectedType;
-		}		
-		bool tryPeek (out Token tok, EbnfTokenType expectedType) {
-			if (EOF) {
-				tok = default;
-				return false;
-			}
-			tok = tokens [tokIdx];
-			return tok.GetTokenType() == expectedType;
-		}
 		bool resolvStackPeekIsOpenBracket =>
-			resolveStack.TryPeek (out object elt) && elt is Token tok && tok.GetTokenType() == EbnfTokenType.OpenBracket;
+			resolveStack.TryPeek (out object elt) && elt is Token tok && tok.GetTokenType() == EbnfTokenType.OpenRoundBracket;
 		bool resolvStackPeekIsSequenceOperator =>
 			resolveStack.TryPeek (out object elt) && elt is Expression;
 
@@ -128,7 +135,7 @@ namespace CrowEdit.Ebnf
 			if (resolveStack.TryPeek (out object obj)) {
 				if (obj is Token tok) {
 
-					if (tok.GetTokenType() == EbnfTokenType.OpenBracket)
+					if (tok.GetTokenType() == EbnfTokenType.OpenRoundBracket)
 						return rightOp;
 					
 					resolveStack.Pop ();
@@ -193,7 +200,7 @@ namespace CrowEdit.Ebnf
 							resolveStack.Push (resolve (leftOp));
 						else
 							resolveStack.Push (leftOp);
-					} else if (tok.GetTokenType() == EbnfTokenType.OpenBracket)
+					} else if (tok.GetTokenType() == EbnfTokenType.OpenRoundBracket)
 						resolveStack.Push (leftOp);
 				} else //so theres an expression on the stack, the operator is sequenceOp (whitespace) with precedence = 3
 					resolveStack.Push (resolve (leftOp));
@@ -233,22 +240,22 @@ namespace CrowEdit.Ebnf
 					if (!tryRead (out tok, EbnfTokenType.SymbolAffectation))
 						throw new EbnfParserException ($"expecing '::='");
 					resolveStack = new Stack<object> (16);
-				} else if (Peek.GetTokenType() == EbnfTokenType.OpenBracket) {
+				} else if (Peek.GetTokenType() == EbnfTokenType.OpenRoundBracket) {
 					tok = Read ();
 					resolveStack.Push (tok);
-				} else if (Peek.GetTokenType() == EbnfTokenType.ClosingBracket) {
+				} else if (Peek.GetTokenType() == EbnfTokenType.ClosingRoundBracket) {
 					tok = Read ();
 					Expression rightOp = resolve ();
 					while (!resolvStackPeekIsOpenBracket) 
 						rightOp = resolve (rightOp);
-					if (resolveStack.TryPop (out object obj) && obj is Token tk && tk.GetTokenType() == EbnfTokenType.OpenBracket)
+					if (resolveStack.TryPop (out object obj) && obj is Token tk && tk.GetTokenType() == EbnfTokenType.OpenRoundBracket)
 						checkCardinalityAndPushNewExpression (rightOp);
 					else
 						throw new EbnfParserException ($"expecing open bracket.");
 				} else if (Peek.GetTokenType().HasFlag (EbnfTokenType.Punctuation)) {
 					tok = Read ();
 					Expression te = default;
-					if (tok.GetTokenType() == EbnfTokenType.CharMatchOpen) {
+					if (tok.GetTokenType() == EbnfTokenType.OpenBracket) {
 						bool negative = false;
 						if (tryPeek (out tok, EbnfTokenType.CharMatchNegation)) {
 							Read ();
@@ -257,7 +264,7 @@ namespace CrowEdit.Ebnf
 						List<CharRangeElement> elts = new List<CharRangeElement> ();
 						CharRangeElement.SingleChar leftOp = null;
 						while (tryRead (out tok)) {
-							if (tok.GetTokenType() == EbnfTokenType.CharMatchClose) {
+							if (tok.GetTokenType() == EbnfTokenType.ClosingBracket) {
 								if (leftOp != null)
 									elts.Add (leftOp);
 								if (elts.Count == 0)
@@ -295,10 +302,10 @@ namespace CrowEdit.Ebnf
 								throw new EbnfParserException ($"malformed character range match");
 						}
 					}
-					if (tok.GetTokenType() == EbnfTokenType.StringMatchOpen) {
+					if (tok.GetTokenType() == EbnfTokenType.StringDelimiter) {
 						if (tryRead (out tok, EbnfTokenType.StringMatch)) {
 							te = new StringMatch (tok.AsString (source2));
-							if (!tryRead (out tok, EbnfTokenType.StringMatchClose))
+							if (!tryRead (out tok, EbnfTokenType.StringLiteral))
 								throw new EbnfParserException ($"malformed string match");
 						} else
 							throw new EbnfParserException ($"malformed string match");
@@ -329,7 +336,7 @@ namespace CrowEdit.Ebnf
 										resolveStack.Push (resolve (exp));
 									else
 										resolveStack.Push (exp);
-								} else if (tok.GetTokenType() == EbnfTokenType.OpenBracket)
+								} else if (tok.GetTokenType() == EbnfTokenType.OpenRoundBracket)
 									resolveStack.Push (exp);
 							} else if (3 <= operatorPrecedance (newOp)) { //so theres an expression on the stack, the operator is sequenceOp (whitespace) with precedence = 3
 								resolveStack.Push (resolve (exp));

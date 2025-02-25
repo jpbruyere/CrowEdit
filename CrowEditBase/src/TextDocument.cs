@@ -58,7 +58,7 @@ namespace CrowEditBase
 		{
 			editorRWLock.EnterWriteLock ();
 			registeredClients.Add (client, null);
-			notifyClient (client, new TextChange (0, 0, Source));
+			//notifyClient (client, new TextChange (0, 0, source));
 			editorRWLock.ExitWriteLock ();
 		}
 		public override void UnregisterClient(object client)
@@ -118,9 +118,6 @@ namespace CrowEditBase
 		}
 		protected Stack<TextChange> undoStack = new Stack<TextChange> ();
 		protected Stack<TextChange> redoStack = new Stack<TextChange> ();
-
-
-
 		protected override void saveFileDialog_OkClicked (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
@@ -139,7 +136,6 @@ namespace CrowEditBase
 			FullPath = fd.SelectedFileFullPath;
 			writeToDisk ();
 		}
-
 
 		protected override void undo () {
 			editorRWLock.EnterWriteLock ();

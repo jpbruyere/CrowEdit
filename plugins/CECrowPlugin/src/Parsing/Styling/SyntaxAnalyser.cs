@@ -24,7 +24,6 @@ namespace CECrowPlugin.Style
 
 		public override void Process () {
 			StyleDocument doc = source as StyleDocument;
-			Exceptions = new List<SyntaxException> ();
 			currentNode = new StyleRootSyntax (doc);
 			currentLine = 0;
 			Span<Token> toks = source.Tokens;
@@ -52,8 +51,8 @@ namespace CECrowPlugin.Style
 				tokIdx++;
 			}
 			while (currentNode.Parent != null) {
-				if (!currentNode.LastTokenOffset.HasValue)
-					storeCurrentNode (-1);
+				if (!currentNode.TokenCount.HasValue)
+					setEndLineForCurrentNode (-1);
 				else
 					currentNode = currentNode.Parent;
 			}

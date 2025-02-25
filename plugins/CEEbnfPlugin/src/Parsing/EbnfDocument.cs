@@ -37,11 +37,20 @@ namespace CrowEdit.Ebnf
 		public override Color GetColorForToken(TokenType tokType)
 		{
 			EbnfTokenType xmlTokType = (EbnfTokenType)tokType;
+			if (xmlTokType == EbnfTokenType.OpenBracket || xmlTokType == EbnfTokenType.ClosingBracket)
+				return Colors.RebeccaPurple;
+			if (xmlTokType == EbnfTokenType.StringDelimiter)
+				return Colors.DarkGoldenRod;
+			if (xmlTokType == EbnfTokenType.StringLiteral)
+				return Colors.DarkGoldenRod;
+
 			if (xmlTokType.HasFlag (EbnfTokenType.Punctuation))
 				return Colors.DarkGrey;
-			if (xmlTokType.HasFlag (EbnfTokenType.Trivia))
-				return Colors.DimGrey;
-			return Colors.Black;
+			if (xmlTokType == EbnfTokenType.SymbolName)
+				return Colors.Blue;
+			if (xmlTokType == EbnfTokenType.Name)
+				return Colors.Green;
+			return base.GetColorForToken(tokType);
 
 		}
 	}

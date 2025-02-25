@@ -1,12 +1,20 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Netcore Debugger"  Width="Fit" Height="Fit" Resizable="false" >
-	<HorizontalStack Fit="true" DataSource="{DbgSession}" Margin="0" Spacing="5">
-		<Button Style="IcoBut" Command="{CMDDebugStart}"/>
-		<Button Style="IcoBut" Command="{CMDDebugPause}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStop}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
+<DockWindow Caption="Netcore Debugger">
+	<HorizontalStack Height="Fit" DataSource="{DbgSession}" Margin="0" Spacing="5">
+		<ListBox Data="{DebugCommands}" Fit="true">
+			<Template>
+				<HorizontalStack Name="ItemsContainer" Spacing="5" />
+			</Template>
+			<ItemTemplate>
+				<Button Command="{}" MinimumSize="1,1" Width="40" Height="40" Background="vgradient|0:DimGrey|1:Black" CornerRadius="0" >
+					<Template>
+						<Border Style="ButtonBorder" Width="Stretched" Height="Stretched" Margin="10" Background="{./Background}" CornerRadius="{../CornerRadius}">
+							<Image Path="{./Icon}" Tooltip="{./Caption}" Scaled="true" KeepProportions="true" Margin="0"/>
+						</Border>
+					</Template>
+				</Button>
+			</ItemTemplate>
+		</ListBox >	
 		<Label Text="{CurrentState}" Margin="2"/>
 	</HorizontalStack>
 </DockWindow>

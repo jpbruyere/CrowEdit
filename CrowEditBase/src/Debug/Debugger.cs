@@ -27,7 +27,7 @@ namespace CrowEditBase
 
 		protected Project project;
 		public Command CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut;
-		public virtual CommandGroup Commands => new CommandGroup (
+		public virtual CommandGroup DebugCommands => new CommandGroup (
 			CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut);
 		protected virtual void initCommands () {
 			CMDDebugStart = new ActionCommand ("Start", Start, "#icons.debug-play.svg");

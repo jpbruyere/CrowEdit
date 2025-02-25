@@ -89,13 +89,19 @@ namespace CrowEdit.Ebnf
 				case '"':
 				case '\'':
 					char q = reader.Read();
-					addTok (ref reader, EbnfTokenType.StringMatchOpen);
-					if (reader.TryReadUntil (q)) {
-						addTok (ref reader, EbnfTokenType.StringMatch);
-						reader.Advance ();
-						addTok (ref reader, EbnfTokenType.StringMatchClose);
-					} else
-						addTok (ref reader, EbnfTokenType.StringMatch);
+					addTok (ref reader, EbnfTokenType.StringDelimiter);
+					while (!reader.EndOfSpan) {
+						if (reader.Eol()) {
+							addTok (ref reader, EbnfTokenType.StringLiteral);
+							break;
+						} else if (reader.Peek == q) {
+							addTok (ref reader, EbnfTokenType.StringLiteral);
+							reader.Advance ();
+							addTok (ref reader, EbnfTokenType.StringDelimiter);
+							break;
+						}
+						reader.Advance();
+					}
 					break;
 				case ':':
 					reader.Advance();
@@ -111,11 +117,11 @@ namespace CrowEdit.Ebnf
 					break;
 				case '(':
 					reader.Advance();
-					addTok (ref reader, EbnfTokenType.OpenBracket);
+					addTok (ref reader, EbnfTokenType.OpenRoundBracket);
 					break;
 				case ')':
 					reader.Advance();
-					addTok (ref reader, EbnfTokenType.ClosingBracket);
+					addTok (ref reader, EbnfTokenType.ClosingRoundBracket);
 					break;
 				case '|':
 					reader.Advance();
@@ -133,15 +139,15 @@ namespace CrowEdit.Ebnf
 					break;
 				case '[':
 					reader.Advance();
-					addTok (ref reader, EbnfTokenType.CharMatchOpen);
+					addTok (ref reader, EbnfTokenType.OpenBracket);
 					if (reader.TryPeek ('^')) {
 						reader.Advance();
 						addTok (ref reader, EbnfTokenType.CharMatchNegation);
 					}
-					while(!reader.EndOfSpan) {
+					while(!reader.Eol()) {
 						char c = reader.Read ();
 						if (c == ']') {
-							addTok (ref reader, EbnfTokenType.CharMatchClose);
+							addTok (ref reader, EbnfTokenType.ClosingBracket);
 							break;
 						} else if (c == '-')
 							addTok (ref reader, EbnfTokenType.CharMatchRangeOperator);

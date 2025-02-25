@@ -318,7 +318,10 @@ namespace CrowEditBase
 				Widget g = FindByName (path);
 				if (g != null)
 					return g as Window;
-				g = Load (path);
+				if (TryGetConfigFromFloatingWinConfigs(path, out string floatingConfig))
+					g = DockWindow.CreateFromFloatingConfigString(this, floatingConfig);
+				else
+					g = Load (path);
 				g.Name = path;
 				g.DataSource = dataSource;
 				return g as Window;
@@ -333,10 +336,74 @@ namespace CrowEditBase
 		}
 		public void CloseWindow (string path){
 			Widget g = FindByName (path);
+			if (g is DockWindow dockwin) {
+				if (dockwin.IsFloating)
+					saveWinConfigs();
+			}
 			if (g != null)
 				DeleteWidget (g);
+			
 		}
+		void saveFloatingWinConfigs() {
+			StringBuilder floatings = new StringBuilder (512);
+			DockWindow[] floatingWins = GraphicTree.OfType<DockWindow> ().ToArray ();
+			if (floatingWins.Length > 0) {
+				for (int i = 0; i < floatingWins.Length - 1; i++) {
+					floatings.Append (floatingWins[i].FloatingConfigString);
+					floatings.Append ('|');
+				}
+				floatings.Append (floatingWins[floatingWins.Length - 1].FloatingConfigString);
+			}
+			Configuration.Global.Set ("FloatingWinConfigs", floatings.ToString ());
+		}
+		protected bool TryGetConfigFromFloatingWinConfigs(string winPath, out string conf) {
+			if (Configuration.Global.TryGet<string>("FloatingWinConfigs", out conf) && !string.IsNullOrEmpty(conf)) {
+				string[] floatings = conf.Split ('|');
+				for (int i = 0; i < floatings.Length; i++) {
+					if (floatings[i].Split(';')[0] == winPath) {
+						conf = floatings[i];
+						return true;
+					}
+				}				
+			}
+			return false;
+		}
+		protected void saveWinConfigs() {
+			Configuration.Global.Set ("WinConfigs", mainDock.ExportConfig ());
 
+			saveFloatingWinConfigs();
+
+			Configuration.Global.Save ();
+		}
+		protected DockStack mainDock;
+		protected void reloadWinConfigs() {
+
+			if (Configuration.Global.TryGet<string>("WinConfigs", out string conf) && !string.IsNullOrEmpty(conf))
+				mainDock.ImportConfig (conf, this);
+			if (Configuration.Global.TryGet<string>("FloatingWinConfigs", out conf) && !string.IsNullOrEmpty(conf)) {
+				string[] floatings = conf.Split ('|');
+				for (int i = 0; i < floatings.Length; i++)
+					DockWindow.CreateFromFloatingConfigString (this, floatings[i], this);
+			}
+		}
+		protected void reloadLogsConfigs() {
+
+			if (Configuration.Global.TryGet<string>("OpenedLogs", out string conf) && !string.IsNullOrEmpty(conf)) {
+				string[] logs = conf.Split ('|');
+				for (int i = 0; i < logs.Length; i++)
+					App.GetLog(logs[i]).IsOpened = true;
+				if (Configuration.Global.TryGet<string>("CurrentLog", out string curLog) && !string.IsNullOrEmpty(curLog))
+					App.GetLog(curLog).IsSelected = true;
+			}
+		}	
+		protected void saveLogsConfig() {
+			lock (OpenedLogs) {
+				string openLogs = OpenedLogs.Count > 0 ?
+					OpenedLogs.Select(li=>li.Name).Aggregate((a,b) => a + "|" + b) : null;
+				Configuration.Global.Set("OpenedLogs", openLogs);
+				Configuration.Global.Set("CurrentLog", CurrentLog?.Name);
+			}
+		}
 		public ActionCommand CMDOptions_SelectPluginsDirectory => new ActionCommand ("...",
 			() => {
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
@@ -409,7 +476,7 @@ namespace CrowEditBase
 							<Label Text='Line:' Foreground='Grey'/>
 							<Label Text='{../../tb.CurrentLine}' Margin='3'/>
 							<Label Text='col:' Foreground='Grey'/>
-							<Label Text='{../../tb.CurrentColumn}' Margin='3'/>
+							<Label Text='{../../tb.TabulatedColumn}' Margin='3'/>
 						</HorizontalStack>
 					</VerticalStack>
 				</ListItem>

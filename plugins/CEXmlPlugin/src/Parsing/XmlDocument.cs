@@ -6,6 +6,7 @@ using Crow.Text;
 using System.Collections;
 using CrowEditBase;
 using Drawing2D;
+using System.Collections.Generic;
 
 namespace CrowEdit.Xml
 {
@@ -24,10 +25,16 @@ namespace CrowEdit.Xml
 		}
 		protected override Tokenizer CreateTokenizer() => new XmlTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (this);
-
+		public override string GetTokenTypeString (TokenType tokenType) => ((XmlTokenType)tokenType).ToString();
 		public override IList GetSuggestions (CharLocation loc) {
 			/*currentToken = FindTokenIncludingPosition (pos);
 			currentNode = FindNodeIncludingPosition (pos);*/
+			if (currentToken.GetTokenType() == XmlTokenType.EndElementOpen &&
+				CurrentNode is ElementEndTagSyntax eltEndTag && !eltEndTag.IsComplete) {
+				ElementSyntax es = eltEndTag.Parent as ElementSyntax;
+				if (es?.StartTag.name != null)
+					return new List<string> (new string[] {tokens[es.StartTag.name.Value].AsString(Source)});
+			}			
 			return null;
 		}
 		public override bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection) {
@@ -39,13 +46,68 @@ namespace CrowEdit.Xml
 			if (selectedSugg == null)
 				return false;
 
-			if (currentToken.GetTokenType() == XmlTokenType.ElementOpen ||
+			Token tok = CurrentToken;
+			XmlTokenType tokType = tok.GetTokenType();
+
+			if (tokType.HasFlag(XmlTokenType.WhiteSpace)) {
+				if (typeof(ElementTagSyntax).IsAssignableFrom(CurrentNode?.GetType())) {
+					ElementTagSyntax ets = CurrentNode as ElementTagSyntax;
+					if (ets.name.HasValue) {
+						change = new TextChange (currentToken.End, 0, selectedSugg + "=\"\"");
+						newSelection = TextSpan.FromStartAndLength(change.End2 - 1);
+					} else
+						change = new TextChange (currentToken.End, 0, selectedSugg + " ");
+				} else {
+					change = new TextChange (currentToken.End, 0, selectedSugg);
+				}
+			} else if (tokType == XmlTokenType.EndElementOpen) {
+				change = new TextChange (currentToken.End, 0, selectedSugg + ">");
+			} else if (tokType == XmlTokenType.ElementName) {
+				if (CurrentNode is ElementEndTagSyntax)
+					change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg + ">");
+				else {
+					change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg + ">");
+					newSelection = TextSpan.FromStartAndLength (change.End2 - 1);
+				}
+			} else if (CurrentNode is AttributeSyntax attrib) {
+				if (tokType == XmlTokenType.AttributeName) {
+					if (attrib.ValueToken.HasValue) {
+						change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
+						newSelection = new TextSpan(
+							attrib.ValueToken.Value.Start + change.CharDiff + 1,
+							attrib.ValueToken.Value.End + change.CharDiff - 1
+						);
+					} else {
+						change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg + "=\"\"");
+						newSelection = TextSpan.FromStartAndLength (currentToken.Start + selectedSugg.Length + 2);
+					}
+				} else {
+					int offset = 1;
+					if (!attrib.valueClose.HasValue) {
+						selectedSugg += tokens[attrib.valueClose.Value].AsString(Source);
+						offset = 0;
+					}
+					if (tokType == XmlTokenType.AttributeValueOpen)
+						change = new TextChange (currentToken.End, 0, selectedSugg);
+					else if (tokType == XmlTokenType.AttributeValue)
+						change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
+					newSelection = TextSpan.FromStartAndLength (change.End2 + offset);
+				}
+			} else if (tokType == XmlTokenType.ElementOpen) {
+				change = new TextChange (currentToken.End, 0, selectedSugg + " ");
+			} else
+				change =  new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
+
+			return true;
+/***********************************************/
+
+			/*if (currentToken.GetTokenType() == XmlTokenType.ElementOpen ||
 				currentToken.GetTokenType() == XmlTokenType.WhiteSpace ||
 				currentToken.GetTokenType() == XmlTokenType.AttributeValueOpen) {
 				change = new TextChange (currentToken.End, 0, selectedSugg);
 				return true;
 			}
-			if (currentToken.GetTokenType() == XmlTokenType.AttributeName && CurrentNode is CrowEdit.Xml.AttributeSyntax attrib) {
+			if (currentToken.GetTokenType() == XmlTokenType.AttributeName && CurrentNode is AttributeSyntax attrib) {
 				if (attrib.ValueToken.HasValue) {
 					change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
 					newSelection = new TextSpan(
@@ -53,14 +115,14 @@ namespace CrowEdit.Xml
 						attrib.ValueToken.Value.End + change.CharDiff - 1
 					);
 				} else {
-					newSelection = TextSpan.FromStartAndLength (currentToken.Start + selectedSugg.Length + 2);
 					change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg + "=\"\"");
+					newSelection = TextSpan.FromStartAndLength (currentToken.Start + selectedSugg.Length + 2);
 				}
 				return true;
 			}
 
 			change = new TextChange (currentToken.Start, currentToken.Length, selectedSugg);
-			return true;
+			return true;*/
 		}
 
 		public override Color GetColorForToken(TokenType tokType)
@@ -83,5 +145,6 @@ namespace CrowEdit.Xml
 			return Colors.Red;
 
 		}
+		protected bool previousTokHasFlag(XmlTokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
 	}
 }

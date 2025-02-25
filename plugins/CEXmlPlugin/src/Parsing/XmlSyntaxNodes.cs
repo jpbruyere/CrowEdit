@@ -46,7 +46,8 @@ namespace CrowEdit.Xml
 			StartTag = startNode;
 			AddChild (StartTag);
 		}
-	}
+        public override bool IsComplete => base.IsComplete && StartTag != null;
+    }
 
 	public class ElementSyntax : SyntaxNode {
 		public readonly ElementStartTagSyntax StartTag;

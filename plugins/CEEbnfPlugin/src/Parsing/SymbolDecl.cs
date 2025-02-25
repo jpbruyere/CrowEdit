@@ -6,23 +6,6 @@ using CrowEditBase;
 
 namespace CrowEdit.Ebnf
 {
-	public class ExpressionSyntax : SyntaxNode {
-		public ExpressionSyntax(int startLine, int tokenBase)
-			: base (startLine, tokenBase) {
-			}
-	}
-	public class ProductionSyntax : SyntaxNode {
-		public int? ncname, equal;
-		public ExpressionSyntax expression;
-		public ProductionSyntax(int startLine, int tokenBase)
-			: base (startLine, tokenBase) {
-			}
-		public ProductionSyntax(int name, int startLine, int tokenBase)
-			: base (startLine, tokenBase) {
-				ncname = name;
-			}
-
-	}
 	public class SymbolDecl {
 		public readonly string Name;
 		public Expression Expression;

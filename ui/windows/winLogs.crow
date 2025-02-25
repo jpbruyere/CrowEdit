@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Style="DockWindow" Caption="Logs"  Width="80%" >
+<DockWindow Style="DockWindow" Caption="Logs"  Width="80%" Height="20%" >
 	<VerticalStack>
 
 	<TabView Data="{OpenedLogs}" SelectedItem="{²CurrentLog}">

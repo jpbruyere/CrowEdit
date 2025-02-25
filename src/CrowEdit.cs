@@ -94,7 +94,7 @@ namespace CrowEdit
 			saveLogsConfig ();
 			saveWinConfigs ();
 		}
-		DockStack mainDock;
+		
 		public Command CMDSave, CMDSaveAs, CMDQuit, CMDHelp, CMDAbout, CMDOptions;
 
 		void initCommands (){
@@ -138,50 +138,7 @@ namespace CrowEdit
 			CrowEdit e = w.IFace as CrowEdit;
 			e.LoadWindow (path, e);
 		}
-		void saveWinConfigs() {
-			Configuration.Global.Set ("WinConfigs", mainDock.ExportConfig ());
-
-			StringBuilder floatings = new StringBuilder (512);
-			DockWindow[] floatingWins = GraphicTree.OfType<DockWindow> ().ToArray ();
-			if (floatingWins.Length > 0) {
-				for (int i = 0; i < floatingWins.Length - 1; i++) {
-					floatings.Append (floatingWins[i].FloatingConfigString);
-					floatings.Append ('|');
-				}
-				floatings.Append (floatingWins[floatingWins.Length - 1].FloatingConfigString);
-			}
-			Configuration.Global.Set ("FloatingWinConfigs", floatings.ToString ());
-
-			Configuration.Global.Save ();
-		}
-		void reloadWinConfigs() {
-
-			if (Configuration.Global.TryGet<string>("WinConfigs", out string conf) && !string.IsNullOrEmpty(conf))
-				mainDock.ImportConfig (conf, this);
-			if (Configuration.Global.TryGet<string>("FloatingWinConfigs", out conf) && !string.IsNullOrEmpty(conf)) {
-				string[] floatings = conf.Split ('|');
-				for (int i = 0; i < floatings.Length; i++)
-					DockWindow.CreateFromFloatingConfigString (this, floatings[i], this);
-			}
-		}
-		void reloadLogsConfigs() {
-
-			if (Configuration.Global.TryGet<string>("OpenedLogs", out string conf) && !string.IsNullOrEmpty(conf)) {
-				string[] logs = conf.Split ('|');
-				for (int i = 0; i < logs.Length; i++)
-					App.GetLog(logs[i]).IsOpened = true;
-				if (Configuration.Global.TryGet<string>("CurrentLog", out string curLog) && !string.IsNullOrEmpty(curLog))
-					App.GetLog(curLog).IsSelected = true;
-			}
-		}	
-		void saveLogsConfig() {
-			lock (OpenedLogs) {
-				string openLogs = OpenedLogs.Count > 0 ?
-					OpenedLogs.Select(li=>li.Name).Aggregate((a,b) => a + "|" + b) : null;
-				Configuration.Global.Set("OpenedLogs", openLogs);
-				Configuration.Global.Set("CurrentLog", CurrentLog?.Name);
-			}
-		}	
+	
 
 		protected override Document openOrCreateFile (string filePath, string editorPath = null) {
 			Document doc = null;

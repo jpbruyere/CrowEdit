@@ -22,12 +22,12 @@ namespace CrowEdit.Ebnf
 		SymbolName				= 0x0201,
 
 		Punctuation				= 0x0400,
-		OpenBracket				= 0x0401,
-		ClosingBracket			= 0x0402,
-		CharMatchOpen 			= 0x0403,// '['
-		CharMatchClose			= 0x0404,// ']'
-		StringMatchOpen			= 0x0405,
-		StringMatchClose		= 0x0406,
+		OpenRoundBracket		= 0x0401,
+		ClosingRoundBracket		= 0x0402,
+		OpenBracket 			= 0x0403,// '['
+		ClosingBracket			= 0x0404,// ']'
+		StringDelimiter			= 0x0405,
+		StringLiteral			= 0x0406,
 		CharMatchNegation		= 0x0407,// '^'
 		CharMatchRangeOperator	= 0x0C01,// '-'
 		//CharMatch				= 0x0C01,// '-'

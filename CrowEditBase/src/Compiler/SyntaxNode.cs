@@ -10,22 +10,31 @@ using Crow;
 namespace CrowEditBase
 {
 	public abstract class SyntaxRootNode : SyntaxNode {
-		internal readonly SourceDocument source;
+		protected readonly SourceDocument source;
 		public SyntaxRootNode (SourceDocument source) {
 			this.source = source;
 		}
 		public override int TokenIndexBase => 0;
-		public override int? LastTokenOffset { get => Math.Max (0, source.Tokens.Length - 1); internal set {} }
+		public override int? TokenCount { get => Math.Max (0, source.Tokens.Length - 1); internal set {} }
 		public override SyntaxRootNode Root => this;
 		public override bool IsFoldable => false;
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;
 		public override void UnfoldToTheTop() {}
 		public string GetTokenStringByIndex (int idx) =>
-			idx >= 0 && idx < Root.source.Tokens.Length ? Root.source.Tokens[idx].AsString (Root.source.Source) : null;
-		public Token? GetTokenByIndex (int idx) =>
-			idx >= 0 && idx < Root.source.Tokens.Length ? Root.source.Tokens[idx] : default;
+			idx >= 0 && idx < source.Tokens.Length ? source.Tokens[idx].AsString (source.Source) : null;
+		public Token GetTokenByIndex (int idx) =>
+			idx >= 0 && idx < source.Tokens.Length ? source.Tokens[idx] : default;
+		public ReadOnlySpan<char> GetText(TextSpan span) =>
+			source.GetText(span);
 	}
 	public class SyntaxNode : CrowEditComponent {
+		internal SyntaxNode () {}
+		public SyntaxNode (int startLine, int tokenBase, int? lastTokenIdx = null) {
+			StartLine = startLine;
+			TokenIndexBase = tokenBase;
+			if (lastTokenIdx.HasValue)
+				TokenCount = lastTokenIdx - tokenBase;
+		}
 		bool _isExpanded;
 		public bool isExpanded {
 			get => _isExpanded;
@@ -43,15 +52,28 @@ namespace CrowEditBase
 		public SyntaxNode Parent { get; private set; }
 		public int StartLine { get; private set; }
 		public virtual int LineCount => lineCount;
-		public virtual bool IsComplete => LastTokenOffset.HasValue;
+		public virtual bool IsComplete => TokenCount.HasValue;
 		public virtual bool IsFoldable => IsComplete && Parent.StartLine != StartLine && lineCount > 1;
 		public virtual SyntaxRootNode Root => Parent.Root;
 		public virtual void UnfoldToTheTop () {
 			isFolded = false;
 			Parent.UnfoldToTheTop ();
 		}
-		protected Token getTokenByIndex (int idx) => idx < Root.source.Tokens.Length ? Root.source.Tokens[idx] : default;
+		protected Token getTokenByIndex (int idx) => Root.GetTokenByIndex(idx);
 		internal List<SyntaxNode> children = new List<SyntaxNode> ();
+		List<SyntaxException> exceptions = new List<SyntaxException>();
+		public void AddException(SyntaxException e) => exceptions.Add(e);
+		public void ResetExceptions(SyntaxException e) => exceptions.Clear();
+		public IEnumerable<SyntaxException> Exceptions => exceptions;
+		public IEnumerable<SyntaxException> GetAllExceptions() {
+				foreach (SyntaxException e in exceptions)
+					yield return e;
+				foreach	(SyntaxNode n in Children) {
+					foreach (SyntaxException ce in n.GetAllExceptions())
+						yield return ce;
+				}
+		}
+
 		public IEnumerable<SyntaxNode> Children => children;
 		//public int IndexOf (SyntaxNode node) => children.IndexOf (node);
 		public bool HasChilds => children.Count > 0;
@@ -101,15 +123,8 @@ namespace CrowEditBase
 		}
 
 		public virtual int TokenIndexBase { get; private set; }
-		public virtual int? LastTokenOffset { get; internal set; }
-		public int? LastTokenIndex => TokenIndexBase + LastTokenOffset;
-		internal SyntaxNode () {}
-		public SyntaxNode (int startLine, int tokenBase, int? lastTokenIdx = null) {
-			StartLine = startLine;
-			TokenIndexBase = tokenBase;
-			if (lastTokenIdx.HasValue)
-				LastTokenOffset = lastTokenIdx - tokenBase;
-		}
+		public virtual int? TokenCount { get; internal set; }
+		public int? LastTokenIndex => TokenIndexBase + TokenCount;
 		internal bool isFolded;
 		internal int lineCount;
 
@@ -125,9 +140,9 @@ namespace CrowEditBase
 					return new TextSpan (children.First().Span.Start, children.Last().Span.End)
 				}*/
 				try {
-				Token startTok = getTokenByIndex(TokenIndexBase);
-				Token endTok = LastTokenOffset.HasValue ? getTokenByIndex (TokenIndexBase+LastTokenOffset.Value) : startTok;
-				return new TextSpan (startTok.Start, endTok.End);
+					Token startTok = getTokenByIndex(TokenIndexBase);
+					Token endTok = TokenCount.HasValue ? getTokenByIndex (TokenIndexBase+TokenCount.Value) : startTok;
+					return new TextSpan (startTok.Start, endTok.End);
 				}catch{
 					System.Diagnostics.Debugger.Break ();
 				}
@@ -144,7 +159,8 @@ namespace CrowEditBase
 			children.Remove (child);
 			child.Parent = null;
 		}
-		public T GetChild<T> () => children.OfType<T> ().FirstOrDefault ();
+		public IEnumerable<T> GetChilds<T> () => children.OfType<T>();
+		
 		public void Replace (SyntaxNode newNode) {
 			Parent.replaceChild (this, newNode);
 		}
@@ -152,7 +168,7 @@ namespace CrowEditBase
 			int idx = children.IndexOf (oldNode);
 			children[idx] = newNode;
 			newNode.Parent = this;
-			int tokIdxDiff = newNode.LastTokenOffset.Value - oldNode.LastTokenOffset.Value;
+			int tokIdxDiff = newNode.TokenCount.Value - oldNode.TokenCount.Value;
 			int lineDiff = newNode.EndLine - oldNode.EndLine;
 			if (tokIdxDiff == 0 && lineDiff == 0)
 				return;
@@ -160,7 +176,7 @@ namespace CrowEditBase
 			SyntaxNode curNode = this;
 			while (curNode != null) {
 				curNode.lineCount += lineDiff;
-				curNode.LastTokenOffset += tokIdxDiff;
+				curNode.TokenCount += tokIdxDiff;
 				if (curNode is SyntaxRootNode)
 					break;
 				while (++idx < curNode.children.Count)
@@ -205,10 +221,9 @@ namespace CrowEditBase
 			foreach (SyntaxNode node in children)
 				node.Dump (level + 1);
 		}
-		public override string ToString() => $"l:({StartLine,3},{LineCount,3}) tks:{TokenIndexBase},{LastTokenOffset} {this.GetType().Name}";
+		public override string ToString() => $"l:({StartLine,3},{LineCount,3}) tks:{TokenIndexBase},{TokenCount} {this.GetType().Name}";
 		public string AsText() {
-			TextSpan span = Span;
-			return Root.source.Source.Substring (span.Start, span.Length);
+			return Span.Length < 0 ? "" : Root.GetText(Span).ToString();
 		}
 		public bool IsSimilar (SyntaxNode other) => this.GetType() == other?.GetType();
 	}

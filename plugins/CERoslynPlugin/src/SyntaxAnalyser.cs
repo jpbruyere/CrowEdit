@@ -15,12 +15,16 @@ namespace CERoslynPlugin
 	}
 	public class CSSyntaxAnalyser : SyntaxAnalyser {
 		public override SyntaxNode Root => currentNode;
+        /*protected override void Parse(SyntaxNode node)
+        {
+            throw new NotImplementedException();
+        }*/
+
 		public CSSyntaxAnalyser (CSDocument source) : base (source) {
 			this.source = source;
 		}
 
 		public override void Process () {
-			Exceptions = new List<SyntaxException> ();
 			currentNode = new CSRootSyntax (source);
 		}
 	}

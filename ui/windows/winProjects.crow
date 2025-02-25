@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Project"  Width="60%" >
+<DockWindow Caption="Project"  Width="30%" Height="60%" >
 	<!--<ListBox RootDataLevel="true" Data="{Projects}" SelectedItem="{²CurrentProject}">
 		<ItemTemplate>
 			<HorizontalStack Height="Fit">
