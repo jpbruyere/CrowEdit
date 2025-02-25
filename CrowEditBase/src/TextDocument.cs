@@ -11,48 +11,10 @@ using Crow.Text;
 using static CrowEditBase.CrowEditBase;
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
+using System.Diagnostics;
 
 namespace CrowEditBase
 {
-	public class TextBuffer {
-		static int bufferExpension = 100;
-		int lenght;
-		Memory<char> buffer;
-		ReadOnlyMemory<char> origBuffer;
-		public Span<char> Span => buffer.Span.Slice(0, lenght);
-		public bool IsEmpty => lenght == 0;
-		public bool IsDirty => origBuffer.Span.Equals(buffer.Span, StringComparison.Ordinal);
-		public void ResetDirtyState () {
-			origBuffer = buffer.ToArray();
-		}
-		public TextBuffer(ReadOnlySpan<char> origText) {
-			lenght = origText.Length;
-			buffer = new char[lenght + bufferExpension];
-			origText.CopyTo(buffer.Span);
-		}
-		public void Update (TextChange change) {
-			ReadOnlySpan<char> orig = buffer.Span;
-			char[] newBuff = null;
-			Span<char> tmp;
-			if (buffer.Length < lenght + change.CharDiff) {
-				newBuff = new char[lenght + change.CharDiff + bufferExpension];
-				tmp = newBuff;
-				orig.Slice(0, change.Start).CopyTo(tmp);
-				if (change.CharDiff == 0)
-					orig.Slice(change.End, lenght - change.End).CopyTo(tmp.Slice(change.End));
-			} else
-				tmp = buffer.Span;
-			
-			if (change.CharDiff != 0)
-				orig.Slice(change.End, lenght - change.End).CopyTo(tmp.Slice(change.End2));
-			if (!string.IsNullOrEmpty (change.ChangedText))
-				change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
-			
-			if (newBuff != null)
-				buffer = newBuff;
-			lenght += change.CharDiff;
-		}		
-	}
 	public class TextDocument : Document {
 		public TextDocument (string fullPath, string editorPath = "default")
 			: base (fullPath, editorPath) {
@@ -60,19 +22,8 @@ namespace CrowEditBase
 		}
 
 		protected TextBuffer buffer;
-		public ReadOnlySpan<char> source => buffer.Span;
-
+		public ReadOnlySpan<char> source => buffer.ReadOnlySpan;
 		System.Text.Encoding encoding = System.Text.Encoding.UTF8;
-		protected bool mixedLineBreak = false;
-		protected string lineBreak = null;
-
-
-				
-
-//				NotifyValueChanged ("IsDirty", IsDirty);
-//				CMDSave.CanExecute = IsDirty;
-
-		protected LineCollection lines;
 
 		public override bool IsDirty => buffer.IsDirty;
 				/// dictionnary of object per document client, when not null, client must reload content of document.
@@ -116,7 +67,6 @@ namespace CrowEditBase
 		}
 
 
-
 		protected override void writeToDisk () {
 			using (Stream s = new FileStream(FullPath, FileMode.Create)) {
 				using (StreamWriter sw = new StreamWriter (s, encoding))
@@ -134,6 +84,12 @@ namespace CrowEditBase
 					encoding = sr.CurrentEncoding;
 				}
 			}
+			ReadOnlyMemory<char> testbuff = buffer.ReadOnlyCopy;
+			
+			buffer.Update(new TextChange(0,0,"test"));
+			
+			Debug.WriteLine($"buffer: {buffer.ToString()}");
+			Debug.WriteLine($"testbuff: {testbuff.ToString()}");
 		}
 		protected override void initNewFile()
 		{
@@ -214,7 +170,6 @@ namespace CrowEditBase
 		protected virtual void apply (TextChange change) {
 
 			buffer.Update(change);
-			lines.Update (change);
 
 			NotifyValueChanged ("IsDirty", IsDirty);
 			CMDSave.CanExecute = IsDirty;			
@@ -235,40 +190,11 @@ namespace CrowEditBase
 		protected void onTextChanged (object sender, TextChangeEventArgs e) {
 			applyTextChange (e.Change, sender);
 		}
-		protected void getLines () {
-			documentRWLock.EnterWriteLock ();
-			if (lines == null)
-				lines = new LineCollection (10);
-			else
-				lines.Clear ();
 
-			if (buffer.IsEmpty)
-				lines.Add (new TextLine (0, 0, 0));
-			else
-				lines.Update (source);
-			documentRWLock.ExitWriteLock ();
-		}
 		public string GetLineBreak () {
 			documentRWLock.EnterReadLock ();
 			try {
-				if (string.IsNullOrEmpty (lineBreak)) {
-					mixedLineBreak = false;
-
-					if (lines.Count == 0 || lines[0].LineBreakLength == 0)
-						lineBreak = Environment.NewLine;
-					else {
-						lineBreak = source.GetLineBreak (lines[0]).ToString ();
-
-						for (int i = 1; i < lines.Count; i++) {
-							ReadOnlySpan<char> lb = source.GetLineBreak (lines[i]);
-							if (!lb.SequenceEqual (lineBreak)) {
-								mixedLineBreak = true;
-								break;
-							}
-						}
-					}
-				}
-				return lineBreak;
+				return buffer.GetLineBreak();
 			} finally {
 				documentRWLock.ExitReadLock();
 			}
@@ -276,7 +202,7 @@ namespace CrowEditBase
 		public CharLocation GetLocation (int absolutePosition) {
 			documentRWLock.EnterReadLock ();
 			try {
-				return lines.GetLocation (absolutePosition);
+				return buffer.GetLocation (absolutePosition);
 			} finally {
 				documentRWLock.ExitReadLock();
 			}
@@ -284,7 +210,7 @@ namespace CrowEditBase
 		public int GetAbsolutePosition (CharLocation loc) {
 			documentRWLock.EnterReadLock ();
 			try {
-				return lines.GetAbsolutePosition (loc);
+				return buffer.GetAbsolutePosition (loc);
 			} finally {
 				documentRWLock.ExitReadLock();
 			}
@@ -293,7 +219,7 @@ namespace CrowEditBase
 			get {
 				documentRWLock.EnterReadLock ();
 				try {
-					return new CharLocation (lines.Count - 1, lines[lines.Count - 1].Length);
+					return buffer.EndLocation;
 				} finally {
 					documentRWLock.ExitReadLock();
 				}
@@ -301,21 +227,19 @@ namespace CrowEditBase
 		}
 		public int LinesCount {
 			get {
-				if (lines == null)
-					getLines();
 				documentRWLock.EnterReadLock ();
 				try {
-					return lines.Count;
+					return buffer.LinesCount;
 				} finally {
 					documentRWLock.ExitReadLock();
 				}
 			}
 		}
-		public int Lenght {
+		public int Length {
 			get {
 				documentRWLock.EnterReadLock ();
 				try {
-					return source.Length;
+					return buffer.Length;
 				} finally {
 					documentRWLock.ExitReadLock();
 				}
@@ -324,7 +248,7 @@ namespace CrowEditBase
 		public TextLine GetLine (int index) {
 			documentRWLock.EnterReadLock ();
 			try {
-				return lines[index];
+				return buffer.GetLine(index);
 			} finally {
 				documentRWLock.ExitReadLock();
 			}
@@ -357,13 +281,13 @@ namespace CrowEditBase
 		public virtual CharLocation GetWordStart (CharLocation loc) {
 			documentRWLock.EnterReadLock ();
 			try {
-				int pos = lines.GetAbsolutePosition (loc);
+				int pos = buffer.GetAbsolutePosition (loc);
 				//skip white spaces
 				while (pos > 0 && !char.IsLetterOrDigit (source[pos-1]))
 					pos--;
 				while (pos > 0 && char.IsLetterOrDigit (source[pos-1]))
 					pos--;
-				return lines.GetLocation (pos);
+				return buffer.GetLocation (pos);
 			} finally {
 				documentRWLock.ExitReadLock();
 			}
@@ -371,13 +295,13 @@ namespace CrowEditBase
 		public virtual CharLocation GetWordEnd (CharLocation loc) {
 			documentRWLock.EnterReadLock ();
 			try {
-				int pos = lines.GetAbsolutePosition (loc);
+				int pos = buffer.GetAbsolutePosition (loc);
 				//skip white spaces
-				while (pos < Lenght - 1 && !char.IsLetterOrDigit (source[pos]))
+				while (pos < Length - 1 && !char.IsLetterOrDigit (source[pos]))
 					pos++;
-				while (pos < Lenght - 1 && char.IsLetterOrDigit (source[pos]))
+				while (pos < Length - 1 && char.IsLetterOrDigit (source[pos]))
 					pos++;
-				return lines.GetLocation (pos);
+				return buffer.GetLocation (pos);
 			} finally {
 				documentRWLock.ExitReadLock();
 			}

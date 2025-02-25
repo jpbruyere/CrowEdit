@@ -384,7 +384,7 @@ namespace Crow
 					}
 				//}
 
-				if (document.Lenght > 0) {
+				if (document.Length > 0) {
 					Foreground?.SetAsSource (IFace, gr);
 
 					TextExtents extents;
@@ -839,7 +839,7 @@ namespace Crow
 					break;
 				case Key.Delete:
 					if (selection.IsEmpty) {
-						if (selection.Start == document.Lenght)
+						if (selection.Start == document.Length)
 							return;
 						if (CurrentLoc.Value.Column >= document.GetLine (CurrentLoc.Value.Line).Length)
 							update (new TextChange (selection.Start, document.GetLine (CurrentLoc.Value.Line).LineBreakLength, ""));

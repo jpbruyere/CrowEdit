@@ -47,7 +47,6 @@ namespace CrowEditBase
 
 		public Token[] Tokens => tokens;
 		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
-		public LineCollection Lines => lines;
 		public Token FindTokenIncludingPosition (int pos) {
 			if (pos == 0 || tokens == null || tokens.Length == 0)
 				return default;
@@ -65,7 +64,7 @@ namespace CrowEditBase
 		/// <summary>
 		/// if outermost is true, return oldest ancestor exept root node, useful for folding.
 		/// </summary>
-		public SyntaxNode FindNodeIncludingPosition (int pos, bool outerMost = false) {
+		/*public SyntaxNode FindNodeIncludingPosition (int pos, bool outerMost = false) {
 			if (root == null)
 				return null;
 			if (!root.Contains (pos))
@@ -90,14 +89,15 @@ namespace CrowEditBase
 			if (!root.Contains (span))
 				return null;
 			return root.FindNodeIncludingSpan (span);
-		}
+		}*/
+		
 		protected override void reloadFromFile () {
 			base.reloadFromFile ();
 			parse ();
 		}
 		protected override void apply(TextChange change)
 		{
-			SyntaxNode editedNode = FindNodeIncludingSpan (new TextSpan (change.Start, change.End));
+			SyntaxNode editedNode = root?.FindNodeIncludingSpan (new TextSpan (change.Start, change.End));
 
 			base.apply(change);
 
@@ -153,10 +153,10 @@ namespace CrowEditBase
 		}
 
 		internal void updateCurrentTokAndNode (CharLocation loc) {
-			int pos = lines.GetAbsolutePosition(loc);
+			int pos = buffer.GetAbsolutePosition(loc);
 			if (tokens.Length > 0) {
 				currentTokenIndex = FindTokenIndexIncludingPosition (pos);
-				CurrentNode = FindNodeIncludingSpan (currentToken.Span);
+				CurrentNode = root?.FindNodeIncludingSpan (currentToken.Span);
 				NotifyValueChanged ("CurrentTokenString", (object)CurrentTokenString);
 				//NotifyValueChanged ("CurrentTokenType", (uint)(currentToken.Type)>>8);
 				NotifyValueChanged ("CurrentTokenType", (object)GetTokenTypeString(currentToken.Type));
