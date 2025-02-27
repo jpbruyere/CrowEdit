@@ -250,6 +250,14 @@ namespace CrowEditBase
 				documentRWLock.ExitReadLock();
 			}
 		}
+		public void SetLine (int index, TextLine newValue) {
+			documentRWLock.EnterReadLock ();
+			try {
+				buffer.SetLine(index, newValue);
+			} finally {
+				documentRWLock.ExitReadLock();
+			}
+		}		
 		public ReadOnlySpan<char> GetLineText (int index) {
 			documentRWLock.EnterReadLock ();
 			try {

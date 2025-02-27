@@ -11,6 +11,7 @@ using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Frozen;
 
 namespace Crow
 {
@@ -225,6 +226,7 @@ namespace Crow
 			if (mouseIsInMargin) {
 				Rectangle rFold = new Rectangle (leftMargin - foldMargin - leftMarginRightGap,
 					(int)(lineHeight * getVisualLine(hoverLoc.Value.Line) + lineHeight / 2.0 - foldSize / 2.0) - ScrollY, foldSize, foldSize);
+				rFold.Inflate(2);
 				mouseIsInFoldRect = rFold.ContainsOrIsEqual (mLoc);
 				RegisterForRedraw();
 				return;
@@ -357,7 +359,7 @@ namespace Crow
 		SyntaxNode getFoldStartingAt (int line) {
 			if (!(Document is SourceDocument doc))
 				return null;
-			IEnumerable<SyntaxNode> folds = doc.Root.FoldableNodes;
+			IEnumerable<SyntaxNode> folds = doc.Root.VisibleFoldableNodes;
 			if (folds == null)
 				return null;
 			return folds.FirstOrDefault (n => n.StartLine == line);
@@ -367,7 +369,7 @@ namespace Crow
 				return null;
 			doc.EnterReadLock();
 			try {
-				IEnumerable<SyntaxNode> folds = doc.Root.FoldableNodes;
+				IEnumerable<SyntaxNode> folds = doc.Root.VisibleFoldableNodes;
 				if (folds == null)
 					return null;
 				return folds.LastOrDefault (n => n.StartLine <= line && n.EndLine >= line);
@@ -382,7 +384,7 @@ namespace Crow
 			doc.EnterReadLock();
 			try {
 				int foldedLines = 0;
-				IEnumerator<SyntaxNode> foldsEnum = doc.Root.FoldableNodes.GetEnumerator();
+				IEnumerator<SyntaxNode> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator();
 				bool notEndOfFolds = foldsEnum.MoveNext();
 				while (notEndOfFolds && foldsEnum.Current.StartLine < absoluteLine) {
 					if (foldsEnum.Current.isFolded) {
@@ -407,7 +409,7 @@ namespace Crow
 			doc.EnterReadLock();
 			try {
 				int foldedLines = 0;
-				IEnumerator<SyntaxNode> nodeEnum = doc.Root.FoldableNodes.GetEnumerator ();
+				IEnumerator<SyntaxNode> nodeEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
 				if (!nodeEnum.MoveNext())
 					return 0;
 
@@ -499,7 +501,7 @@ namespace Crow
 
 		}
 		protected override void drawContent (IContext gr) {
-			if (!(Document is SourceDocument doc && doc.Root != null)) {
+			if (!(Document is SourceDocument doc)) {
 				base.drawContent (gr);
 				return;
 			}
@@ -513,21 +515,23 @@ namespace Crow
 				Color marginBG = App.MarginBackground;
 				Color marginFG = Colors.Ivory;
 				Rectangle cb = ClientRectangle;
-				RectangleD marginRect = new RectangleD (cb.X + ScrollX, cb.Y, leftMargin - leftMarginRightGap, cb.Height);
+				RectangleD marginRect = new RectangleD (cb.X, cb.Y, leftMargin - leftMarginRightGap, cb.Height);
 
 				gr.SetSource (marginBG);
 				gr.Rectangle (marginRect);
 				gr.Fill();
-
 				
 				if (!doc.IsParsed) {
 					base.drawContent (gr);
 					return;
 				}
 
+				gr.Translate (-ScrollX, 0);
+
 				double lineNumWidth = gr.TextExtents (Document.LinesCount.ToString()).Width;
 
 				marginRect.Height = lineHeight;
+				marginRect.Left += ScrollX;
 				cb.Left += leftMargin;
 
 				CharLocation selStart = default, selEnd = default;
@@ -599,51 +603,46 @@ namespace Crow
 
 
 				//double spacePixelWidth = gr.TextExtents (" ").XAdvance;
-				int x = 0;
 				double	pixX = cb.Left,
 						pixY = cb.Top;
 
 				Foreground.SetAsSource (IFace, gr);
-				gr.Translate (-ScrollX, -ScrollY);
 
 				ReadOnlySpan<char> sourceBytes = doc.source;
 				Span<byte> bytes = stackalloc byte[128];
 				TextExtents extents;
-				int tokPtr = 0;
-				Token tok = doc.Tokens[tokPtr];
+				
+				
 
 				ReadOnlySpan<char> buff = sourceBytes;
 
-				SyntaxNode curNode = null;
+				
+				int printedLines = 0;
+				int curLine = (int)Math.Floor(ScrollY / lineHeight);
+				pixY = -(ScrollY % lineHeight);
 
-				IEnumerator<SyntaxNode> nodeEnum = doc.Root.FoldableNodes.GetEnumerator ();
-				bool notEndOfNodes = nodeEnum.MoveNext();
+				
+				IEnumerator<SyntaxNode> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
+				bool notEndOfFolds = foldsEnum.MoveNext();
 
-				gr.LineWidth = 1;
-				int l = 0;
-				while (l < Document.LinesCount) {
-					//if (!cancelLinePrint (lineHeight, lineHeight * y, cb.Height)) {
+				while (curLine < doc.LinesCount && printedLines < Math.Min(visibleLines, doc.LinesCount)) {
+					
 
-					bool foldable = false;
-					if (notEndOfNodes && nodeEnum.Current.StartLine == l) {
-						curNode = nodeEnum.Current;
-						notEndOfNodes = nodeEnum.MoveNext();
-						if (curNode.isFolded) {
-							SyntaxNode nextNode = curNode.NextSiblingOrParentsNextSibling;
-							if (nextNode == null)
-								notEndOfNodes = false;
-							else {
-								while (notEndOfNodes && nodeEnum.Current.StartLine < nextNode.StartLine)
-									notEndOfNodes = nodeEnum.MoveNext();
-							}
-						}
-						foldable = true;
+					while (notEndOfFolds && foldsEnum.Current.StartLine < curLine) {
+						if (foldsEnum.Current.isFolded && curLine <= foldsEnum.Current.EndLine)
+							curLine += foldsEnum.Current.LineCount - 1;
+						notEndOfFolds = foldsEnum.MoveNext();
 					}
 
-					//buff = sourceBytes.Slice (lines[l].Start, lines[l].Length);
+					if (curLine >= doc.LinesCount)//could it occurs?
+						break;	
+					
 					int encodedChar = 0;
+					TextLine curTxtLine = doc.GetLine (curLine);
+					int tokPtr = doc.FindTokenIndexIncludingPosition(curTxtLine.Start);
+					Token tok = doc.Tokens[tokPtr];
 
-					while (tok.Start < Document.GetLine (l).End) {
+					while (tok.Start < curTxtLine.End) {
 						buff = sourceBytes.Slice (tok.Start, tok.Length);
 						gr.SetSource (doc.GetColorForToken (tok.Type));
 
@@ -662,17 +661,14 @@ namespace Crow
 							}
 
 							if (CurrentToken.Equals(tok)) {
-								/*CharLocation? tokloc = Document.GetLocation  (tok.Start);
-								updateLocation (gr, cb.Width, ref tokloc);*/
 								Rectangle r = new RectangleD(pixX, pixY, extents.Width, lineHeight);
 								r.Inflate(1);
 								gr.Rectangle(r);
-								gr.SetSource(doc.GetColorForToken (tok.Type).AdjustAlpha(0.6));
+								gr.SetSource(doc.GetColorForToken (tok.Type).AdjustAlpha(0.5));
 								gr.Stroke();
 							}
 
 							pixX += extents.XAdvance;
-							x += buff.Length;
 						}
 
 						if (++tokPtr >= doc.Tokens.Length)
@@ -681,41 +677,41 @@ namespace Crow
 					}
 
 					RectangleD lineRect = new RectangleD (cb.X, pixY, pixX - cb.X, lineHeight);
-					if (CurrentNode != null && l >= nodeStart.Value.Line && l <= nodeEnd.Value.Line)
-						fillHighlight (gr, l, nodeStart.Value, nodeEnd.Value, lineRect, new Color(0.0,0.1,0.0,0.04));;
+					if (CurrentNode != null && curLine >= nodeStart.Value.Line && curLine <= nodeEnd.Value.Line)
+						fillHighlight (gr, curLine, nodeStart.Value, nodeEnd.Value, lineRect, new Color(0.0,0.1,0.0,0.06));;
 #if DEBUG_NODES
-					if (doc.EditedNode != null && l >= editNodeStart.Value.Line && l <= editNodeEnd.Value.Line)
-						fillHighlight (gr, l, editNodeStart.Value, editNodeEnd.Value, lineRect, new Color(0,0.5,0,0.2));;
-					if (hoverNode != null && l >= hoverNodeStart.Value.Line && l <= hoverNodeEnd.Value.Line)
-						fillHighlight (gr, l, hoverNodeStart.Value, hoverNodeEnd.Value, lineRect, new Color(0,0,0.8,0.1));;
+					if (doc.EditedNode != null && curLine >= editNodeStart.Value.Line && l <= editNodeEnd.Value.Line)
+						fillHighlight (gr, curLine, editNodeStart.Value, editNodeEnd.Value, lineRect, new Color(0,0.5,0,0.2));;
+					if (hoverNode != null && curLine >= hoverNodeStart.Value.Line && curLine <= hoverNodeEnd.Value.Line)
+						fillHighlight (gr, curLine, hoverNodeStart.Value, hoverNodeEnd.Value, lineRect, new Color(0,0,0.8,0.1));;
 #endif
-					if (selectionNotEmpty && l >= selStart.Line && l <= selEnd.Line)
-						fillHighlight (gr, l, selStart, selEnd, lineRect, SelectionBackground);				
+					if (selectionNotEmpty && curLine >= selStart.Line && curLine <= selEnd.Line)
+						fillHighlight (gr, curLine, selStart, selEnd, lineRect, SelectionBackground);				
 					
 					//Draw line numbering
 					if (printLineNumbers){
 						marginRect.Y = lineRect.Y;
 						gr.SetSource (marginFG);
 
-						drawLineNumber (gr, l, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + fe.Ascent);
-						if (tokPtr + 1 == doc.Tokens.Length && l < doc.LinesCount-1)
-							drawLineNumber (gr, l+1, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + lineHeight + fe.Ascent);
+						drawLineNumber (gr, curLine, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + fe.Ascent);
+						if (tokPtr + 1 == doc.Tokens.Length && curLine < doc.LinesCount-1)
+							drawLineNumber (gr, curLine+1, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + lineHeight + fe.Ascent);
 					}
-					
+					bool curFoldStart = notEndOfFolds && foldsEnum.Current.StartLine == curLine; 
 					//draw fold
-					if (foldable) {
-						Rectangle rFld = new Rectangle (cb.X - leftMarginGap - foldMargin,
+					if (curFoldStart) {
+						Rectangle rFld = new Rectangle ((int)marginRect.Right - leftMarginGap - foldSize,
 							(int)(marginRect.Y + lineHeight / 2.0 - foldSize / 2.0), foldSize, foldSize);
 
 						gr.Rectangle (rFld);
-						if (hoverLoc.HasValue && l == hoverLoc.Value.Line && mouseIsInFoldRect)
+						if (hoverLoc.HasValue && curLine == hoverLoc.Value.Line && mouseIsInFoldRect)
 							gr.SetSource (Colors.LightBlue);
 						else
 							gr.SetSource (Colors.White);
 						gr.Fill();
 						gr.SetSource (Colors.Black);
 						gr.Rectangle (rFld, 1.0);
-						if (curNode.isFolded) {
+						if (foldsEnum.Current.isFolded) {
 							gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
 							gr.LineTo (rFld.Center.X + 0.5, rFld.Bottom - 2);
 						}
@@ -725,49 +721,27 @@ namespace Crow
 						gr.Stroke ();
 					}
 
-					if (++tokPtr >= doc.Tokens.Length) {
+					if (++tokPtr >= doc.Tokens.Length)
 						break;
-					}
-						
 					tok = doc.Tokens[tokPtr];
 
-					x = 0;
 					pixX = cb.Left;
 					pixY += lineHeight;
-					/*if (pixY > cb.Height)
-						break;*/
+					printedLines++;
 
-					if (foldable && curNode.isFolded) {
-						TextSpan ns = curNode.Span;
-						l = curNode.StartLine + curNode.LineCount;
-						while (tok.End <= Document.GetLine (l).Start) {
-							if (++tokPtr >= doc.Tokens.Length)
-								break;
-							tok = doc.Tokens[tokPtr];
-						}
-						//tokPtr = doc.FindTokenIndexIncludingPosition (lines[l].Start);
-					} else
-						l ++;
-						/*	} else if (tok2.Type == TokenType.Tabulation) {
-								int spaceRounding = x % tabSize;
-								int spaces = spaceRounding == 0 ?
-									tabSize * tok2.Length :
-									spaceRounding + tabSize * (tok2.Length - 1);
-								x += spaces;
-								pixX += spacePixelWidth * spaces;
-								continue;
-							} else if (tok2.Type == TokenType.WhiteSpace) {
-								x += tok2.Length;
-								pixX += spacePixelWidth * tok2.Length;*/
+					if (curFoldStart && foldsEnum.Current.isFolded)
+						curLine = foldsEnum.Current.EndLine + 1;
+					else
+						curLine++;
+
 				}
-				//gr.Translate (ScrollX, ScrollY);
 			} catch (Exception e) {
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
 			} finally {
 				doc.ExitReadLock ();
 			}
-
+			gr.Translate (ScrollX, 0);
 		}
 		protected override RectangleD? computeTextCursor (Rectangle cursor) {
 			Rectangle cb = ClientRectangle;
@@ -819,8 +793,9 @@ namespace Crow
 		}
 		void updateCurrentTokAndNode() {
 			if (currentLoc.HasValue && Document is SourceDocument srcdoc) {
-				currentTokenIndex = srcdoc.GetAbsolutePosition(currentLoc.Value);
-				Token tok = srcdoc.FindTokenIncludingPosition(currentTokenIndex);
+				int pos = srcdoc.GetAbsolutePosition(currentLoc.Value);
+				currentTokenIndex = srcdoc.FindTokenIndexIncludingPosition(pos);
+				Token tok = srcdoc.GetTokenByIndex(currentTokenIndex);
 				CurrentNode = srcdoc.Root?.FindNodeIncludingSpan(tok.Span);
 				
 				NotifyValueChanged("CurrentToken",tok);

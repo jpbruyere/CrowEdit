@@ -88,6 +88,7 @@ namespace CrowEditBase
 		}
 		public CharLocation GetLocation (int absolutePosition) => lines.GetLocation (absolutePosition);
 		public TextLine GetLine (int index) => lines[index];
+		public void SetLine (int index, TextLine line) => lines[index] = line;
 		public ReadOnlySpan<char> GetText (TextLine line) => GetText(line.Span);
 		public ReadOnlySpan<char> GetText (TextSpan textSpan) => buffer.Span.Slice(textSpan.Start, textSpan.Length);
 		public int GetAbsolutePosition (CharLocation loc) => lines.GetAbsolutePosition (loc);

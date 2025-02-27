@@ -37,7 +37,7 @@ namespace CrowEditBase
 		public int StartLine { get; private set; }
 		public virtual int LineCount => lineCount;
 		public virtual bool IsComplete => TokenCount.HasValue;
-		public virtual bool IsFoldable => IsComplete && Parent.StartLine != StartLine && lineCount > 1;
+		public virtual bool IsFoldable => IsComplete && !(Parent != Root && Parent.StartLine == StartLine) && lineCount > 1;
 		public virtual SyntaxRootNode Root => Parent.Root;
 		public virtual void UnfoldToTheTop () {
 			isFolded = false;
@@ -83,13 +83,16 @@ namespace CrowEditBase
 		}
 		public virtual SyntaxNode NextSiblingOrParentsNextSibling
 			=> NextSibling ?? Parent.NextSiblingOrParentsNextSibling;
-		public IEnumerable<SyntaxNode> FoldableNodes {
+		public IEnumerable<SyntaxNode> VisibleFoldableNodes {
 			get {
-				if (IsFoldable)
+				if (IsFoldable) {
 					yield return this;
-				foreach	(SyntaxNode n in Children) {
-					foreach (SyntaxNode folds in n.FoldableNodes)
-						yield return folds;
+				}
+				if (!isFolded) {
+					foreach	(SyntaxNode n in Children) {
+						foreach (SyntaxNode folds in n.VisibleFoldableNodes)
+							yield return folds;
+					}
 				}
 			}
 		}
@@ -211,5 +214,10 @@ namespace CrowEditBase
 		}
 		public bool IsSimilar (SyntaxNode other) => this.GetType() == other?.GetType();
 
-	}
+
+        public class CompareOnStartLine : IComparer<SyntaxNode>
+        {
+            public int Compare(SyntaxNode x, SyntaxNode y) => x.StartLine - y.StartLine;
+        }
+    }
 }

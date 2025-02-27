@@ -36,14 +36,14 @@ namespace CrowEditBase
 			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
 			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
-			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx - 1;
+			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx;
 		}
 
 		
 		/// <summary>
 		/// if outermost is true, return oldest ancestor exept root node, useful for folding.
 		/// </summary>
-		/*public SyntaxNode FindNodeIncludingPosition (int pos, bool outerMost = false) {
+		public SyntaxNode FindNodeIncludingPosition (int pos, bool outerMost = false) {
 			if (root == null)
 				return null;
 			if (!root.Contains (pos))
@@ -55,7 +55,7 @@ namespace CrowEditBase
 			}
 			return sn;
 		}
-		public T FindNodeIncludingPosition<T> (int pos) {
+		/*public T FindNodeIncludingPosition<T> (int pos) {
 			if (root == null)
 				return default;
 			if (!root.Contains (pos))

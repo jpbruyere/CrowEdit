@@ -308,7 +308,7 @@ namespace Crow
 		/// <summary>
 		/// on screen visible line bounded by the client rectangle
 		/// </summary>
-		protected int visibleLines => (int)((double)ClientRectangle.Height / lineHeight);
+		protected int visibleLines => (int)Math.Ceiling(ClientRectangle.Height / lineHeight);
 		/// <summary>
 		/// total line count
 		/// </summary>
@@ -333,6 +333,7 @@ namespace Crow
 						else {
 							gr.TextExtents (document.GetText (l), App.TabulationSize, out tmp);
 							l.LengthInPixel = (int)Math.Ceiling (tmp.XAdvance);
+							document.SetLine(i, l);
 						}
 					}
 					if (l.LengthInPixel > document.GetLine (longestLine).LengthInPixel)
@@ -347,15 +348,15 @@ namespace Crow
 				document.ExitReadLock ();
 			}
 		}
-		protected virtual void drawContent (IContext gr) {
-			gr.Translate (-ScrollX, -ScrollY);
-
+		protected virtual void drawContent (IContext gr) {			
 			Rectangle cb = ClientRectangle;
 			fe = gr.FontExtents;
 			double lineHeight = fe.Ascent + fe.Descent;
 
 			CharLocation selStart = default, selEnd = default;
 			bool selectionNotEmpty = false;
+
+			gr.Translate (-ScrollX, 0);
 
 			document.EnterReadLock();
 			
@@ -388,91 +389,97 @@ namespace Crow
 				//}
 
 				if (document.Length > 0) {
+					int skippedLines = (int)Math.Floor(ScrollY / lineHeight);
+					int curLine = skippedLines;
+					double y = -(ScrollY % lineHeight);
+
 					Foreground?.SetAsSource (IFace, gr);
 
 					TextExtents extents;
 					Span<byte> bytes = stackalloc byte[128];
-					double y = 0;
+					
+					while (curLine < document.LinesCount && curLine - skippedLines < visibleLines) {
+						
+						int encodedBytes = -1;
+						TextLine l = document.GetLine (curLine);
+						if (l.Length > 0) {
+							int size = l.Length * 4 + 1;
+							if (bytes.Length < size)
+								bytes = new byte[size];
 
-					for (int i = 0; i < document.LinesCount; i++) {
-						if (!cancelLinePrint (lineHeight, y, cb.Height)) {
-							int encodedBytes = -1;
-							TextLine l = document.GetLine (i);
-							if (l.Length > 0) {
-								int size = l.Length * 4 + 1;
-								if (bytes.Length < size)
-									bytes = new byte[size];
+							encodedBytes = document.GetText (l).ToUtf8 (bytes);
+							bytes[encodedBytes++] = 0;
 
-								encodedBytes = document.GetText (l).ToUtf8 (bytes);
-								bytes[encodedBytes++] = 0;
-
-								if (l.LengthInPixel < 0) {
-									gr.TextExtents (bytes.Slice (0, encodedBytes), out extents);
-									l.LengthInPixel = (int)extents.XAdvance;
-								}
-							}
-
-							RectangleD lineRect = new RectangleD (
-								(int)cb.X,
-								y + cb.Top, l.LengthInPixel, lineHeight);
-
-							if (encodedBytes > 0) {
-								gr.MoveTo (lineRect.X, lineRect.Y + fe.Ascent);
-								gr.ShowText (bytes.Slice (0, encodedBytes));
-							}
-							/********** DEBUG TextLineCollection *************
-							gr.SetSource (Colors.Red);
-							gr.SetFontSize (9);
-							gr.MoveTo (700, lineRect.Y + fe.Ascent);
-							gr.ShowText ($"({lines[i].Start}, {lines[i].End}, {lines[i].EndIncludingLineBreak})");
-							gr.SetFontSize (Font.Size);
-							Foreground.SetAsSource (IFace, gr);
-							********** DEBUG TextLineCollection *************/
-
-							if (selectionNotEmpty) {
-								RectangleD selRect = lineRect;
-
-								if (i >= selStart.Line && i <= selEnd.Line) {
-									if (selStart.Line == selEnd.Line) {
-										selRect.X = selStart.VisualCharXPosition + cb.X;
-										selRect.Width = selEnd.VisualCharXPosition - selStart.VisualCharXPosition;
-									} else if (i == selStart.Line) {
-										double newX = selStart.VisualCharXPosition + cb.X;
-										selRect.Width -= (newX - selRect.X) - 10.0;
-										selRect.X = newX;
-									} else if (i == selEnd.Line) {
-										selRect.Width = selEnd.VisualCharXPosition - selRect.X + cb.X;
-									} else
-										selRect.Width += 10.0;
-								} else {
-									y += lineHeight;
-									continue;
-								}
-
-								gr.SetSource (selBackground);
-								gr.Rectangle (selRect);
-								if (encodedBytes < 0)
-									gr.Fill ();
-								else {
-									gr.FillPreserve ();
-									gr.Save ();
-									gr.Clip ();
-									gr.SetSource (SelectionForeground);
-									gr.MoveTo (lineRect.X, lineRect.Y + fe.Ascent);
-									gr.ShowText (bytes.Slice (0, encodedBytes));
-									gr.Restore ();
-								}
-								Foreground.SetAsSource (IFace, gr);
+							if (l.LengthInPixel < 0) {
+								gr.TextExtents (bytes.Slice (0, encodedBytes), out extents);
+								l.LengthInPixel = (int)extents.XAdvance;
+								document.SetLine(curLine, l);
 							}
 						}
+
+						RectangleD lineRect = new RectangleD (
+							(int)cb.X,
+							y + cb.Top, l.LengthInPixel, lineHeight);
+
+						if (encodedBytes > 0) {
+							gr.MoveTo (lineRect.X, lineRect.Y + fe.Ascent);
+							gr.ShowText (bytes.Slice (0, encodedBytes));
+						}
+						/********** DEBUG TextLineCollection *************
+						gr.SetSource (Colors.Red);
+						gr.SetFontSize (9);
+						gr.MoveTo (700, lineRect.Y + fe.Ascent);
+						gr.ShowText ($"({lines[i].Start}, {lines[i].End}, {lines[i].EndIncludingLineBreak})");
+						gr.SetFontSize (Font.Size);
+						Foreground.SetAsSource (IFace, gr);
+						********** DEBUG TextLineCollection *************/
+
+						if (selectionNotEmpty) {
+							RectangleD selRect = lineRect;
+
+							if (curLine >= selStart.Line && curLine <= selEnd.Line) {
+								if (selStart.Line == selEnd.Line) {
+									selRect.X = selStart.VisualCharXPosition + cb.X;
+									selRect.Width = selEnd.VisualCharXPosition - selStart.VisualCharXPosition;
+								} else if (curLine == selStart.Line) {
+									double newX = selStart.VisualCharXPosition + cb.X;
+									selRect.Width -= (newX - selRect.X) - 10.0;
+									selRect.X = newX;
+								} else if (curLine == selEnd.Line) {
+									selRect.Width = selEnd.VisualCharXPosition - selRect.X + cb.X;
+								} else
+									selRect.Width += 10.0;
+							} else {
+								y += lineHeight;
+								curLine++;
+								continue;
+							}
+
+							gr.SetSource (selBackground);
+							gr.Rectangle (selRect);
+							if (encodedBytes < 0)
+								gr.Fill ();
+							else {
+								gr.FillPreserve ();
+								gr.Save ();
+								gr.Clip ();
+								gr.SetSource (SelectionForeground);
+								gr.MoveTo (lineRect.X, lineRect.Y + fe.Ascent);
+								gr.ShowText (bytes.Slice (0, encodedBytes));
+								gr.Restore ();
+							}
+							Foreground.SetAsSource (IFace, gr);
+						}
+					
 						y += lineHeight;
+						curLine++;
 					}
 				}
 			} finally {
 				document.ExitReadLock ();
 			}
 
-			gr.Translate (ScrollX, ScrollY);
+			gr.Translate (ScrollX, 0);
 		}
 		protected int getLineIndexFromMousePosition (Point mouseLocalPos) =>
 			(int)Math.Min (Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ lineHeight)), visualLineCount - 1);
@@ -490,7 +497,6 @@ namespace Crow
 			updateLocation (ref newLoc);
 			hoverLoc = newLoc;
 		}
-		protected virtual bool cancelLinePrint (double lineHeght, double y, int clientHeight) => false;
 		RectangleD? textCursor = null;
 
 		public virtual bool DrawCursor (IContext ctx, out Rectangle rect) {
