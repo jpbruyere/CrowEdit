@@ -15,10 +15,14 @@ namespace CrowEditBase
 			StartLine = startLine;
 			TokenIndexBase = tokenBase;
 			if (lastTokenIdx.HasValue)
-				TokenCount = lastTokenIdx - tokenBase;
+				lastTokenOfset = lastTokenIdx - tokenBase;
 		}
 		
 		bool _isExpanded;
+		internal int? lastTokenOfset;
+		internal bool isFolded;
+		internal int lineCount;
+
 
 		public bool isExpanded {
 			get => _isExpanded;
@@ -36,7 +40,7 @@ namespace CrowEditBase
 		public SyntaxNode Parent { get; private set; }
 		public int StartLine { get; private set; }
 		public virtual int LineCount => lineCount;
-		public virtual bool IsComplete => TokenCount.HasValue;
+		public virtual bool IsComplete => lastTokenOfset.HasValue;
 		public virtual bool IsFoldable => IsComplete && !(Parent != Root && Parent.StartLine == StartLine) && lineCount > 1;
 		public virtual SyntaxRootNode Root => Parent.Root;
 		public virtual void UnfoldToTheTop () {
@@ -110,10 +114,8 @@ namespace CrowEditBase
 		}
 
 		public virtual int TokenIndexBase { get; private set; }
-		public virtual int? TokenCount { get; internal set; }
-		public int? LastTokenIndex => TokenIndexBase + TokenCount;
-		internal bool isFolded;
-		internal int lineCount;
+		public virtual int TokenCount => lastTokenOfset.HasValue ? lastTokenOfset.Value + 1 : 0;
+		public int? LastTokenIndex =>  lastTokenOfset.HasValue ? TokenIndexBase + lastTokenOfset.Value : null;
 
 		public int EndLine {
 			internal set {
@@ -123,18 +125,9 @@ namespace CrowEditBase
 		}
 		public TextSpan Span {
 			get {
-				/*if (HasChilds) {
-					return new TextSpan (children.First().Span.Start, children.Last().Span.End)
-				}*/
-				try {
-					Token startTok = getTokenByIndex(TokenIndexBase);
-					Token endTok = TokenCount.HasValue ? getTokenByIndex (TokenIndexBase+TokenCount.Value) : startTok;
-					return new TextSpan (startTok.Start, endTok.End);
-				}catch{
-					System.Diagnostics.Debugger.Break ();
-				}
-				return default;
-
+				Token startTok = getTokenByIndex(TokenIndexBase);
+				Token endTok = LastTokenIndex.HasValue ? getTokenByIndex (LastTokenIndex.Value) : startTok;
+				return new TextSpan (startTok.Start, endTok.End);
 			}
 		}
 		public SyntaxNode AddChild (SyntaxNode child) {
@@ -147,7 +140,7 @@ namespace CrowEditBase
 			child.Parent = null;
 		}
 		public IEnumerable<T> GetChilds<T> () => children.OfType<T>();
-		
+		/*
 		public void Replace (SyntaxNode newNode) {
 			Parent.replaceChild (this, newNode);
 		}
@@ -155,7 +148,7 @@ namespace CrowEditBase
 			int idx = children.IndexOf (oldNode);
 			children[idx] = newNode;
 			newNode.Parent = this;
-			int tokIdxDiff = newNode.TokenCount.Value - oldNode.TokenCount.Value;
+			int tokIdxDiff = newNode.TokenCount - oldNode.TokenCount;
 			int lineDiff = newNode.EndLine - oldNode.EndLine;
 			if (tokIdxDiff == 0 && lineDiff == 0)
 				return;
@@ -171,7 +164,7 @@ namespace CrowEditBase
 				idx = curNode.Parent.children.IndexOf (curNode);
 				curNode = curNode.Parent;
 			}
-		}
+		}*/
 		void offset (int tokenOffset, int lineOffset) {
 			TokenIndexBase += tokenOffset;
 			StartLine += lineOffset;

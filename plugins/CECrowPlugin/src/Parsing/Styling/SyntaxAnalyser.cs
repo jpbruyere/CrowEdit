@@ -50,7 +50,7 @@ namespace CECrowPlugin.Style
 				tokIdx++;
 			}
 			while (currentNode.Parent != null) {
-				if (!currentNode.TokenCount.HasValue)
+				if (!currentNode.LastTokenIndex.HasValue)
 					finishCurrentNode (-1);
 				else
 					currentNode = currentNode.Parent;

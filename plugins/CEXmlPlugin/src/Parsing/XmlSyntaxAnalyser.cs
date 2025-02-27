@@ -86,10 +86,10 @@ namespace CrowEdit.Xml
 								finishCurrentNode (); finishCurrentNode ();
 							} else {
 								addException ("Open/Close element name mismatch");
-								finishCurrentNode (1);//finish eltEndTag->curNode is parent elt
+								finishCurrentNode ();//finish eltEndTag->curNode is parent elt
 								currentNode.RemoveChild(eltEndTag);
-								finishCurrentNode (-eltEndTag.TokenCount.Value); //dont credit parent element with those tokens from the non matching end tag
-																				 //curNode should be parent element of previous element
+								finishCurrentNode (-eltEndTag.TokenCount); //dont credit parent element with those tokens from the non matching end tag
+																		   //curNode should be parent element of previous element
 								while(currentNode is ElementSyntax esp) {
 									//eltEndTag is out of tree, so Name get threw exception
 									if (string.Equals(esp.StartTag.Name, eltEndTagName, StringComparison.Ordinal)) {
@@ -98,7 +98,7 @@ namespace CrowEdit.Xml
 										finishCurrentNode ();
 										break;
 									} else {
-										finishCurrentNode (-eltEndTag.TokenCount.Value);
+										finishCurrentNode (-eltEndTag.TokenCount);
 									}
 								}
 							}
@@ -140,11 +140,12 @@ namespace CrowEdit.Xml
 				tokIdx++;
 			}
 			while (currentNode.Parent != null) {
-				if (!currentNode.TokenCount.HasValue)
+				if (!currentNode.LastTokenIndex.HasValue)
 					finishCurrentNode (-1);
 				else
 					currentNode = currentNode.Parent;
 			}
+			//check why this is required..
 			setCurrentNodeEndLine (currentLine);
 			return Root;
 		}

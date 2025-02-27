@@ -82,22 +82,19 @@ namespace CrowEditBase
 		/// <param name="endToken">The final token of this node</param>
 		/// <param name="endLine">the endline number of this node</param>
 		protected void finishCurrentNode (int endTokenOffsetFromCurrentTokIdx = 0) {
-			int count = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
-			currentNode.TokenCount = count < 0 ? null : count;
+			int lastTokOffset = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
+			currentNode.lastTokenOfset = lastTokOffset < 0 ? null : lastTokOffset;
 			if (endTokenOffsetFromCurrentTokIdx < 0) {
 				Token lastTok = currentNode.LastTokenIndex.HasValue ?
 					Root.GetTokenByIndex(currentNode.LastTokenIndex.Value) :
 					Root.GetTokenByIndex(currentNode.TokenIndexBase);
+				
 				currentNode.EndLine = lines.GetLocation(lastTok.End).Line;
+			}else{
+				currentNode.EndLine = currentLine;
 			}
-			//currentNode.EndLine
-			currentNode.EndLine = currentLine;
 			currentNode = currentNode.Parent;
 		}
-		/*protected void setEndOfNode (int endTokenOffsetFromCurrentTokIdx = 0, int endLineOffsetFromCurrentLine = 0) {
-			currentNode.TokenCount = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
-			currentNode.EndLine = currentLine + endLineOffsetFromCurrentLine;
-		}*/
 		protected void setCurrentNodeEndLine (int endLine)
 			=> currentNode.EndLine = endLine;
 		protected bool skipTrivia(bool skipLineBreaks = true) {

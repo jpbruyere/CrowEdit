@@ -14,7 +14,7 @@ namespace CrowEditBase
 		protected readonly ReadOnlyMemory<char> source;
 		protected Token[] tokens;
 		public override int TokenIndexBase => 0;
-		public override int? TokenCount { get => tokens == null ? default : Math.Max (0, tokens.Length - 1); internal set {} }
+		public override int TokenCount => tokens == null ? 0 : Math.Max (0, tokens.Length - 1);
 		public override SyntaxRootNode Root => this;
 		public override bool IsFoldable => false;
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;

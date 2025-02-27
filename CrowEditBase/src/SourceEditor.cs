@@ -618,25 +618,22 @@ namespace Crow
 
 				
 				int printedLines = 0;
-				int curLine = (int)Math.Floor(ScrollY / lineHeight);
-				pixY = -(ScrollY % lineHeight);
-
+				int linesToSkip = (int)Math.Floor(ScrollY / lineHeight);
 				
 				IEnumerator<SyntaxNode> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
 				bool notEndOfFolds = foldsEnum.MoveNext();
 
+				while (notEndOfFolds && foldsEnum.Current.StartLine < linesToSkip) {
+					if (foldsEnum.Current.isFolded)
+						linesToSkip += foldsEnum.Current.LineCount-1;
+					notEndOfFolds = foldsEnum.MoveNext();
+				}				
+
+				int curLine = linesToSkip;
+				pixY = -(ScrollY % lineHeight);
+
 				while (curLine < doc.LinesCount && printedLines < Math.Min(visibleLines, doc.LinesCount)) {
-					
-
-					while (notEndOfFolds && foldsEnum.Current.StartLine < curLine) {
-						if (foldsEnum.Current.isFolded && curLine <= foldsEnum.Current.EndLine)
-							curLine += foldsEnum.Current.LineCount - 1;
-						notEndOfFolds = foldsEnum.MoveNext();
-					}
-
-					if (curLine >= doc.LinesCount)//could it occurs?
-						break;	
-					
+										
 					int encodedChar = 0;
 					TextLine curTxtLine = doc.GetLine (curLine);
 					int tokPtr = doc.FindTokenIndexIncludingPosition(curTxtLine.Start);
@@ -729,9 +726,18 @@ namespace Crow
 					pixY += lineHeight;
 					printedLines++;
 
-					if (curFoldStart && foldsEnum.Current.isFolded)
-						curLine = foldsEnum.Current.EndLine + 1;
-					else
+					if (curFoldStart && curLine == foldsEnum.Current.StartLine){
+						if (foldsEnum.Current.isFolded)
+							curLine += foldsEnum.Current.LineCount;
+						else
+							curLine++;
+						notEndOfFolds = foldsEnum.MoveNext();
+						while (notEndOfFolds && foldsEnum.Current.StartLine < curLine) {
+							/*if (foldsEnum.Current.isFolded && curLine <= foldsEnum.Current.EndLine)
+								curLine += foldsEnum.Current.LineCount;*/
+							notEndOfFolds = foldsEnum.MoveNext();
+						}
+					} else
 						curLine++;
 
 				}
