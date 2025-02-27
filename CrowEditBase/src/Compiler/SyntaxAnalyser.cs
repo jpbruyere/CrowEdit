@@ -112,7 +112,8 @@ namespace CrowEditBase
 			return !EOF;
 		}
 		protected void addException(string message) {
-			currentNode.AddException(new SyntaxException(message, curTok, source));
+			CharLocation loc = lines.GetLocation(curTok.Start);
+			currentNode.AddException(new SyntaxException(message, loc, curTok));
 		}
 
 

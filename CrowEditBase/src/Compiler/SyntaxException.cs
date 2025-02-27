@@ -2,18 +2,18 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
+using Crow.Text;
 
 namespace CrowEditBase
 {
 	public class SyntaxException : Exception {
 		public readonly Token Token;
-		public readonly ReadOnlyMemory<char> SourceText;
-		public SyntaxException(string message, Token token = default, ReadOnlyMemory<char> textBuffer = default, Exception innerException = null)
+		public readonly CharLocation Location;
+		public SyntaxException(string message, CharLocation loc, Token token = default, Exception innerException = null)
 				: base (message, innerException) {
 			Token = token;
-			SourceText = textBuffer;
+			Location = loc;
 		}
-		public string TokenString => SourceText.Span.Slice(Token.Start,Token.Length).ToString();
-        public override string ToString() => $"{Message}: {TokenString}";
+        public override string ToString() => $"({Location.Line},{Location.Column}):{Message}";
     }
 }
