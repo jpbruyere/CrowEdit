@@ -35,7 +35,7 @@ namespace CrowEditBase
 		public void ExitWriteLock () => documentRWLock.ExitWriteLock ();
 
 		public abstract bool TryGetState<T> (object client, out T state);
-		public abstract void RegisterClient (object client);
+		public abstract void RegisterClient (object client, bool initialState = false);
 		public abstract void UnregisterClient (object client);
 
 		DateTime accessTime;

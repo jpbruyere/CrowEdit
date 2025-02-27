@@ -7,13 +7,13 @@ namespace CrowEditBase
 {
 	public class SyntaxException : Exception {
 		public readonly Token Token;
-		public readonly SyntaxAnalyser SyntaxAnalyser;
-		public SyntaxException(string message, Token token = default, SyntaxAnalyser syntaxAnalyser = null, Exception innerException = null)
+		public readonly ReadOnlyMemory<char> SourceText;
+		public SyntaxException(string message, Token token = default, ReadOnlyMemory<char> textBuffer = default, Exception innerException = null)
 				: base (message, innerException) {
 			Token = token;
-			SyntaxAnalyser = syntaxAnalyser;
+			SourceText = textBuffer;
 		}
-		public string TokenString => SyntaxAnalyser.Root.GetTokenString(Token);
+		public string TokenString => SourceText.Span.Slice(Token.Start,Token.Length).ToString();
         public override string ToString() => $"{Message}: {TokenString}";
     }
 }

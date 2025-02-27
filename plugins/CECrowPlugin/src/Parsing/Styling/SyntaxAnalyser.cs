@@ -17,21 +17,21 @@ namespace CECrowPlugin.Style
 		}
 	}
 	public class StyleSyntaxAnalyser : SyntaxAnalyser {
-		public StyleSyntaxAnalyser (StyleDocument source) : base (source) {
-			this.source = source;
-		}
+		public StyleSyntaxAnalyser (StyleDocument document) : base (document) {}
 
-		public override void Process () {
-			StyleDocument doc = source as StyleDocument;
-			currentNode = Root = new StyleRootSyntax (doc);
+		public override SyntaxRootNode Process () {
+			Tokenizer tokenizer = new StyleTokenizer();
+			Token[] tokens = tokenizer.Tokenize(source.Span);
+
+			currentNode = Root = new StyleRootSyntax (source, tokens);
+
 			currentLine = 0;
-			Span<Token> toks = source.Tokens;
 			tokIdx = 0;
 
 			int firstNameIdx = -1;
 
-			while (tokIdx < toks.Length) {
-				Token curTok = toks[tokIdx];
+			while (tokIdx < tokens.Length) {
+				Token curTok = tokens[tokIdx];
 				if (curTok.Type == TokenType.LineBreak)
 					currentLine++;
 				else if (!curTok.Type.HasFlag (TokenType.Trivia)) {
@@ -51,11 +51,13 @@ namespace CECrowPlugin.Style
 			}
 			while (currentNode.Parent != null) {
 				if (!currentNode.TokenCount.HasValue)
-					setEndLineForCurrentNode (-1);
+					finishCurrentNode (-1);
 				else
 					currentNode = currentNode.Parent;
 			}
 			setCurrentNodeEndLine (currentLine);
+
+			return Root;
 		}
 	}
 }

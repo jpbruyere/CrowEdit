@@ -9,22 +9,23 @@ using CrowEditBase;
 namespace CERoslynPlugin
 {
 	public class CSRootSyntax : SyntaxRootNode {
-		public CSRootSyntax (SourceDocument source)
-			: base (source) {
-		}
+		public CSRootSyntax (ReadOnlyMemory<char> source, Token[] tokens) : base (source, tokens) {	}
 	}
+	
 	public class CSSyntaxAnalyser : SyntaxAnalyser {
         /*protected override void Parse(SyntaxNode node)
         {
             throw new NotImplementedException();
         }*/
 
-		public CSSyntaxAnalyser (CSDocument source) : base (source) {
-			this.source = source;
-		}
+		public CSSyntaxAnalyser (CSDocument document) : base (document) {}
 
-		public override void Process () {
-			currentNode = Root = new CSRootSyntax (source);
+		public override SyntaxRootNode Process () {
+			Tokenizer tokenizer = new CSTokenizer();
+			Token[] tokens = tokenizer.Tokenize(source.Span);
+
+			currentNode = Root = new CSRootSyntax (source, tokens);
+			return Root;
 		}
 	}
 }

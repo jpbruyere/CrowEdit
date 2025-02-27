@@ -4,23 +4,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using CrowEditBase;
 
 namespace CrowEdit.Xml
 {
 	public class XmlSyntaxAnalyser : SyntaxAnalyser {
-        public XmlSyntaxAnalyser (XmlDocument source) : base (source) {
-			this.source = source;
-		}
+        public XmlSyntaxAnalyser (XmlDocument document) : base (document) {}
 		public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
 			attrib.valueTok = tokIdx - attrib.TokenIndexBase;
 		}
-		public override void Process () {
-			XmlDocument xmlDoc = source as XmlDocument;
-			currentNode = Root = new XMLRootSyntax (xmlDoc);
+		public override SyntaxRootNode Process () {
+			Tokenizer tokenizer = new XmlTokenizer();
+			Token[] tokens = tokenizer.Tokenize(source.Span);
+
+			currentNode = Root = new XMLRootSyntax (source, tokens);
 			currentLine = 0;
 			tokIdx = 0;
-			tokens = source.Tokens;
 
 			while (tokIdx < tokens.Length) {
 				if (curTok.Type == TokenType.LineBreak)
@@ -35,18 +35,18 @@ namespace CrowEdit.Xml
 							tag.name = tokIdx - tag.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.ClosingSign) {
 							tag.close = tokIdx - tag.TokenIndexBase;
-							setEndLineForCurrentNode ();
+							finishCurrentNode ();
 							currentNode.RemoveChild (tag);
 							currentNode = currentNode.AddChild (new ElementSyntax (tag));
 						} else if (curTok.GetTokenType() == XmlTokenType.EmptyElementClosing) {
-							setEndLineForCurrentNode ();
+							finishCurrentNode ();
 							currentNode.RemoveChild (tag);
 							currentNode = currentNode.AddChild (new EmptyElementSyntax (tag));
 							setCurrentNodeEndLine (currentLine);
 							currentNode = currentNode.Parent;
 						} else {
 							addException ("Unexpected Token");
-							setEndLineForCurrentNode (-1);
+							finishCurrentNode (-1);
 							continue;
 						}
 					} else if (currentNode is ElementSyntax elt) {
@@ -55,6 +55,10 @@ namespace CrowEdit.Xml
 						else if (curTok.GetTokenType() == XmlTokenType.EndElementOpen) {
 							elt.EndTag = new ElementEndTagSyntax (currentLine, tokIdx);
 							currentNode = elt.AddChild (elt.EndTag);
+							/*} else {
+								finishCurrentNode(-1);
+								addException ("Unmatching open/closing element name");
+							}*/
 						}
 					} else if (currentNode is AttributeSyntax attrib) {
 						if (curTok.GetTokenType() == XmlTokenType.EqualSign)
@@ -68,10 +72,10 @@ namespace CrowEdit.Xml
 							ProcessAttributeValueSyntax (attrib);
 						else if (curTok.GetTokenType() == XmlTokenType.AttributeValueClose) {
 							attrib.valueClose = tokIdx - attrib.TokenIndexBase;
-							setEndLineForCurrentNode ();
+							finishCurrentNode ();
 						} else {
 							addException ("Unexpected Token");
-							setEndLineForCurrentNode (-1);
+							finishCurrentNode (-1);
 							continue;
 						}
 					} else if (currentNode is ElementEndTagSyntax eltEndTag) {
@@ -80,11 +84,11 @@ namespace CrowEdit.Xml
 						else if (curTok.GetTokenType() == XmlTokenType.ClosingSign) {
 							eltEndTag.close = tokIdx - eltEndTag.TokenIndexBase;
 							//go up 2 times
-							setEndLineForCurrentNode (); setEndLineForCurrentNode ();
+							finishCurrentNode (); finishCurrentNode ();
 						} else {
 							addException ("Unexpected Token");
-							setEndLineForCurrentNode (-1);
-							setEndLineForCurrentNode (-1);
+							finishCurrentNode (-1);
+							finishCurrentNode (-1);
 							continue;
 						}
 					} else if (currentNode is XMLRootSyntax) {
@@ -104,14 +108,14 @@ namespace CrowEdit.Xml
 							pi.name = tokIdx - pi.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.PI_End) {
 							pi.PIClose = tokIdx - pi.TokenIndexBase;
-							setEndLineForCurrentNode ();
+							finishCurrentNode ();
 						} else if (curTok.GetTokenType() == XmlTokenType.AttributeName) {
 							AttributeSyntax attribute = new AttributeSyntax (currentLine, tokIdx);
 							attribute.name = 0;
 							currentNode = currentNode.AddChild (attribute);
 						} else {
 							addException ("Unexpected Token");
-							setEndLineForCurrentNode (-1);
+							finishCurrentNode (-1);
 							continue;
 						}
 					}
@@ -120,11 +124,12 @@ namespace CrowEdit.Xml
 			}
 			while (currentNode.Parent != null) {
 				if (!currentNode.TokenCount.HasValue)
-					setEndLineForCurrentNode (-1);
+					finishCurrentNode (-1);
 				else
 					currentNode = currentNode.Parent;
 			}
 			setCurrentNodeEndLine (currentLine);
+			return Root;
 		}
 	}
 }

@@ -14,6 +14,20 @@ using Drawing2D;
 
 namespace CrowEditBase
 {
+	public static class Extensions {
+		public static bool TryCast<T>(this object o, out T result) {
+			result = default;
+			if (o != null) {
+				Type tIn = o.GetType();
+				Type tOut = typeof(T);
+				if (tOut.IsAssignableFrom(tIn)) {
+					result = (T)o;
+					return true;
+				}
+			}
+			return false;
+		}
+	}
 	public abstract class CrowEditBase : Interface {
 		public static CrowEditBase App;
 		public CrowEditBase (int width, int height, bool singleThreaded = true) : base (width, height, singleThreaded) {

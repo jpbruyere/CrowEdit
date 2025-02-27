@@ -125,8 +125,10 @@ namespace Crow
 		/// </summary>
 		/// <param name="position">Absolute character position in text.</param>
 		public void SetCursorPosition (int position) {
+			document.EnterReadLock();
 			CharLocation loc = document.GetLocation (position);
 			loc.Column = Math.Min (loc.Column, document.GetLine (loc.Line).Length);
+			document.ExitReadLock();
 			CurrentLoc = loc;
 		}
 
@@ -356,6 +358,7 @@ namespace Crow
 			bool selectionNotEmpty = false;
 
 			document.EnterReadLock();
+			
 			try {
 				//if (HasFocus) {
 					if (currentLoc?.Column < 0) {
@@ -555,9 +558,8 @@ namespace Crow
 		protected void updateLocation (IContext gr, ref CharLocation loc) {
 			if (loc.HasVisualX)
 				return;
-			TextLine ls = document.GetLine (loc.Line);
-			ReadOnlySpan<char> curLine = document.GetText (ls);
-
+			
+			ReadOnlySpan<char> curLine = document.GetLineText (loc.Line);
 			if (loc.Column >= 0) {
 				//int encodedBytes = Crow.Text.Encoding2.ToUtf8 (curLine.Slice (0, loc.Column), bytes);
 #if DEBUG
@@ -575,7 +577,7 @@ namespace Crow
 				int totChar = 0;
 				double cPos = 0;
 
-				for (int i = 0; i < ls.Length; i++) {
+				for (int i = 0; i < curLine.Length; i++) {
 					int encodedBytes = curLine.Slice (i, 1).ToUtf8 (bytes, ref totChar, tabSize);
 					bytes[encodedBytes] = 0;
 
@@ -591,7 +593,7 @@ namespace Crow
 
 					cPos += te.XAdvance;
 				}
-				loc.Column = ls.Length;
+				loc.Column = curLine.Length;
 				loc.VisualCharXPosition = cPos;
 				loc.TabulatedColumn = totChar;
 			}

@@ -10,14 +10,12 @@ using CrowEdit.Xml;
 namespace CECrowPlugin
 {
 	public class ImlSyntaxAnalyser : XmlSyntaxAnalyser {
-		public ImlSyntaxAnalyser (ImlDocument source) : base (source) {
-			this.source = source;
-		}
+		public ImlSyntaxAnalyser (ImlDocument document) : base (document) {}
 
 
-		public override void Process () {
+		public override SyntaxRootNode Process () {
 
-			base.Process();
+			return base.Process();
 
 /*
 			ImlDocument xmlDoc = source as ImlDocument;

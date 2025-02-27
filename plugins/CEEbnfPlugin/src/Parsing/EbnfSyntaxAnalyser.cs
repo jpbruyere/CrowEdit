@@ -10,9 +10,7 @@ namespace CrowEdit.Ebnf
 {
 
 	public class EbnfSyntaxAnalyser : SyntaxAnalyser {
-		public EbnfSyntaxAnalyser  (EbnfDocument source) : base (source) {
-			this.source = source;
-		}
+		public EbnfSyntaxAnalyser  (EbnfDocument document) : base (document) {}
 		
 		
 		// ::= NCName '::=' Expression
@@ -22,14 +20,15 @@ namespace CrowEdit.Ebnf
 		// Item ::= Primary ( '?' | '*' | '+' )?
 		//NCName | StringLiteral | CharCode | CharClass | '(' Choice ')'
 		// StringLiteral ::= '"' [^"]* '"' | "'" [^']* "'"	
-
-        public override void Process()
+		
+        public override SyntaxRootNode Process()
         {
-            EbnfDocument doc = source as EbnfDocument;
-			currentNode = Root = new EbnfRootSyntax (doc);
+			Tokenizer tokenizer = new EbnfTokenizer();
+			Token[] tokens = tokenizer.Tokenize(source.Span);
+
+			currentNode = Root = new EbnfRootSyntax (source, tokens);
 			currentLine = 0;
 			tokIdx = 0;
-			tokens = doc.Tokens;
 			
 			/*while(tokIdx < tokens.Length) {
 				skipTrivia();
@@ -81,6 +80,7 @@ namespace CrowEdit.Ebnf
 				
 
 			setCurrentNodeEndLine (currentLine);
+			return Root;
         }
 		
 

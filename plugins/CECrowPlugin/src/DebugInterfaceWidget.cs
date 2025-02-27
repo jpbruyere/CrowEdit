@@ -104,9 +104,9 @@ namespace Crow
 
 				if (value is ImlDocument imlDoc) {
 					document?.UnregisterClient (this);
-					imlSource = "";
 					document = imlDoc;
-					document?.RegisterClient (this);
+					imlSource = default;
+					document?.RegisterClient (this, true);
 
 					NotifyValueChangedAuto (document);
 					RegisterForGraphicUpdate ();

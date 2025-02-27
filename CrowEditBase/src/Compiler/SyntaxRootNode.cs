@@ -7,23 +7,27 @@ using Crow.Text;
 namespace CrowEditBase
 {
 	public abstract class SyntaxRootNode : SyntaxNode {
-		protected readonly SourceDocument source;
-		public SyntaxRootNode (SourceDocument source) {
+		public SyntaxRootNode (ReadOnlyMemory<char> source, Token[] tokens) {
 			this.source = source;
+			this.tokens = tokens;
 		}
+		protected readonly ReadOnlyMemory<char> source;
+		protected Token[] tokens;
 		public override int TokenIndexBase => 0;
-		public override int? TokenCount { get => Math.Max (0, source.Tokens.Length - 1); internal set {} }
+		public override int? TokenCount { get => tokens == null ? default : Math.Max (0, tokens.Length - 1); internal set {} }
 		public override SyntaxRootNode Root => this;
 		public override bool IsFoldable => false;
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;
 		public override void UnfoldToTheTop() {}
-		public string GetTokenStringByIndex (int idx) =>
-			idx >= 0 && idx < source.Tokens.Length ? Root.GetText(source.Tokens[idx].Span).ToString() : null;
-		public Token GetTokenByIndex (int idx) =>
-			idx >= 0 && idx < source.Tokens.Length ? source.Tokens[idx] : default;
+
+		public ReadOnlySpan<Token> Tokens => tokens;
+		public string GetTokenStringByIndex (int idx) => tokens != null ?
+			idx >= 0 && idx < tokens.Length ? GetText(tokens[idx].Span).ToString() : null : null;
+		public Token GetTokenByIndex (int idx) => tokens != null ?
+			idx >= 0 && idx < tokens.Length ? tokens[idx] : default : default;
 		public ReadOnlySpan<char> GetText(TextSpan span) =>
-			source.GetText(span);
+			source.Span.Slice(span.Start, span.Length);
 		public string GetTokenString(Token tok) =>
-			source.GetText(tok.Span).ToString();
+			GetText(tok.Span).ToString();
 	}
 }

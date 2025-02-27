@@ -11,9 +11,7 @@ namespace CECrowPlugin.Style
 {
 
 	public class StyleRootSyntax : SyntaxRootNode {
-		public StyleRootSyntax (StyleDocument source)
-			: base (source) {
-		}
+		public StyleRootSyntax (ReadOnlyMemory<char> source, Token[] tokens) : base (source, tokens) { }
 	}
 	public class ConstantDefinitionSyntax : SyntaxNode {
 		internal int? name, equal, valueOpen, valueClose;

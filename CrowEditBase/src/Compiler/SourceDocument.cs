@@ -16,51 +16,30 @@ namespace CrowEditBase
 		public SourceDocument (string fullPath, string editorPath = "#ui.sourceEditor.itmp")
 			: base (fullPath, editorPath) {
 		}
-		protected Token[] tokens;
 		protected SyntaxRootNode root;
-		protected int currentTokenIndex;
-		SyntaxNode currentNode;
-
-		protected Token currentToken => currentTokenIndex < 0 ? default : tokens[currentTokenIndex];
-		protected Token? previousToken {
-			get {
-				if (currentTokenIndex < 1) 
-					return null;
-				return tokens[currentTokenIndex-1];
-			}
-		}
-		public SyntaxNode CurrentNode {
-			get => currentNode;
-			set {
-				if (currentNode == value)
-					return;
-				currentNode = value;
-				NotifyValueChanged ("CurrentNode", currentNode);
-			}
-		}
-		public string CurrentTokenString => root?.GetTokenStringByIndex (currentTokenIndex);
-		public Token CurrentToken => currentToken;
-		public bool IsParsed => tokens.Length > 0 && root != null;
 		public SyntaxRootNode Root => root;
+		public bool IsParsed => root != null && Tokens.Length > 0;
 
 		//public SyntaxNode EditedNode { get; protected set; }
 
-		public Token[] Tokens => tokens;
+		public ReadOnlySpan<Token> Tokens => root.Tokens;
 		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
 		public Token FindTokenIncludingPosition (int pos) {
-			if (pos == 0 || tokens == null || tokens.Length == 0)
+			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
-			int idx = Array.BinarySearch (tokens, 0, tokens.Length, new  Token () {Start = pos});
-
-			return idx == 0 ? tokens[0] : idx < 0 ? tokens[~idx - 1] : tokens[idx];
+			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
+			return idx == 0 ? Tokens[0] : idx < 0 ? Tokens[~idx - 1] : Tokens[idx];
 		}
+		public Token GetTokenByIndex(int tokIdx) => IsParsed && tokIdx >= 0 ?
+						Tokens[Math.Min(Tokens.Length - 1, tokIdx)] : default;
 		public int FindTokenIndexIncludingPosition (int pos) {
-			if (pos == 0 || tokens == null || tokens.Length == 0)
+			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
-			int idx = Array.BinarySearch (tokens, 0, tokens.Length, new  Token () {Start = pos});
-
+			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
 			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx - 1;
 		}
+
+		
 		/// <summary>
 		/// if outermost is true, return oldest ancestor exept root node, useful for folding.
 		/// </summary>
@@ -101,21 +80,14 @@ namespace CrowEditBase
 
 			base.apply(change);
 
-			Tokenizer tokenizer = CreateTokenizer ();
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
-			
-			if (syntaxAnalyser == null) {
-				root = null;
-				return;
-			}
+			root = syntaxAnalyser?.Process ();
+
+			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
 
 			//SyntaxNode changedNode = root.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));			
 			
-			tokens = tokenizer.Tokenize (buffer.Span);
-			syntaxAnalyser.Process ();
-
-			root = syntaxAnalyser.Root;
-			NotifyValueChanged("Exceptions", syntaxAnalyser.Exceptions);
+			
 			/*
 			SyntaxNode newNode = syntaxAnalyser.Root.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));
 
@@ -145,27 +117,14 @@ namespace CrowEditBase
 
 			//Console.WriteLine ($"CurrentToken: idx({currentTokenIndex}) {currentToken} {RootNode.Root.GetTokenStringByIndex(currentTokenIndex)}");
 		}
-		static bool tryReplaceNode (SyntaxNode editedNode, SyntaxNode newNode) {
+		/*static bool tryReplaceNode (SyntaxNode editedNode, SyntaxNode newNode) {
 			if (newNode is SyntaxRootNode || editedNode is SyntaxRootNode)
 				return false;
 			editedNode.Replace (newNode);
 			return true;
 		}
 
-		internal void updateCurrentTokAndNode (CharLocation loc) {
-			int pos = buffer.GetAbsolutePosition(loc);
-			if (tokens.Length > 0) {
-				currentTokenIndex = FindTokenIndexIncludingPosition (pos);
-				CurrentNode = root?.FindNodeIncludingSpan (currentToken.Span);
-				NotifyValueChanged ("CurrentTokenString", (object)CurrentTokenString);
-				//NotifyValueChanged ("CurrentTokenType", (uint)(currentToken.Type)>>8);
-				NotifyValueChanged ("CurrentTokenType", (object)GetTokenTypeString(currentToken.Type));
-			}else {
-				currentTokenIndex = -1;
-				CurrentNode = null;
-				NotifyValueChanged ("CurrentTokenString", (object)"no token");
-			}
-		}
+		*/
 
 		public virtual Color GetColorForToken (TokenType tokType) {
 			if (tokType.HasFlag (TokenType.Punctuation))
@@ -177,9 +136,9 @@ namespace CrowEditBase
 			return Colors.Red;
 		}
 		public virtual string GetTokenTypeString (TokenType tokenType) => tokenType.ToString();
-		protected abstract Tokenizer CreateTokenizer ();
+		//protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
-		public abstract IList GetSuggestions (CharLocation loc);
+		public abstract IList GetSuggestions (Token currentToken, SyntaxNode currentNode, CharLocation loc);
 
 		/// <summary>
 		/// complete current token with selected item from the suggestion overlay.
@@ -189,23 +148,14 @@ namespace CrowEditBase
 		/// /// <param name="change">the text change to apply</param>
 		/// <param name="newSelection">new position or selection, null if normal position after text changes</param>
 		/// <returns>true if successed</returns>
-		public abstract bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection);
-		protected bool previousTokHasFlag(TokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
+		public abstract bool TryCompleteToken (Token CurrentToken, SyntaxNode CurrentNode, object suggestion, out TextChange change, out TextSpan? newSelection);
+		//protected bool previousTokHasFlag(TokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
 		void parse () {
-			Tokenizer tokenizer = CreateTokenizer ();
-			tokens = tokenizer?.Tokenize (source);
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
-			Stopwatch sw = Stopwatch.StartNew ();
-			syntaxAnalyser?.Process ();
-			sw.Stop();
-			root = syntaxAnalyser?.Root;
+			root = syntaxAnalyser?.Process ();
+			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
 
 			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
-			if (syntaxAnalyser == null)
-				return;
-				/*foreach (Token t in Tokens)
-					Console.WriteLine ($"{t,-40} {Source.AsSpan(t.Start, t.Length).ToString()}");
-				syntaxAnalyser.Root.Dump();*/
 		}
 
 	}

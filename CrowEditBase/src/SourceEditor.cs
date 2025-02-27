@@ -15,7 +15,7 @@ using System.Linq;
 namespace Crow
 {
 	public class SourceEditor : Editor {
-		object TokenMutex = new object();
+		int currentTokenIndex = -1;
 		SyntaxNode currentNode;
 #if DEBUG_NODE
 		SyntaxNode _hoverNode;
@@ -36,9 +36,11 @@ namespace Crow
 					return;
 				currentNode = value;
 				NotifyValueChanged ("CurrentNode", currentNode);
-				RegisterForRedraw ();
 			}
 		}
+		
+		public Token CurrentToken => typeof(SourceDocument).IsAssignableFrom(Document?.GetType()) ?
+			(Document as SourceDocument).GetTokenByIndex(currentTokenIndex) : default;
 
 		#region suggestions and autocomplete
 		ListBox overlay;
@@ -59,10 +61,11 @@ namespace Crow
 
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc && srcDoc.IsParsed) {
-				IList suggs = srcDoc.GetSuggestions (CurrentLoc.Value);
+				IList suggs = srcDoc.GetSuggestions (CurrentToken, currentNode, CurrentLoc.Value);
+				Token tok = CurrentToken;
 				if (suggs != null && suggs.Count == 1 && (
-					(suggs[0] is System.Reflection.MemberInfo mi && mi.Name == srcDoc.CurrentTokenString) ||
-					(suggs[0].ToString() == srcDoc.CurrentTokenString)
+					(suggs[0] is System.Reflection.MemberInfo mi && mi.Name == srcDoc.GetText(tok.Span)) ||
+					(suggs[0].ToString() == srcDoc.GetText(tok.Span))
 				)){
 					Suggestions = null;
 				}else
@@ -118,7 +121,7 @@ namespace Crow
 		}
 		void completeToken () {
 			if (Document is SourceDocument srcDoc) {
-				if (srcDoc.TryGetCompletionForCurrentToken (overlay.SelectedItem, out TextChange change, out TextSpan? nextSelection)) {
+				if (srcDoc.TryCompleteToken (CurrentToken, CurrentNode, overlay.SelectedItem, out TextChange change, out TextSpan? nextSelection)) {
 					update (change);
 					if (nextSelection.HasValue) {
 						Selection = nextSelection.Value;
@@ -160,8 +163,7 @@ namespace Crow
 					while (fold != null && fold.StartLine == currentLoc.Value.Line)
 						fold = fold.Parent;
 					fold?.UnfoldToTheTop();
-					if (Document is SourceDocument doc)
-						doc.updateCurrentTokAndNode (currentLoc.Value);
+					updateCurrentTokAndNode();
 				}
 				NotifyValueChanged ("CurrentLine", CurrentLine);
 				NotifyValueChanged ("CurrentColumn", CurrentColumn);
@@ -497,7 +499,7 @@ namespace Crow
 
 		}
 		protected override void drawContent (IContext gr) {
-			if (!(Document is SourceDocument doc)) {
+			if (!(Document is SourceDocument doc && doc.Root != null)) {
 				base.drawContent (gr);
 				return;
 			}
@@ -527,7 +529,6 @@ namespace Crow
 
 				marginRect.Height = lineHeight;
 				cb.Left += leftMargin;
-
 
 				CharLocation selStart = default, selEnd = default;
 				bool selectionNotEmpty = false;
@@ -660,7 +661,7 @@ namespace Crow
 								gr.ShowText (bytes.Slice (0, encodedBytes));
 							}
 
-							if (doc.CurrentToken.Equals(tok)) {
+							if (CurrentToken.Equals(tok)) {
 								/*CharLocation? tokloc = Document.GetLocation  (tok.Start);
 								updateLocation (gr, cb.Width, ref tokloc);*/
 								Rectangle r = new RectangleD(pixX, pixY, extents.Width, lineHeight);
@@ -800,8 +801,7 @@ namespace Crow
 		protected override void update (TextChange change) {
 			base.update (change);
 
-			if (Document is SourceDocument srcdoc)
-				srcdoc.updateCurrentTokAndNode (CurrentLoc.Value);
+			updateCurrentTokAndNode();
 
 			if (!disableSuggestions &&!disableTextChangedEvent && HasFocus)
 				tryGetSuggestions ();
@@ -817,6 +817,18 @@ namespace Crow
 			}
 			//Console.WriteLine ($"{pos}: {suggestionTok.AsString (_text)} {suggestionTok}");
 		}
-		
+		void updateCurrentTokAndNode() {
+			if (currentLoc.HasValue && Document is SourceDocument srcdoc) {
+				currentTokenIndex = srcdoc.GetAbsolutePosition(currentLoc.Value);
+				Token tok = srcdoc.FindTokenIncludingPosition(currentTokenIndex);
+				CurrentNode = srcdoc.Root?.FindNodeIncludingSpan(tok.Span);
+				
+				NotifyValueChanged("CurrentToken",tok);
+			} else {
+				currentTokenIndex = -1;
+				CurrentNode = null;
+				NotifyValueChanged("CurrentToken",default);
+			}
+		}
 	}
 }

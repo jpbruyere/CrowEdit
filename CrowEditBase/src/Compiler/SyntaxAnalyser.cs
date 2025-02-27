@@ -4,22 +4,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Crow.Text;
 
 namespace CrowEditBase
 {
 	public abstract class SyntaxAnalyser {
 		//protected abstract void Parse(SyntaxNode node);
-		protected SourceDocument source;
-		public SyntaxRootNode Root { get; protected set; }
+		protected ReadOnlyMemory<char> source;
+		protected LineCollection lines;
+		protected SyntaxRootNode Root;
 		public IEnumerable<SyntaxException> Exceptions => Root?.GetAllExceptions();
-		public SyntaxAnalyser (SourceDocument source) {
-			this.source = source;
+		public SyntaxAnalyser (SourceDocument document) {
+			this.source = document.ImmutableBufferCopy;
+			this.lines = document.Lines;
 		}
-		public abstract void Process ();
+		public abstract SyntaxRootNode Process ();
 		
 		#region Token handling
 		protected Token curTok => tokIdx < 0 ? default : tokens[tokIdx];
-		protected Token[] tokens;
+		protected ReadOnlySpan<char> curTokString => curTok.AsString(source.Span);
+		protected ReadOnlySpan<Token> tokens => Root.Tokens;
 		protected bool EOF => tokIdx == tokens.Length;
 		protected bool tryRead (out Token tok) {
 			if (EOF) {
@@ -68,7 +72,7 @@ namespace CrowEditBase
 		#endregion
 
 		#region parsing context
-		protected int currentLine, tokIdx;
+		protected int currentLine = 0, tokIdx = 0;
 		protected SyntaxNode currentNode;
 		#endregion
 
@@ -77,15 +81,23 @@ namespace CrowEditBase
 		/// </summary>
 		/// <param name="endToken">The final token of this node</param>
 		/// <param name="endLine">the endline number of this node</param>
-		protected void setEndLineForCurrentNode (int endTokenOffsetFromCurrentTokIdx = 0) {
-			currentNode.TokenCount = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
+		protected void finishCurrentNode (int endTokenOffsetFromCurrentTokIdx = 0) {
+			int count = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
+			currentNode.TokenCount = count < 0 ? null : count;
+			if (endTokenOffsetFromCurrentTokIdx < 0) {
+				Token lastTok = currentNode.LastTokenIndex.HasValue ?
+					Root.GetTokenByIndex(currentNode.LastTokenIndex.Value) :
+					Root.GetTokenByIndex(currentNode.TokenIndexBase);
+				currentNode.EndLine = lines.GetLocation(lastTok.End).Line;
+			}
+			//currentNode.EndLine
 			currentNode.EndLine = currentLine;
 			currentNode = currentNode.Parent;
 		}
-		protected void setEndOfNode (int endTokenOffsetFromCurrentTokIdx = 0, int endLineOffsetFromCurrentLine = 0) {
+		/*protected void setEndOfNode (int endTokenOffsetFromCurrentTokIdx = 0, int endLineOffsetFromCurrentLine = 0) {
 			currentNode.TokenCount = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
 			currentNode.EndLine = currentLine + endLineOffsetFromCurrentLine;
-		}
+		}*/
 		protected void setCurrentNodeEndLine (int endLine)
 			=> currentNode.EndLine = endLine;
 		protected bool skipTrivia(bool skipLineBreaks = true) {
@@ -100,7 +112,7 @@ namespace CrowEditBase
 			return !EOF;
 		}
 		protected void addException(string message) {
-			currentNode.AddException(new SyntaxException(message, curTok));
+			currentNode.AddException(new SyntaxException(message, curTok, source));
 		}
 
 

@@ -18,10 +18,11 @@ namespace CrowEditBase
 		public bool mixedLineBreak = false;
 		public string lineBreak = null;
 
+		internal LineCollection GetLineListCopy() => new LineCollection(lines.ToArray());
 		public Span<char> Span => buffer.Span.Slice(0, length);
 		public ReadOnlySpan<char> ReadOnlySpan => buffer.Span.Slice(0, length);
 		public bool IsEmpty => length == 0;
-		public bool IsDirty => origBuffer.Span.Equals(buffer.Span, StringComparison.Ordinal);
+		public bool IsDirty => !origBuffer.Span.Equals(Span, StringComparison.Ordinal);
 		public int LinesCount => lines.Count;
 		public int Length => length;
 		public ReadOnlyMemory<char> ReadOnlyCopy {
@@ -30,7 +31,7 @@ namespace CrowEditBase
 			}
 		} 
 		public void ResetDirtyState () {
-			origBuffer = buffer.ToArray();
+			origBuffer = Span.ToArray();
 		}
 		public TextBuffer(ReadOnlySpan<char> origText) {
 			length = origText.Length;
@@ -41,6 +42,7 @@ namespace CrowEditBase
 				lines.Add (new TextLine (0, 0, 0));
 			else
 				lines.Update (Span);
+			ResetDirtyState ();
 		}
 		public void Update (TextChange change) {
 			ReadOnlySpan<char> orig = buffer.Span;
@@ -86,6 +88,8 @@ namespace CrowEditBase
 		}
 		public CharLocation GetLocation (int absolutePosition) => lines.GetLocation (absolutePosition);
 		public TextLine GetLine (int index) => lines[index];
+		public ReadOnlySpan<char> GetText (TextLine line) => GetText(line.Span);
+		public ReadOnlySpan<char> GetText (TextSpan textSpan) => buffer.Span.Slice(textSpan.Start, textSpan.Length);
 		public int GetAbsolutePosition (CharLocation loc) => lines.GetAbsolutePosition (loc);
 		public CharLocation EndLocation => new CharLocation (lines.Count - 1, lines[lines.Count - 1].Length);
         public override string ToString() => ReadOnlySpan.ToString();

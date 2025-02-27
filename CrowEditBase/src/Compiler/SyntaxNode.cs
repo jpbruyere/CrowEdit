@@ -210,5 +210,6 @@ namespace CrowEditBase
 			return Span.Length < 0 ? "" : Root.GetText(Span).ToString();
 		}
 		public bool IsSimilar (SyntaxNode other) => this.GetType() == other?.GetType();
+
 	}
 }

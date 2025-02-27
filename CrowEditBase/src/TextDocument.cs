@@ -23,6 +23,8 @@ namespace CrowEditBase
 
 		protected TextBuffer buffer;
 		public ReadOnlySpan<char> source => buffer.ReadOnlySpan;
+		public ReadOnlyMemory<char> ImmutableBufferCopy => buffer.ReadOnlyCopy;
+		internal LineCollection Lines => buffer.GetLineListCopy();
 		System.Text.Encoding encoding = System.Text.Encoding.UTF8;
 
 		public override bool IsDirty => buffer.IsDirty;
@@ -40,18 +42,19 @@ namespace CrowEditBase
 			}
 			return state != null;
 		}
-		public override void RegisterClient(object client)
+		public override void RegisterClient(object client, bool initState = false)
 		{
-			documentRWLock.EnterWriteLock ();
+			EnterWriteLock();
 			registeredClients.Add (client, null);
-			//notifyClient (client, new TextChange (0, 0, source));
-			documentRWLock.ExitWriteLock ();
+			if (initState)
+				notifyClient (client,new TextChange (0, 0,source.ToString()));				
+			ExitWriteLock();
 		}
 		public override void UnregisterClient(object client)
 		{
-			documentRWLock.EnterWriteLock ();
+			EnterWriteLock();
 			registeredClients.Remove (client);
-			documentRWLock.ExitWriteLock ();
+			ExitWriteLock();
 		}
 		void notifyClients (TextChange tc, object triggeringClient = null) {
 			object[] clients = registeredClients.Keys.ToArray ();
@@ -84,12 +87,6 @@ namespace CrowEditBase
 					encoding = sr.CurrentEncoding;
 				}
 			}
-			ReadOnlyMemory<char> testbuff = buffer.ReadOnlyCopy;
-			
-			buffer.Update(new TextChange(0,0,"test"));
-			
-			Debug.WriteLine($"buffer: {buffer.ToString()}");
-			Debug.WriteLine($"testbuff: {testbuff.ToString()}");
 		}
 		protected override void initNewFile()
 		{
@@ -253,10 +250,18 @@ namespace CrowEditBase
 				documentRWLock.ExitReadLock();
 			}
 		}
+		public ReadOnlySpan<char> GetLineText (int index) {
+			documentRWLock.EnterReadLock ();
+			try {
+				return buffer.GetText (buffer.GetLine(index));
+			} finally {
+				documentRWLock.ExitReadLock();
+			}
+		}		
 		public ReadOnlySpan<char> GetText (TextLine line) {
 			documentRWLock.EnterReadLock ();
 			try {
-				return source.GetLine (line);
+				return buffer.GetText (line);
 			} finally {
 				documentRWLock.ExitReadLock();
 			}
@@ -264,7 +269,7 @@ namespace CrowEditBase
 		public ReadOnlySpan<char> GetText (TextSpan span) {
 			documentRWLock.EnterReadLock ();
 			try {
-				return source.Slice (span.Start, span.Length);
+				return buffer.GetText (span);
 			} finally {
 				documentRWLock.ExitReadLock();
 			}

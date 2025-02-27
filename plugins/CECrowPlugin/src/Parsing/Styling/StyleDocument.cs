@@ -22,16 +22,15 @@ namespace CECrowPlugin.Style
 			}*/
 		}
 
-		protected override Tokenizer CreateTokenizer() => new StyleTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new StyleSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (CharLocation loc) {
-			Console.ForegroundColor = ConsoleColor.DarkYellow;
+		public override IList GetSuggestions (Token currentToken, SyntaxNode CurrentNode, CharLocation loc) {
+			/*Console.ForegroundColor = ConsoleColor.DarkYellow;
 			Console.WriteLine ($"Tok: {this.CurrentTokenString} {((StyleTokenType)CurrentToken.Type).ToString()}");
-			Console.ResetColor();
+			Console.ResetColor();*/
 			return null;
 		}
-		public override bool TryGetCompletionForCurrentToken(object suggestion, out TextChange change, out TextSpan? newSelection)
+		public override bool TryCompleteToken(Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection)
 		{
 			change = default;
 			newSelection = null;

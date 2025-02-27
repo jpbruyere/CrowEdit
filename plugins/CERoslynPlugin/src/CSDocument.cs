@@ -44,14 +44,13 @@ namespace CERoslynPlugin
 		}
 
 		#region SourceDocument abstract class implementation
-		protected override Tokenizer CreateTokenizer() => new CSTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new CSSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (CharLocation loc)
+		public override IList GetSuggestions (Token currentToken, SyntaxNode CurrentNode, CharLocation loc)
 		{
 			throw new NotImplementedException();
 		}
-		public override bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection)
+		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection)
 		{
 			throw new NotImplementedException();
 		}

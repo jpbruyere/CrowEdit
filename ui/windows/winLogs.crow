@@ -1,88 +1,87 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Style="DockWindow" Caption="Logs"  Width="80%" Height="20%" >
 	<VerticalStack>
-
-	<TabView Data="{OpenedLogs}" SelectedItem="{²CurrentLog}">
-		<Template>
-			<VerticalStack Spacing="0" >
-				<HorizontalStack Height="Fit">
-					<ListBox Data="{./Items}" >
-						<Template>
-							<VerticalStack Spacing="0" >
-								<ScrollBar Orientation="Horizontal" Foreground="RoyalBlue" Height="6" Width="Stretched" CornerRadius="3"
-									Value="{²../ItemsScroller.ScrollX}"
-									LargeIncrement="{../ItemsScroller.PageWidth}" SmallIncrement="1"
-									CursorRatio="{../ItemsScroller.ChildWidthRatio}" Maximum="{../ItemsScroller.MaxScrollX}">
-									<Template>
-										<Container Margin="1" Background="{./Background}">
-											<Widget Name="Cursor" Background="{./Foreground}" CornerRadius="{./CornerRadius}"/>
-										</Container>
-									</Template>
-								</ScrollBar>
-								<Scroller Name="ItemsScroller" Height="Fit" Width="Stretched">
-									<HorizontalStack Name="ItemsContainer" Width="Fit" HorizontalAlignment="Left"/>
-								</Scroller>
-							</VerticalStack>
-						</Template>
-						<ItemTemplate>
-							<ListItem RootDataLevel="true" Fit="true" Background="${InactiveTabBackground}" Foreground="${InactiveTabForeground}" IsSelected="{IsVisible}"
-									Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}};{Foreground=${SelectedTabForeground}}"
-									Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}"
-									BubbleEvents="MouseWheel">
-								<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
-									<!--<Image Style="TreeIcon" Path="{Icon}" SvgSub="{IconSub}"/> No icon in Document class-->
-									<Label Text="{Name}" ContextCommands="{TabCommands}" Foreground="{../../Foreground}" />
-									<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
-												MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
-										<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
-											MouseClick="OnQueryClose"/>
-									</Border>
-								</HorizontalStack>
-							</ListItem>
-						</ItemTemplate>
-					</ListBox>
-					<Popper Caption="Available Logs">
-						<ListBox Data="{Logs}" Style="ScrollingListBox" Height="100" Width="200" Background="Jet" BubbleEvents="none" >
+		<TabView Data="{OpenedLogs}" SelectedItem="{²CurrentLog}">
+			<Template>
+				<VerticalStack Spacing="0" >
+					<HorizontalStack Height="Fit">
+						<ListBox Data="{./Items}" >
+							<Template>
+								<VerticalStack Spacing="0" >
+									<ScrollBar Orientation="Horizontal" Foreground="RoyalBlue" Height="6" Width="Stretched" CornerRadius="3"
+										Value="{²../ItemsScroller.ScrollX}"
+										LargeIncrement="{../ItemsScroller.PageWidth}" SmallIncrement="1"
+										CursorRatio="{../ItemsScroller.ChildWidthRatio}" Maximum="{../ItemsScroller.MaxScrollX}">
+										<Template>
+											<Container Margin="1" Background="{./Background}">
+												<Widget Name="Cursor" Background="{./Foreground}" CornerRadius="{./CornerRadius}"/>
+											</Container>
+										</Template>
+									</ScrollBar>
+									<Scroller Name="ItemsScroller" Height="Fit" Width="Stretched">
+										<HorizontalStack Name="ItemsContainer" Width="Fit" HorizontalAlignment="Left"/>
+									</Scroller>
+								</VerticalStack>
+							</Template>
 							<ItemTemplate>
-								<Border CornerRadius="2" Margin="0" Height="Fit"
-										Foreground="Transparent"
-										MouseEnter="{Foreground=DimGrey}"
-										MouseLeave="{Foreground=Transparent}">
-										<CheckBox Caption="{Name}" Width="Stretched" IsChecked="{²IsOpened}"/>
-								</Border>
+								<ListItem RootDataLevel="true" Fit="true" Background="${InactiveTabBackground}" Foreground="${InactiveTabForeground}" IsSelected="{IsVisible}"
+										Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}};{Foreground=${SelectedTabForeground}}"
+										Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}"
+										BubbleEvents="MouseWheel">
+									<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
+										<!--<Image Style="TreeIcon" Path="{Icon}" SvgSub="{IconSub}"/> No icon in Document class-->
+										<Label Text="{Name}" ContextCommands="{TabCommands}" Foreground="{../../Foreground}" />
+										<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
+													MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
+											<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
+												MouseClick="OnQueryClose"/>
+										</Border>
+									</HorizontalStack>
+								</ListItem>
 							</ItemTemplate>
 						</ListBox>
-					</Popper>				
-				</HorizontalStack>
-				<Group Name="ItemsContainer" Background="${SelectedTabBackground}"/>
-			</VerticalStack>
-		</Template>	
-		<ItemTemplate>
-			<ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}">
-				<VerticalStack RootDataLevel="true" >
-					<HorizontalStack Height="Fit" Spacing="5" Margin="0">
-						<Widget Width="Stretched"/>
-						<EnumSelector Caption="Filter:" EnumValue="{²../../log.Filter}" />
-						<TextBox Background="Grey" Foreground="Black" Text="{²../../log.SearchString}" Width="200" KeyDown="../../log.onSearch" Font="${SmallUIFont}"/>
-						<CheckBox Fit="true" Caption="Case Sensitive" IsChecked="{²../../log.CaseSensitiveSearch}" Font="${SmallUIFont}"/>
-						<CheckBox Fit="true" Caption="All Word" IsChecked="{²../../log.AllWordSearch}" Font="${SmallUIFont}"/>
-						<Menu Style="DockWinTitleBarMenu" Data="{../../log.SearchCommands}" Fit="true" Background="Transparent"/>
+						<Popper Caption="Available Logs">
+							<ListBox Data="{Logs}" Style="ScrollingListBox" Height="100" Width="200" Background="Jet" BubbleEvents="none" >
+								<ItemTemplate>
+									<Border CornerRadius="2" Margin="0" Height="Fit"
+											Foreground="Transparent"
+											MouseEnter="{Foreground=DimGrey}"
+											MouseLeave="{Foreground=Transparent}">
+											<CheckBox Caption="{Name}" Width="Stretched" IsChecked="{²IsOpened}"/>
+									</Border>
+								</ItemTemplate>
+							</ListBox>
+						</Popper>				
 					</HorizontalStack>
-					<HorizontalStack Spacing="0">
-						<LogViewerWidget Name="log" Logger="{}" Font="${SmallFont}" MaxScrollX="6000" ContextCommands="{Commands}" CurrentEntryIndex="{²SelectedIndex}"/>
-						<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}" CursorRatio="{../log.ChildHeightRatio}" Maximum="{../log.MaxScrollY}" />
-					</HorizontalStack>
-					<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>
-					<HorizontalStack Height="Fit">
-						<Label Text="MaxScrollY:"/>
-						<Label Text="{../../log.MaxScrollY}"/>
-						<Label Text="ScrollY:"/>
-						<Label Text="{../../log.ScrollY}"/>
-					</HorizontalStack>
+					<Group Name="ItemsContainer" Background="${SelectedTabBackground}"/>
 				</VerticalStack>
-			</ListItem>
-		</ItemTemplate>
-	</TabView>
+			</Template>	
+			<ItemTemplate>
+				<ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}">
+					<VerticalStack RootDataLevel="true" >
+						<HorizontalStack Height="Fit" Spacing="5" Margin="0">
+							<Widget Width="Stretched"/>
+							<EnumSelector Caption="Filter:" EnumValue="{²../../log.Filter}" />
+							<TextBox Background="Grey" Foreground="Black" Text="{²../../log.SearchString}" Width="200" KeyDown="../../log.onSearch" Font="${SmallUIFont}"/>
+							<CheckBox Fit="true" Caption="Case Sensitive" IsChecked="{²../../log.CaseSensitiveSearch}" Font="${SmallUIFont}"/>
+							<CheckBox Fit="true" Caption="All Word" IsChecked="{²../../log.AllWordSearch}" Font="${SmallUIFont}"/>
+							<Menu Style="DockWinTitleBarMenu" Data="{../../log.SearchCommands}" Fit="true" Background="Transparent"/>
+						</HorizontalStack>
+						<HorizontalStack Spacing="0">
+							<LogViewerWidget Name="log" Logger="{}" Font="${SmallFont}" MaxScrollX="6000" ContextCommands="{Commands}" CurrentEntryIndex="{²SelectedIndex}"/>
+							<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}" CursorRatio="{../log.ChildHeightRatio}" Maximum="{../log.MaxScrollY}" />
+						</HorizontalStack>
+						<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>
+						<HorizontalStack Height="Fit">
+							<Label Text="MaxScrollY:"/>
+							<Label Text="{../../log.MaxScrollY}"/>
+							<Label Text="ScrollY:"/>
+							<Label Text="{../../log.ScrollY}"/>
+						</HorizontalStack>
+					</VerticalStack>
+				</ListItem>
+			</ItemTemplate>
+		</TabView>
 	</VerticalStack>
 </DockWindow>
 

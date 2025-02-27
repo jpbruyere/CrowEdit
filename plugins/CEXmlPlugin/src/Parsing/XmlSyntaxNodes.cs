@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2013-2021  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+using System;
 using System.Linq;
 using Crow.Text;
 using CrowEditBase;
@@ -9,9 +10,7 @@ namespace CrowEdit.Xml
 {
 
 	public class XMLRootSyntax : SyntaxRootNode {
-		public XMLRootSyntax (XmlDocument source)
-			: base (source) {
-		}
+		public XMLRootSyntax (ReadOnlyMemory<char> source, Token[] tokens) : base (source, tokens) { }
 	}
 	public class ProcessingInstructionSyntax : SyntaxNode {
 		public int? PIClose, name;

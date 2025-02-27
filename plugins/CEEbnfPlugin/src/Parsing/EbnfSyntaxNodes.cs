@@ -11,9 +11,7 @@ namespace CrowEdit.Ebnf
 {
 
 	public class EbnfRootSyntax : SyntaxRootNode {
-		public EbnfRootSyntax (EbnfDocument source)
-			: base (source) {
-		}
+		public EbnfRootSyntax (ReadOnlyMemory<char> source, Token[] tokens) : base (source, tokens) { }
     }
 	public class EbnfSyntaxNode : SyntaxNode {
 		public EbnfSyntaxNode(int startLine, int tokenBase)

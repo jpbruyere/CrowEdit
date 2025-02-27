@@ -31,7 +31,6 @@ namespace CECrowPlugin
 				if (msbp.IsCrowProject)
 			}*/
 		}
-		protected override Tokenizer CreateTokenizer() => new ImlTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (this);
 		public override string GetTokenTypeString (TokenType tokenType) => ((ImlTokenType)tokenType).ToString();
 
@@ -49,20 +48,9 @@ namespace CECrowPlugin
 			Type crowType = IML.Instantiator.GetWidgetTypeFromName (crowTypeName);
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}
-		
-		protected bool previousTokHasFlag(ImlTokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
-		
-		protected bool tryCast<TOUT> (object objectToCast, out TOUT result) {
-			result = default;
-			if (typeof(TOUT).IsAssignableFrom(objectToCast.GetType())) {
-				result = (TOUT)objectToCast;
-				return true;
-			}
 
-			return false;
-		}
-		public override IList GetSuggestions (CharLocation loc) {
-			IList sugs = base.GetSuggestions (loc);
+		public override IList GetSuggestions (Token currentToken, SyntaxNode CurrentNode, CharLocation loc) {
+			IList sugs = base.GetSuggestions (currentToken, CurrentNode, loc);
 			if (sugs != null)
 				return sugs;
 
@@ -73,8 +61,7 @@ namespace CECrowPlugin
 				return new List<string> (allWidgetNames);
 			if (tok.GetTokenType() == XmlTokenType.ElementName)
 				return allWidgetNames.Where (s => s.StartsWith (root.GetTokenString(tok), StringComparison.OrdinalIgnoreCase)).ToList ();
-			if ((tok.Type.HasFlag(TokenType.WhiteSpace) || previousTokHasFlag(TokenType.WhiteSpace)) &&
-						tryCast(CurrentNode, out ElementTagSyntax ets)) {
+			if (tok.Type.HasFlag(TokenType.WhiteSpace) && CurrentNode.TryCast(out ElementTagSyntax ets)) {
 				if (ets.name.HasValue)
 					return getAllCrowTypeMembers (ets.Name).ToList();
 				return null;
@@ -139,8 +126,8 @@ namespace CECrowPlugin
 			}*/
 			return null;
 		}
-		public override bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection) {
-			return base.TryGetCompletionForCurrentToken (suggestion is MemberInfo mi ? mi.Name : suggestion, out change, out newSelection);
+		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection) {
+			return base.TryCompleteToken (tok, node, suggestion is MemberInfo mi ? mi.Name : suggestion, out change, out newSelection);
 		}
 
 		public override Color GetColorForToken(TokenType tokType)

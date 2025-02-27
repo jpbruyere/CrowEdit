@@ -2,6 +2,7 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
+using System;
 using Crow.Text;
 using System.Collections;
 using CrowEditBase;
@@ -22,13 +23,12 @@ namespace CrowEdit.Ebnf
 		public EbnfDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
 
 		}
-		protected override Tokenizer CreateTokenizer() => new EbnfTokenizer ();
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new EbnfSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (CharLocation loc) {
+		public override IList GetSuggestions (Token currentToken, SyntaxNode CurrentNode, CharLocation loc) {
 			return null;
 		}
-		public override bool TryGetCompletionForCurrentToken (object suggestion, out TextChange change, out TextSpan? newSelection) {
+		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection) {
 			newSelection = null;
 			change = default;
 			return false;
