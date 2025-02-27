@@ -53,12 +53,7 @@ namespace CrowEdit.Xml
 						if (curTok.GetTokenType() == XmlTokenType.ElementOpen)
 							currentNode = currentNode.AddChild (new ElementStartTagSyntax (currentLine, tokIdx));
 						else if (curTok.GetTokenType() == XmlTokenType.EndElementOpen) {
-							elt.EndTag = new ElementEndTagSyntax (currentLine, tokIdx);
-							currentNode = elt.AddChild (elt.EndTag);
-							/*} else {
-								finishCurrentNode(-1);
-								addException ("Unmatching open/closing element name");
-							}*/
+							currentNode = elt.AddChild (new ElementEndTagSyntax (currentLine, tokIdx));
 						}
 					} else if (currentNode is AttributeSyntax attrib) {
 						if (curTok.GetTokenType() == XmlTokenType.EqualSign)
@@ -83,8 +78,30 @@ namespace CrowEdit.Xml
 							eltEndTag.name = tokIdx - eltEndTag.TokenIndexBase;
 						else if (curTok.GetTokenType() == XmlTokenType.ClosingSign) {
 							eltEndTag.close = tokIdx - eltEndTag.TokenIndexBase;
-							//go up 2 times
-							finishCurrentNode (); finishCurrentNode ();
+							ElementSyntax es = eltEndTag.Parent as ElementSyntax;
+							string eltEndTagName = eltEndTag.Name;
+							if (string.Equals(es.StartTag.Name, eltEndTagName, StringComparison.Ordinal)) {
+								es.EndTag = eltEndTag;
+								//go up 2 times
+								finishCurrentNode (); finishCurrentNode ();
+							} else {
+								addException ("Open/Close element name mismatch");
+								finishCurrentNode (1);//finish eltEndTag->curNode is parent elt
+								currentNode.RemoveChild(eltEndTag);
+								finishCurrentNode (-eltEndTag.TokenCount.Value); //dont credit parent element with those tokens from the non matching end tag
+																				 //curNode should be parent element of previous element
+								while(currentNode is ElementSyntax esp) {
+									//eltEndTag is out of tree, so Name get threw exception
+									if (string.Equals(esp.StartTag.Name, eltEndTagName, StringComparison.Ordinal)) {
+										esp.EndTag = eltEndTag;
+										esp.AddChild (eltEndTag);
+										finishCurrentNode ();
+										break;
+									} else {
+										finishCurrentNode (-eltEndTag.TokenCount.Value);
+									}
+								}
+							}
 						} else {
 							addException ("Unexpected Token");
 							finishCurrentNode (-1);

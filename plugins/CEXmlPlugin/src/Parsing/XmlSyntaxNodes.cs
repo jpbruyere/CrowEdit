@@ -23,7 +23,8 @@ namespace CrowEdit.Xml
 	public abstract class ElementTagSyntax : SyntaxNode {
 		public int? name, close;
 		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
-		public string Name => Root.GetTokenStringByIndex (TokenIndexBase + name.Value);
+		public string Name => name.HasValue ?
+				Root.GetTokenStringByIndex (TokenIndexBase + name.Value) : null;
 		protected ElementTagSyntax (int startLine, int tokenBase)
 			: base (startLine, tokenBase) {
 		}
