@@ -18,22 +18,35 @@ namespace CrowEdit.Xml
 		public static void SetTokenType (this Token tok, XmlTokenType type) {
 			tok.Type = (TokenType)type;
 		}
-
+		public static bool Is(this Token tok, XmlTokenType type) => (XmlTokenType)tok.Type == type; 
 	}
 	public class XmlDocument : SourceDocument {
 
 		public XmlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {	}
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (this);
 		public override string GetTokenTypeString (TokenType tokenType) => ((XmlTokenType)tokenType).ToString();
-		public override IList GetSuggestions (Token currentToken, SyntaxNode CurrentNode, CharLocation loc) {
-			/*currentToken = FindTokenIncludingPosition (pos);
-			currentNode = FindNodeIncludingPosition (pos);*/
-			if (currentToken.GetTokenType() == XmlTokenType.EndElementOpen &&
-				CurrentNode is ElementEndTagSyntax eltEndTag && !eltEndTag.IsComplete) {
-				ElementSyntax es = eltEndTag.Parent as ElementSyntax;
-				if (es?.StartTag.name != null)
-					return new List<string> (new string[] {es.StartTag.Name});
-			}			
+		public override IList GetSuggestions (int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+			Token currentToken = GetTokenByIndex(currentTokenIndex);
+			Token previousToken = GetTokenByIndex(currentTokenIndex-1);
+
+			if (CurrentNode is ElementEndTagSyntax eltEndTag && 
+					eltEndTag.Parent is ElementSyntax elt &&
+					elt.StartTag?.Name != null) {
+
+				string eltName = elt.StartTag.Name;
+				string curEndName = null;
+
+				if (currentToken.Is(XmlTokenType.ElementName))
+					curEndName = root.GetTokenString(currentToken);
+				else if (previousToken.Is(XmlTokenType.ElementName))
+					curEndName = root.GetTokenString(previousToken);
+				else if (previousToken.Is(XmlTokenType.EndElementOpen))
+					curEndName = "";
+
+				if (curEndName != null && elt.StartTag.Name.StartsWith (
+											curEndName, StringComparison.OrdinalIgnoreCase))
+					return new List<string> (new string[] {eltName});
+			}
 			return null;
 		}
 		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection) {

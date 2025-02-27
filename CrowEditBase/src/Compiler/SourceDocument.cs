@@ -138,7 +138,7 @@ namespace CrowEditBase
 		public virtual string GetTokenTypeString (TokenType tokenType) => tokenType.ToString();
 		//protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
-		public abstract IList GetSuggestions (Token currentToken, SyntaxNode currentNode, CharLocation loc);
+		public abstract IList GetSuggestions (int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
 
 		/// <summary>
 		/// complete current token with selected item from the suggestion overlay.

@@ -46,8 +46,9 @@ namespace CERoslynPlugin
 		#region SourceDocument abstract class implementation
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new CSSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (Token currentToken, SyntaxNode CurrentNode, CharLocation loc)
+		public override IList GetSuggestions (int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc)
 		{
+			Token currentToken = GetTokenByIndex(currentTokenIndex);
 			throw new NotImplementedException();
 		}
 		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection)

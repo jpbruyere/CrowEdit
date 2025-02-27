@@ -49,13 +49,13 @@ namespace CECrowPlugin
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}
 
-		public override IList GetSuggestions (Token currentToken, SyntaxNode CurrentNode, CharLocation loc) {
-			IList sugs = base.GetSuggestions (currentToken, CurrentNode, loc);
+		public override IList GetSuggestions (int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+			IList sugs = base.GetSuggestions (currentTokenIndex, CurrentNode, loc);
 			if (sugs != null)
 				return sugs;
 
 			//Token tok = currentToken.Length == 0 || currentToken.Type.HasFlag(TokenType.Trivia) ? previousToken : currentToken;
-			Token tok = currentToken;
+			Token tok = GetTokenByIndex(currentTokenIndex);
 
 			if (tok.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);

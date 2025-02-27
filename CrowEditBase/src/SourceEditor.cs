@@ -62,7 +62,7 @@ namespace Crow
 
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc && srcDoc.IsParsed) {
-				IList suggs = srcDoc.GetSuggestions (CurrentToken, currentNode, CurrentLoc.Value);
+				IList suggs = srcDoc.GetSuggestions (currentTokenIndex, currentNode, CurrentLoc.Value);
 				Token tok = CurrentToken;
 				if (suggs != null && suggs.Count == 1 && (
 					(suggs[0] is System.Reflection.MemberInfo mi && mi.Name == srcDoc.GetText(tok.Span)) ||
