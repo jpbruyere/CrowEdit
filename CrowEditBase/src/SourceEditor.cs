@@ -20,10 +20,10 @@ namespace Crow
 		public TextChange Change;
 		public TextSpan? NextSelection;
 
-		public Suggestion(string caption, TextChange change = default, TextSpan? nextSelection = null) {
+		public Suggestion(string caption, TextChange change = default, int finalPositionOffset = 0) {
 			Caption = caption;
 			Change = change;
-			NextSelection = nextSelection;
+			NextSelection = finalPositionOffset < 0 ? TextSpan.FromStartAndLength(change.End2 + finalPositionOffset) : null;
 		}
 	}
 	public class SourceEditor : Editor {
@@ -75,52 +75,13 @@ namespace Crow
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc && srcDoc.IsParsed) {
 				int pos = srcDoc.GetAbsolutePosition(CurrentLoc.Value);
 				Suggestions = srcDoc.GetSuggestions (pos, currentTokenIndex, currentNode, CurrentLoc.Value);
-
-				/*Token tok = CurrentToken;
-				if (suggs != null && suggs.Count == 1 && (
-					(suggs[0] is System.Reflection.MemberInfo mi && mi.Name == srcDoc.GetText(tok.Span)) ||
-					(suggs[0].ToString() == srcDoc.GetText(tok.Span))
-				)){
-					Suggestions = null;
-				}else
-					Suggestions = suggs;*/
 			} else
 				Suggestions = null;
 		}
 		void showOverlay () {
 			lock (IFace.UpdateMutex) {
 				if (overlay == null) {
-					overlay = IFace.LoadIMLFragment<ListBox>(@"
-						<ListBox Style='suggestionsListBox' Data='{Suggestions}' UseLoadingThread = 'false'>
-							<ItemTemplate>
-								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
-												Selected = '{Background=${ControlHighlight}}'
-												Unselected = '{Background=Transparent}'>
-									<Label Text='{Caption}' HorizontalAlignment='Left' />
-								</ListItem>
-							</ItemTemplate>
-							<ItemTemplate DataType='System.Reflection.MemberInfo'>
-								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
-												Selected = '{Background=${ControlHighlight}}'
-												Unselected = '{Background=Transparent}'>
-									<HorizontalStack>
-										<!--<Image Picture='{GetIcon}' Width='16' Height='16'/>-->
-										<Label Text='{Name}' HorizontalAlignment='Left' />
-									</HorizontalStack>
-								</ListItem>
-							</ItemTemplate>
-							<ItemTemplate DataType='Crow.Colors'>
-								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
-												Selected = '{Background=${ControlHighlight}}'
-												Unselected = '{Background=Transparent}'>
-									<HorizontalStack>
-										<Widget Background='{}' Width='20' Height='14'/>
-										<Label Text='{}' HorizontalAlignment='Left' />
-									</HorizontalStack>
-								</ListItem>
-							</ItemTemplate>
-						</ListBox>
-					");
+					overlay = IFace.Load<ListBox>(@"#ui.SuggestionsOverlay.crow");
 					overlay.DataSource = this;
 					overlay.Loaded += (sender, arg) => (sender as ListBox).SelectedIndex = 0;
 				} else
@@ -613,8 +574,6 @@ namespace Crow
 					}
 				}
 
-
-				//double spacePixelWidth = gr.TextExtents (" ").XAdvance;
 				double	pixX = cb.Left,
 						pixY = cb.Top;
 
@@ -623,11 +582,7 @@ namespace Crow
 				ReadOnlySpan<char> sourceBytes = doc.source;
 				Span<byte> bytes = stackalloc byte[128];
 				TextExtents extents;
-				
-				
-
 				ReadOnlySpan<char> buff = sourceBytes;
-
 				
 				int printedLines = 0;
 				int linesToSkip = (int)Math.Floor(ScrollY / lineHeight);

@@ -49,13 +49,26 @@ namespace CECrowPlugin
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}
 
-		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+        protected override IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change)
+        {
+			IEnumerable<Type> widgetTypes = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>typeof(Widget).IsAssignableFrom (t));
+			int curNameLength = 0;
+			if (!string.IsNullOrEmpty(curName)) {
+				widgetTypes = widgetTypes.Where(t=>t.Name.StartsWith(curName, StringComparison.OrdinalIgnoreCase));
+				curNameLength = curName.Length;
+			}
+			int endPosOffset = change.HasNewText ? -change.ChangedText.Length : 0;
+            return widgetTypes.Select (t
+				=> new Suggestion(t.Name,
+					new TextChange(change.Start, change.Length, t.Name + change.ChangedText), endPosOffset));
+        }
+        /*public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			IList sugs = base.GetSuggestions (absoluteTextPos, currentTokenIndex, CurrentNode, loc);
 			if (sugs != null)
 				return sugs;
 
-			//Token tok = currentToken.Length == 0 || currentToken.Type.HasFlag(TokenType.Trivia) ? previousToken : currentToken;
-			/*Token tok = GetTokenByIndex(currentTokenIndex);
+			
+			Token tok = GetTokenByIndex(currentTokenIndex);
 
 			if (tok.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);
@@ -123,9 +136,9 @@ namespace CECrowPlugin
 				//else if (tok.Type == TokenType.ElementName)
 				//	Suggestions = getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source)).ToList ();
 			} else {
-			}*/
+			}
 			return null;
-		}
+		}*/
 
 		public override Color GetColorForToken(TokenType tokType)
 		{

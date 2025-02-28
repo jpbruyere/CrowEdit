@@ -80,11 +80,13 @@ namespace CrowEdit.Xml
 							eltEndTag.close = tokIdx - eltEndTag.TokenIndexBase;
 							ElementSyntax es = eltEndTag.Parent as ElementSyntax;
 							string eltEndTagName = eltEndTag.Name;
-							if (string.Equals(es.StartTag.Name, eltEndTagName, StringComparison.Ordinal)) {
-								es.EndTag = eltEndTag;
-								//go up 2 times
-								finishCurrentNode (); finishCurrentNode ();
-							} else {
+							es.EndTag = eltEndTag;
+							finishCurrentNode (); 
+							if (!string.Equals(es.StartTag.Name, eltEndTagName, StringComparison.Ordinal)) {
+								addException ("Open/Close element name mismatch");
+							}
+							finishCurrentNode ();
+							/*else {
 								addException ("Open/Close element name mismatch");
 								finishCurrentNode ();//finish eltEndTag->curNode is parent elt
 								currentNode.RemoveChild(eltEndTag);
@@ -101,7 +103,7 @@ namespace CrowEdit.Xml
 										finishCurrentNode (-eltEndTag.TokenCount);
 									}
 								}
-							}
+							}*/
 						} else {
 							addException ("Unexpected Token");
 							finishCurrentNode (-1);

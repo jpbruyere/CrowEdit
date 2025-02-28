@@ -140,16 +140,6 @@ namespace CrowEditBase
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public abstract IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
 
-		/// <summary>
-		/// complete current token with selected item from the suggestion overlay.
-		/// It may set a new position or a new selection.
-		/// </summary>
-		/// <param name="suggestion">selected object of suggestion overlay</param>
-		/// /// <param name="change">the text change to apply</param>
-		/// <param name="newSelection">new position or selection, null if normal position after text changes</param>
-		/// <returns>true if successed</returns>
-		//public abstract bool TryCompleteToken (Token CurrentToken, SyntaxNode CurrentNode, object suggestion, out TextChange change, out TextSpan? newSelection);
-		//protected bool previousTokHasFlag(TokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
 		void parse () {
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
 			root = syntaxAnalyser?.Process ();

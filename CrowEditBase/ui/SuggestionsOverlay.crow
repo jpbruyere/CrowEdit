@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<ListBox Style='suggestionsListBox' Data='{Suggestions}' UseLoadingThread = 'false'>
+	<ItemTemplate>
+		<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
+						Selected = '{Background=${ControlHighlight}}'
+						Unselected = '{Background=Transparent}'>
+			<Label Text='{Caption}' HorizontalAlignment='Left' Margin="2"/>
+		</ListItem>
+	</ItemTemplate>
+	<ItemTemplate DataType='System.Reflection.MemberInfo'>
+		<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
+						Selected = '{Background=${ControlHighlight}}'
+						Unselected = '{Background=Transparent}'>
+			<HorizontalStack>
+				<!--<Image Picture='{GetIcon}' Width='16' Height='16'/>-->
+				<Label Text='{Name}' HorizontalAlignment='Left' />
+			</HorizontalStack>
+		</ListItem>
+	</ItemTemplate>
+	<ItemTemplate DataType='Crow.Colors'>
+		<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
+						Selected = '{Background=${ControlHighlight}}'
+						Unselected = '{Background=Transparent}'>
+			<HorizontalStack>
+				<Widget Background='{}' Width='20' Height='14'/>
+				<Label Text='{}' HorizontalAlignment='Left' />
+			</HorizontalStack>
+		</ListItem>
+	</ItemTemplate>
+</ListBox>
