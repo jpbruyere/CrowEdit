@@ -62,6 +62,12 @@ namespace CECrowPlugin
 				=> new Suggestion(t.Name,
 					new TextChange(change.Start, change.Length, t.Name + change.ChangedText), endPosOffset));
         }
+        protected override IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string curName, TextChange change) {
+			int endPosOffset = change.HasNewText ? -1 : 0;
+			return getAllCrowTypeMembers(eltName).Select(m
+				=> new Suggestion(m.Name,
+					new TextChange(change.Start, change.Length, m.Name + change.ChangedText), endPosOffset));
+		}
         /*public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			IList sugs = base.GetSuggestions (absoluteTextPos, currentTokenIndex, CurrentNode, loc);
 			if (sugs != null)

@@ -74,7 +74,11 @@ namespace Crow
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc && srcDoc.IsParsed) {
 				int pos = srcDoc.GetAbsolutePosition(CurrentLoc.Value);
-				Suggestions = srcDoc.GetSuggestions (pos, currentTokenIndex, currentNode, CurrentLoc.Value);
+				var tmp = srcDoc.GetSuggestions (pos, currentTokenIndex, currentNode, CurrentLoc.Value);
+				if (tmp?.Count == 1 && tmp[0].TryCast(out Suggestion sug) && sug.Change.HasNoEffect(srcDoc.source))
+					Suggestions = null;
+				else
+					Suggestions = tmp;
 			} else
 				Suggestions = null;
 		}
