@@ -49,13 +49,13 @@ namespace CECrowPlugin
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}
 
-		public override IList GetSuggestions (int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
-			IList sugs = base.GetSuggestions (currentTokenIndex, CurrentNode, loc);
+		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+			IList sugs = base.GetSuggestions (absoluteTextPos, currentTokenIndex, CurrentNode, loc);
 			if (sugs != null)
 				return sugs;
 
 			//Token tok = currentToken.Length == 0 || currentToken.Type.HasFlag(TokenType.Trivia) ? previousToken : currentToken;
-			Token tok = GetTokenByIndex(currentTokenIndex);
+			/*Token tok = GetTokenByIndex(currentTokenIndex);
 
 			if (tok.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);
@@ -113,7 +113,7 @@ namespace CECrowPlugin
 						}
 					}
 				}
-			} /*else if (tok.GetTokenType() != XmlTokenType.AttributeValueClose &&
+			} *//*else if (tok.GetTokenType() != XmlTokenType.AttributeValueClose &&
 					tok.GetTokenType() != XmlTokenType.EmptyElementClosing &&
 					tok.GetTokenType() != XmlTokenType.ClosingSign &&
 					CurrentNode is ElementStartTagSyntax eltStartTag) {
@@ -125,9 +125,6 @@ namespace CECrowPlugin
 			} else {
 			}*/
 			return null;
-		}
-		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection) {
-			return base.TryCompleteToken (tok, node, suggestion is MemberInfo mi ? mi.Name : suggestion, out change, out newSelection);
 		}
 
 		public override Color GetColorForToken(TokenType tokType)

@@ -25,14 +25,9 @@ namespace CrowEdit.Ebnf
 		}
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new EbnfSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			Token currentToken = GetTokenByIndex(currentTokenIndex);
 			return null;
-		}
-		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection) {
-			newSelection = null;
-			change = default;
-			return false;
 		}
 
 		public override Color GetColorForToken(TokenType tokType)

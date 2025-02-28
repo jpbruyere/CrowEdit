@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2021-2025  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -138,7 +138,7 @@ namespace CrowEditBase
 		public virtual string GetTokenTypeString (TokenType tokenType) => tokenType.ToString();
 		//protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
-		public abstract IList GetSuggestions (int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
+		public abstract IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
 
 		/// <summary>
 		/// complete current token with selected item from the suggestion overlay.
@@ -148,7 +148,7 @@ namespace CrowEditBase
 		/// /// <param name="change">the text change to apply</param>
 		/// <param name="newSelection">new position or selection, null if normal position after text changes</param>
 		/// <returns>true if successed</returns>
-		public abstract bool TryCompleteToken (Token CurrentToken, SyntaxNode CurrentNode, object suggestion, out TextChange change, out TextSpan? newSelection);
+		//public abstract bool TryCompleteToken (Token CurrentToken, SyntaxNode CurrentNode, object suggestion, out TextChange change, out TextSpan? newSelection);
 		//protected bool previousTokHasFlag(TokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
 		void parse () {
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();

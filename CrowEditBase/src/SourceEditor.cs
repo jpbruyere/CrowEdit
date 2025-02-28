@@ -15,6 +15,17 @@ using System.Collections.Frozen;
 
 namespace Crow
 {
+	public class Suggestion {
+		public string Caption;
+		public TextChange Change;
+		public TextSpan? NextSelection;
+
+		public Suggestion(string caption, TextChange change = default, TextSpan? nextSelection = null) {
+			Caption = caption;
+			Change = change;
+			NextSelection = nextSelection;
+		}
+	}
 	public class SourceEditor : Editor {
 		int currentTokenIndex = -1;
 		SyntaxNode currentNode;
@@ -62,15 +73,17 @@ namespace Crow
 
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc && srcDoc.IsParsed) {
-				IList suggs = srcDoc.GetSuggestions (currentTokenIndex, currentNode, CurrentLoc.Value);
-				Token tok = CurrentToken;
+				int pos = srcDoc.GetAbsolutePosition(CurrentLoc.Value);
+				Suggestions = srcDoc.GetSuggestions (pos, currentTokenIndex, currentNode, CurrentLoc.Value);
+
+				/*Token tok = CurrentToken;
 				if (suggs != null && suggs.Count == 1 && (
 					(suggs[0] is System.Reflection.MemberInfo mi && mi.Name == srcDoc.GetText(tok.Span)) ||
 					(suggs[0].ToString() == srcDoc.GetText(tok.Span))
 				)){
 					Suggestions = null;
 				}else
-					Suggestions = suggs;
+					Suggestions = suggs;*/
 			} else
 				Suggestions = null;
 		}
@@ -83,7 +96,7 @@ namespace Crow
 								<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
 												Selected = '{Background=${ControlHighlight}}'
 												Unselected = '{Background=Transparent}'>
-									<Label Text='{}' HorizontalAlignment='Left' />
+									<Label Text='{Caption}' HorizontalAlignment='Left' />
 								</ListItem>
 							</ItemTemplate>
 							<ItemTemplate DataType='System.Reflection.MemberInfo'>
@@ -122,11 +135,10 @@ namespace Crow
 		}
 		void completeToken () {
 			if (Document is SourceDocument srcDoc) {
-				if (srcDoc.TryCompleteToken (CurrentToken, CurrentNode, overlay.SelectedItem, out TextChange change, out TextSpan? nextSelection)) {
-					update (change);
-					if (nextSelection.HasValue) {
-						Selection = nextSelection.Value;
-					}
+				if (overlay.SelectedItem is Suggestion sug) {	
+					update (sug.Change);
+					if (sug.NextSelection.HasValue) 
+						Selection = sug.NextSelection.Value;
 				}
 			}
 			hideOverlay ();

@@ -8,6 +8,7 @@ using CrowEditBase;
 using Drawing2D;
 using System.Collections.Generic;
 using System;
+using Crow;
 
 namespace CrowEdit.Xml
 {
@@ -25,31 +26,42 @@ namespace CrowEdit.Xml
 		public XmlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {	}
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (this);
 		public override string GetTokenTypeString (TokenType tokenType) => ((XmlTokenType)tokenType).ToString();
-		public override IList GetSuggestions (int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
-			Token currentToken = GetTokenByIndex(currentTokenIndex);
-			Token previousToken = GetTokenByIndex(currentTokenIndex-1);
+		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+			Token tok = GetTokenByIndex(currentTokenIndex);
+			Token prevTok = GetTokenByIndex(currentTokenIndex-1);
 
-			if (CurrentNode is ElementEndTagSyntax eltEndTag && 
+			if (!tok.Is(XmlTokenType.ClosingSign) &&
+				CurrentNode is ElementEndTagSyntax eltEndTag && 
 					eltEndTag.Parent is ElementSyntax elt &&
 					elt.StartTag?.Name != null) {
 
-				string eltName = elt.StartTag.Name;
+				Suggestion sug = new Suggestion(elt.StartTag.Name);
 				string curEndName = null;
+				
 
-				if (currentToken.Is(XmlTokenType.ElementName))
-					curEndName = root.GetTokenString(currentToken);
-				else if (previousToken.Is(XmlTokenType.ElementName))
-					curEndName = root.GetTokenString(previousToken);
-				else if (previousToken.Is(XmlTokenType.EndElementOpen))
+				if (tok.Is(XmlTokenType.ElementName)) {
+					curEndName = root.GetTokenString(tok);
+					sug.Change = new TextChange (tok.Start, tok.Length, sug.Caption);
+				} else if (prevTok.Is(XmlTokenType.ElementName)) {
+					curEndName = root.GetTokenString(prevTok);
+					sug.Change = new TextChange (prevTok.Start, prevTok.Length, sug.Caption);
+				} else if (prevTok.Is(XmlTokenType.EndElementOpen)) {
 					curEndName = "";
+					sug.Change = new TextChange (prevTok.End, 0, sug.Caption);
+				}
+
+				if (!(sug.Change.IsEmpty || GetTokenByIndex(currentTokenIndex+1).Is(XmlTokenType.ClosingSign)))
+					sug.Change.ChangedText += ">";
 
 				if (curEndName != null && elt.StartTag.Name.StartsWith (
-											curEndName, StringComparison.OrdinalIgnoreCase))
-					return new List<string> (new string[] {eltName});
+											curEndName, StringComparison.OrdinalIgnoreCase)
+										&& !elt.StartTag.Name.Equals(curEndName, StringComparison.Ordinal))
+					return new List<Suggestion> ([sug]);
 			}
 			return null;
 		}
-		public override bool TryCompleteToken (Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection) {
+		/*
+		public override bool TryCompleteToken (Suggestion suggestion) {
 			newSelection = null;
 			change = default;
 
@@ -111,9 +123,9 @@ namespace CrowEdit.Xml
 				change =  new TextChange (tok.Start, tok.Length, selectedSugg);
 
 			return true;
-/***********************************************/
 
-			/*if (tok.GetTokenType() == XmlTokenType.ElementOpen ||
+
+			if (tok.GetTokenType() == XmlTokenType.ElementOpen ||
 				tok.GetTokenType() == XmlTokenType.WhiteSpace ||
 				tok.GetTokenType() == XmlTokenType.AttributeValueOpen) {
 				change = new TextChange (tok.End, 0, selectedSugg);
@@ -134,8 +146,8 @@ namespace CrowEdit.Xml
 			}
 
 			change = new TextChange (tok.Start, tok.Length, selectedSugg);
-			return true;*/
-		}
+			return true;
+		}*/
 
 		public override Color GetColorForToken(TokenType tokType)
 		{

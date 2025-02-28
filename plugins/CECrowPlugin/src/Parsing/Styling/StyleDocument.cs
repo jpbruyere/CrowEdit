@@ -24,18 +24,12 @@ namespace CECrowPlugin.Style
 
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new StyleSyntaxAnalyser (this);
 
-		public override IList GetSuggestions (int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			Token currentToken = GetTokenByIndex(currentTokenIndex);
 			/*Console.ForegroundColor = ConsoleColor.DarkYellow;
 			Console.WriteLine ($"Tok: {this.CurrentTokenString} {((StyleTokenType)CurrentToken.Type).ToString()}");
 			Console.ResetColor();*/
 			return null;
-		}
-		public override bool TryCompleteToken(Token tok, SyntaxNode node, object suggestion, out TextChange change, out TextSpan? newSelection)
-		{
-			change = default;
-			newSelection = null;
-			return false;
 		}
 		public override Color GetColorForToken(TokenType tokType)
 		{
