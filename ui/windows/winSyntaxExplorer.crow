@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Syntax"  Width="40%">
+<DockWindow Caption="Syntax"  Width="30%">
 	<VerticalStack RootDataLevel="true" Spacing="0" DataSource="{CurrentDocument}">
 		<Button Command="{CMDRefreshSyntaxTree}"/>
 		<Label Text="{}"/>

@@ -130,7 +130,7 @@ namespace Crow
 				new Command("Load from file", () => loadLogFromDebugLogFilePath ())
 			);*/
 		public CommandGroup WindowCommands => new CommandGroup (
-			CMDRefresh, CMDZoomIn, CMDZoomOut,
+			CMDRefresh, //CMDZoomIn, CMDZoomOut,
 			crowIFaceService.CMDStartRecording,
 			crowIFaceService.CMDStopRecording,
 			crowIFaceService.CMDOpenConfig,
@@ -158,14 +158,16 @@ namespace Crow
 
 		public override bool Paint(IContext ctx)
 		{
-			return base.Paint(ctx);
+			crowIFaceService.LockRenderMutex();
+			try {
+				return base.Paint(ctx);				
+			} finally {
+				crowIFaceService.UnlockRenderMutex();
+			}
 		}
 		protected override void RecreateCache()
 		{
-			//bmp?.Dispose ();
-
 			if (crowIFaceService != null && crowIFaceService.IsRunning) {
-				crowIFaceService.Resize (Slot.Width, Slot.Height);
 				bmp = crowIFaceService.MainSurface;
 			} else
 				base.RecreateCache ();
@@ -174,17 +176,33 @@ namespace Crow
 		}
 		protected override void UpdateCache(IContext ctx)
 		{
-			if (bmp != null) {
+			if (crowIFaceService != null && crowIFaceService.IsRunning && bmp != null) {
+				crowIFaceService.LockRenderMutex();
 				paintCache (ctx, Slot + Parent.ClientRectangle.Position);
-				crowIFaceService?.ResetDirtyState ();
+				crowIFaceService.UnlockRenderMutex();
+				crowIFaceService.ResetDirtyState ();
+			} 
+				
+		}
+		public override void OnLayoutChanges (LayoutingType layoutType)
+		{
+			base.OnLayoutChanges (layoutType);
+			switch (layoutType) {
+			case LayoutingType.Width:
+				//DesignWidth = Slot.Width * 100 / zoom;
+				crowIFaceService.Resize (Slot.Width, Slot.Height);
+				break;
+			case LayoutingType.Height:
+				//DesignHeight = Slot.Height * 100 / zoom;
+				crowIFaceService.Resize (Slot.Width, Slot.Height);
+				break;
 			}
 		}
-
 
 		protected override void Dispose(bool disposing)
 		{
 			CMDRefresh?.Dispose ();
-			crowIFaceService?.Stop ();
+			//crowIFaceService?.Stop ();
 			base.Dispose(disposing);
 		}
 	}

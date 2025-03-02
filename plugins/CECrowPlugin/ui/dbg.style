@@ -2,13 +2,7 @@
 	Template = "#CECrowPlugin.ui.Button.template";
 	Background = "Onyx";
 }
-CheckBox2 {
-	Template= "#CECrowPlugin.ui.CheckBox2.imlt";
-	Background = "Jet";
-	Checked="{Background=MediumSeaGreen}";
-	Unchecked = "{Background=Jet}";	
-	Width = "200";
-}
+
 smallLabCaption {
 	Font="mono, 8";
 	Foreground="Grey";

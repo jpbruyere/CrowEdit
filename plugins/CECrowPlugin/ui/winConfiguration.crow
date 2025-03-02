@@ -22,13 +22,18 @@
 					<Label Fit="true" Text="Assembly Name:"/>
 					<Label Fit="true" Text="{CrowAssemblyName}"/>
 				</HorizontalStack>
+				<HorizontalStack Height="Fit" Spacing="5">
+					<CheckBox Style="StateBox" Caption="Design mode is enabled" IsChecked="{DesignModeEnabled}"/>
+					<CheckBox Style="StateBox" Caption="Debug logger is enabled" IsChecked="{DebugLogIsEnabled}"/>
+				</HorizontalStack>
 			</VerticalStack>
 		</GroupBox>
 		<Label Background="Red" Foreground="White" Margin="5" Width="Stretched" Text="{ServiceErrorMessage}"
 			IsVisible="{ServiceIsInError}"/>
-		<ListBox Style="ScrollingListBox" Data="{CrowAssemblies}" MinimumSize="100,200"/>
+		<ListBox Style="ScrollingListBox" Data="{CrowAssemblies}" MinimumSize="100,200" SelectedItem="{²SelectedCrowAssembly}"/>
 		<HorizontalStack Height="Fit" Width="Fit" HorizontalAlignment="Right">
 			<Button Command="{CMDOptions_AddCrowAssembly}"/>
+			<Button Command="{CMDOptions_RemoveCrowAssembly}"/>
 		</HorizontalStack>
 		<Spinner Caption="Zoom Factor" Value="{²ZoomFactor}" Minimum="0.2" Maximum="4.0" SmallIncrement="0.1" LargeIncrement="0.2"/>
 		<Spinner Caption="Refresh Rate (ms)" Value="{²RefreshRate}" Maximum="1000"/>

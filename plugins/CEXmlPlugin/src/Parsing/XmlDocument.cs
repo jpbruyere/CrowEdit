@@ -100,7 +100,7 @@ namespace CrowEdit.Xml
 						eltStart.name.HasValue) {
 
 				if (prevTok.Is(XmlTokenType.AttributeName)) {
-					TextChange change = new TextChange(prevTok.Start, prevTok.End);
+					TextChange change = new TextChange(prevTok.Start, prevTok.Length);
 					if (!tok.Is(XmlTokenType.EqualSign))
 						change.ChangedText += "=\"\"";
 					return getAttributeNameSuggestions(eltStart.Name, attrib.Name, change).ToList();					

@@ -11,6 +11,9 @@ using System.Linq;
 using Crow;
 using Drawing2D;
 using IML = Crow.IML;
+using System.Diagnostics;
+using Crow.IML;
+using System.Runtime.Loader;
 
 namespace CECrowPlugin
 {
@@ -34,22 +37,19 @@ namespace CECrowPlugin
 		public override void Run()
 		{
 			initBackend ();
-			Init();
+			try {
+				Init();
+			} catch (Exception e) {
+				Debug.WriteLine(e.Message);
+				Debug.WriteLine(e.StackTrace);
+			}
+			
 			Thread t = new Thread (interfaceThread) {
 				IsBackground = true
 			};
 			t.Start ();
 		}
 		public bool Terminate;
-		string source;
-		Action delRegisterForRepaint;//call RegisterForRepaint in the container widget (DebugInterfaceWidget)
-		Action<Exception> delCrowServiceSetCurrentException;
-
-		delegate void GetScreenCoordinateDelegateType(out int x, out int y);
-		GetScreenCoordinateDelegateType delCrowServiceGetScreenCoordinate;
-		Func<IEnumerable<object>> delCrowServiceGetStyling;
-		Func<string, Stream> delCrowServiceGetStreamFromPath;
-
 		void interfaceThread () {
 			while (!Terminate) {
 				try
@@ -83,12 +83,22 @@ namespace CECrowPlugin
 				}
 
 				/*if (IsDirty)
-					delRegisterForRepaint();				*/
+					delRegisterForRepaint();*/
 
 				Thread.Sleep (UPDATE_INTERVAL);
 			}
 			Dispose();
 		}
+		string source;
+		//Action delRegisterForRepaint;//call RegisterForRepaint in the container widget (DebugInterfaceWidget)
+		Action<Exception> delCrowServiceSetCurrentException;
+
+		delegate void GetScreenCoordinateDelegateType(out int x, out int y);
+		GetScreenCoordinateDelegateType delCrowServiceGetScreenCoordinate;
+		Func<IEnumerable<object>> delCrowServiceGetStyling;
+		Func<string, Stream> delCrowServiceGetStreamFromPath;
+
+		
 		public void RegisterDebugInterfaceCallback (object crowService){
 			Type t = crowService.GetType();
 			//delRegisterForRepaint = (Action)Delegate.CreateDelegate(typeof(Action), w, t.GetMethod("RegisterForRepaint"));
@@ -131,6 +141,7 @@ namespace CECrowPlugin
 				}
 			}
 		}
+		
 		void resetInterface () {
 			ClearInterface();
 			initDictionaries();
@@ -151,7 +162,7 @@ namespace CECrowPlugin
 		public void Resize (int width, int height) {
 			ProcessResize (new Rectangle(0, 0, width, height));
 		}
-		/*public override void ProcessResize(Rectangle bounds) {
+        /*public override void ProcessResize(Rectangle bounds) {
 			lock (UpdateMutex) {
 				clientRectangle = bounds.Size;
 
@@ -163,7 +174,18 @@ namespace CECrowPlugin
 				RegisterClip (clientRectangle);
 			}
 		}*/
-		public override void ForceMousePosition()
+        public override Widget HoverWidget {
+			get => base.HoverWidget;
+			set {
+				base.HoverWidget = value;
+			}
+		}
+        public override bool OnMouseMove(int x, int y)
+        {
+            return base.OnMouseMove(x, y);
+        }
+
+        public override void ForceMousePosition()
 		{
 			delCrowServiceGetScreenCoordinate(out int x, out int y);
 			Glfw.Glfw3.SetCursorPosition (WindowHandle, x, y);
@@ -187,8 +209,8 @@ namespace CECrowPlugin
 		public override Type GetWidgetTypeFromName (string typeName){
 			if (knownCrowWidgetTypes.ContainsKey (typeName))
 				return knownCrowWidgetTypes [typeName];
-			System.Runtime.Loader.AssemblyLoadContext dbgLoadCtx =
-				System.Runtime.Loader.AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
+			AssemblyLoadContext dbgLoadCtx =
+				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
 			foreach (Assembly a in dbgLoadCtx.Assemblies) {
 				try {
 					foreach (Type expT in a.GetExportedTypes ()) {
@@ -203,5 +225,52 @@ namespace CECrowPlugin
 			}
 			return null;
 		}
+		public override MethodInfo SearchExtMethod (Type t, string methodName) {
+			string key = t.Name + "." + methodName;
+			if (knownExtMethods.ContainsKey (key))
+				return knownExtMethods [key];
+
+			Debug.WriteLine ($"[CECrowPlugin] search extension method: {t};{methodName} => key={key}");
+
+			MethodInfo mi = null;
+			AssemblyLoadContext dbgLoadCtx =
+				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
+			foreach (Assembly a in dbgLoadCtx.Assemblies) {
+				try {
+					if (CompilerServices.TryGetExtensionMethods (a, t, methodName, out mi)) {
+						break;
+					}
+				} catch (Exception ex) {
+					Console.WriteLine ($"[CECrowPlugin]Error: SearchExtMethod failed for  {t};{methodName} => key={key}");
+				}
+			}
+
+			if (mi == null) {
+				Debug.WriteLine ($"[CECrowPlugin] Extension method not found: {t};{methodName} => key={key}");
+				return null;
+			}
+
+			knownExtMethods.Add (key, mi);
+			return mi;
+		}
+		public Type GetTypeFromName (string typeName) {
+			AssemblyLoadContext dbgLoadCtx =
+				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
+			foreach (Assembly a in dbgLoadCtx.Assemblies) {
+				try {
+					foreach (Type expT in a.GetExportedTypes ()) {
+						if (string.Equals(expT.Name,typeName,StringComparison.Ordinal))
+							return expT;
+					}
+				} catch (Exception ex) {
+					Console.WriteLine ($"[CECrowPlugin]Error: GetWidgetTypeFromName failed for {typeName} in {a}.\n{ex}");
+				}
+			}
+			return null;
+		}
+	
+	
+		public void LockRenderMutex() => Monitor.Enter(this.UpdateMutex);
+		public void UnlockRenderMutex() => Monitor.Exit(this.UpdateMutex);
 	}
 }

@@ -14,6 +14,7 @@ using static CrowEditBase.CrowEditBase;
 
 using CrowEdit.Xml;
 using Drawing2D;
+using System.Diagnostics;
 
 namespace CECrowPlugin
 {
@@ -32,20 +33,27 @@ namespace CECrowPlugin
 
 
 		IEnumerable<MemberInfo> getAllCrowTypeMembers (string crowTypeName) {
-			Type crowType = IML.Instantiator.GetWidgetTypeFromName (crowTypeName);
+			Type crowType = App.GetService<CrowService>()?.GetWidgetTypeFromeName(crowTypeName);
 			return crowType?.GetMembers (BindingFlags.Public | BindingFlags.Instance).
 				Where (m=>((m is PropertyInfo pi && pi.CanWrite) || (m is EventInfo)) &&
 						m.GetCustomAttribute<XmlIgnoreAttribute>() == null);
 		}
-		MemberInfo getCrowTypeMember (string crowTypeName, string memberName) {
-			Type crowType = IML.Instantiator.GetWidgetTypeFromName (crowTypeName);
+		/*MemberInfo getCrowTypeMember (string crowTypeName, string memberName) {
+			Type crowType = App.GetService<CrowService>()?.GetWidgetTypeFromeName(crowTypeName);
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
-		}
+		}*/
 
         protected override IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change)
         {
-			IEnumerable<Type> widgetTypes = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>
-				typeof(Widget).IsAssignableFrom (t) && !t.IsAbstract);
+			CrowService srv = App.GetService<CrowService>();
+			if (srv == null || !srv.IsRunning)
+				return null;
+			Type widgetType = srv.GetWidgetTypeFromeName("Widget");
+			if (widgetType == null)
+				return null;
+
+			IEnumerable<Type> widgetTypes = widgetType.Assembly.GetExportedTypes ().Where(t=>
+				widgetType.IsAssignableFrom (t) && !t.IsAbstract);
 			int curNameLength = 0;
 			if (!string.IsNullOrEmpty(curName)) {
 				widgetTypes = widgetTypes.Where(t=>t.Name.StartsWith(curName, StringComparison.OrdinalIgnoreCase));
@@ -59,15 +67,20 @@ namespace CECrowPlugin
         protected override IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string curName, TextChange change) {
 			int endPosOffset = change.HasNewText ? -1 : 0;
 			var members = getAllCrowTypeMembers(eltName);
+			if (members == null)
+				return null;
 			if (!string.IsNullOrEmpty(curName))
 				members = members.Where(m =>
-					 m.Name.StartsWith (curName, StringComparison.OrdinalIgnoreCase));
-			return members.Select(m
+					m.Name.StartsWith (curName, StringComparison.OrdinalIgnoreCase));
+			return members?.Select(m
 				=> new MemberInfoSuggestion(m,
 					new TextChange(change.Start, change.Length, m.Name + change.ChangedText), endPosOffset));
 		}
 		protected override IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) {
-			MemberInfo mi = getAllCrowTypeMembers(eltName).Where(m=>m.Name.Equals(attribName, StringComparison.Ordinal)).FirstOrDefault();
+			CrowService srv = App.GetService<CrowService>();
+			if (srv == null || !srv.IsRunning)
+				return null;
+			MemberInfo mi = getAllCrowTypeMembers(eltName)?.Where(m=>m.Name.Equals(attribName, StringComparison.Ordinal)).FirstOrDefault();
 			if (mi is PropertyInfo pi) {
 				if (pi.Name == "Style")
 					return App.Styling.Keys
@@ -84,12 +97,12 @@ namespace CECrowPlugin
 						Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(s=>new Suggestion(s,
 							new TextChange(change.Start, change.Length, s + change.ChangedText)));
-				if (pi.PropertyType == typeof (Measure))
+				if (pi.PropertyType.Name == "Measure")
 					return (new string[] {"Stretched", "Fit"}).
 						Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(s=>new Suggestion(s,
 							new TextChange(change.Start, change.Length, s + change.ChangedText)));
-				if (pi.PropertyType == typeof (Fill))
+				if (pi.PropertyType.Name == "Fill")
 					return  EnumsNET.Enums.GetValues<Colors> ()
 						.Where (s => s.ToString().StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(c=>new ColorSuggestion(c,

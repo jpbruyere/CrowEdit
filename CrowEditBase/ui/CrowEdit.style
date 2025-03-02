@@ -157,7 +157,7 @@ CheckBox {
 	Template= "#Crow.CheckBox2.template";
 	Width = "Stretched";
 	Height = "Fit";
-	CornerRadius = "0";
+	CornerRadius = "2";
 	Background = "${ControlIdle}";
 	Foreground = "${ControlForeground}";
 	Checked = "{Background=${ControlHighlight}}";
@@ -165,6 +165,18 @@ CheckBox {
 	MouseEnter = "{Foreground=${ControlCaptionHoverColor}}";
 	MouseLeave = "{Foreground=${ControlForeground}}";
 }
+StateBox {
+	Template= "#Crow.CheckBox2.template";
+	Width = "Stretched";
+	Height = "Fit";
+	CornerRadius = "2";
+	Background = "${ControlIdle}";
+	Foreground = "${ControlForeground}";
+	Checked = "{Background=Green}";
+	Unchecked = "{Background=DarkRed}";
+	Focusable = "false";
+}
+
 LogViewerWidget {
 	Background = "0.01,0.01,0.01,1";
 	MouseWheelSpeed = "2";
