@@ -541,6 +541,18 @@ namespace CrowEditBase
 				CurrentEditor?.RegisterForGraphicUpdate ();
 			}
 		}
+		public bool ShowWhiteSpace {
+			get => Configuration.Global.Get<bool> ("ShowWhiteSpace", false);
+			set {
+				if (ShowWhiteSpace == value)
+					return;
+				Configuration.Global.Set ("ShowWhiteSpace", value);
+				NotifyValueChanged ("ShowWhiteSpace", ShowWhiteSpace);
+
+				CurrentEditor?.RegisterForGraphicUpdate ();
+			}
+		}
+
 		public bool IndentWithSpace {
 			get => Configuration.Global.Get<bool> ("IndentWithSpace", false);
 			set {

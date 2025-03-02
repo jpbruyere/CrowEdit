@@ -8,6 +8,6 @@
 		<ScrollBar Name="scrollbar1" Value="{²../ItemsScroller.ScrollY}"
 			LargeIncrement="{../ItemsScroller.PageHeight}" SmallIncrement="30" CursorSize="{../ItemsScroller.ChildHeightRatio}"
 			Maximum="{../ItemsScroller.MaxScrollY}" Orientation="Vertical"
-			Width="10" />
+			Width="12" />
 	</HorizontalStack>
 </Border>

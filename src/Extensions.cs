@@ -6,6 +6,7 @@ using System.Text;
 using Crow;
 using Crow.Text;
 using CrowEditBase;
+using System.Reflection;
 
 namespace CrowEdit
 {
@@ -34,7 +35,6 @@ namespace CrowEdit
 
 		public static TreeNode [] GetFileSystemTreeNodeOrdered (this DirectoryInfo di)
 			=> di.GetFileSystemInfos ().OrderBy (f => f.Attributes).ThenBy (f => f.Name).Cast<TreeNode> ().ToArray ();
-
 
     }
 }

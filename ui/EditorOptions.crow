@@ -3,7 +3,8 @@
 	<VerticalStack>
 		<CheckBox Caption="Print line number" IsChecked="{²PrintLineNumbers}"/>
 		<CheckBox Caption="Reopen last file" IsChecked="{²ReopenLastFile}"/>
-		<CheckBox Caption="Indent With Space" IsChecked="{²IndentWithSpace}"/>
+		<CheckBox Caption="Indent With Spaces" IsChecked="{²IndentWithSpace}"/>
+		<CheckBox Caption="Show White Spaces" IsChecked="{²ShowWhiteSpace}"/>
 		<Spinner Caption="Tabulation Size" Value="{²TabulationSize}"/>
 		<Slider Template="#ui.slider.tmp" Height="Fit" Background="0.1,0.1,0.2,0.8"
 				Minimum="1" Maximum="50" SmallIncrement="1" LargeIncrement="10"

@@ -29,11 +29,12 @@ namespace CrowEdit.Xml
 		public override string GetTokenTypeString (TokenType tokenType) => ((XmlTokenType)tokenType).ToString();
 
 		protected virtual IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change) => null;
-		protected virtual IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string curName, TextChange change) => null;
+		protected virtual IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string attribName, TextChange change) => null;
+		protected virtual IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) => null;
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			Token tok = GetTokenByIndex(currentTokenIndex);	
 			if (tok.Start != absoluteTextPos //middle of edited tok
-				&& tok.End != absoluteTextPos) //occurs when curTok is last tok of text
+				&& currentTokenIndex >= CurrentNode?.Root.TokenCount - 1) //occurs when curTok is last tok of text
 			{
 				return null;
 			}
@@ -71,13 +72,19 @@ namespace CrowEdit.Xml
 						change = new TextChange (prevTok.Start, prevTok.Length);
 					else if (prevTok.Is(XmlTokenType.ElementOpen))
 						change = new TextChange (prevTok.End, 0);
-					else if (prevTok.Type.HasFlag(TokenType.Trivia) && eltStartTag.name.HasValue) {
-						//attribute
-						change = new TextChange(tok.Start, 0);
+					else if (eltStartTag.name.HasValue) {
+						string attribName = "";
+						if (prevTok.Type.HasFlag(TokenType.Trivia) ||
+							(tok.Type.HasFlag(TokenType.Trivia) && GetTokenByIndex(currentTokenIndex+1).Type.HasFlag(TokenType.Trivia)))//attribute
+							change = new TextChange(tok.Start, 0);
+						else if (prevTok.Is(XmlTokenType.AttributeName)) {
+							change = new TextChange(prevTok.Start, prevTok.Length);
+							attribName = prevTok.AsString(source);
+						} else
+							return null;
 						if (!tok.Is(XmlTokenType.EqualSign))
 							change.ChangedText += "=\"\"";
-						return getAttributeNameSuggestions(eltStartTag.Name, null, change).ToList();
-
+						return getAttributeNameSuggestions(eltStartTag.Name, attribName, change).ToList();
 					} else
 						return null;
 
@@ -88,8 +95,27 @@ namespace CrowEdit.Xml
 					return getElementNameSuggestions(eltStartTag.Name, change).ToList();
 
 				}
-			} else if (CurrentNode is AttributeSyntax attrib) {
+			} else if (CurrentNode is AttributeSyntax attrib &&
+						attrib.Parent is ElementStartTagSyntax eltStart &&
+						eltStart.name.HasValue) {
+
 				if (prevTok.Is(XmlTokenType.AttributeName)) {
+					TextChange change = new TextChange(prevTok.Start, prevTok.End);
+					if (!tok.Is(XmlTokenType.EqualSign))
+						change.ChangedText += "=\"\"";
+					return getAttributeNameSuggestions(eltStart.Name, attrib.Name, change).ToList();					
+				} else if (attrib.name.HasValue) {
+					if (prevTok.Is(XmlTokenType.AttributeValueOpen)) {
+						return getAttributeValueSuggestions(eltStart.Name, attrib.Name, "",
+							tok.Is(XmlTokenType.AttributeValueClose) ?
+								new TextChange(prevTok.End, 0)
+								: new TextChange(prevTok.End, 0, "\""))?.ToList();
+					} else if (prevTok.Is(XmlTokenType.AttributeValue) && attrib.valueTok.HasValue) {
+						return getAttributeValueSuggestions(eltStart.Name, attrib.Name, attrib.Value,
+							tok.Is(XmlTokenType.AttributeValueClose) ?
+								new TextChange(prevTok.Start, prevTok.Length)
+								: new TextChange(tok.Start, tok.Length, "\""))?.ToList();
+					}
 					
 				}
 
@@ -192,6 +218,8 @@ namespace CrowEdit.Xml
 			XmlTokenType xmlTokType = (XmlTokenType)tokType;
 			if (xmlTokType.HasFlag (XmlTokenType.Punctuation))
 				return Colors.DarkGrey;
+			if (tokType.HasFlag (TokenType.WhiteSpace))
+				return Colors.Silver;			
 			if (xmlTokType.HasFlag (XmlTokenType.Trivia))
 				return Colors.DimGrey;
 			else if (xmlTokType == XmlTokenType.ElementName)

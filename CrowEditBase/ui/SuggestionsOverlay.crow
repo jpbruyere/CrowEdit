@@ -7,17 +7,18 @@
 			<Label Text='{Caption}' HorizontalAlignment='Left' Margin="2"/>
 		</ListItem>
 	</ItemTemplate>
-	<ItemTemplate DataType='System.Reflection.MemberInfo'>
+	
+	<ItemTemplate DataType='Crow.MemberInfoSuggestion'>
 		<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
 						Selected = '{Background=${ControlHighlight}}'
 						Unselected = '{Background=Transparent}'>
 			<HorizontalStack>
 				<!--<Image Picture='{GetIcon}' Width='16' Height='16'/>-->
-				<Label Text='{Name}' HorizontalAlignment='Left' />
+				<Label Text='{Caption}' HorizontalAlignment='Left' />
 			</HorizontalStack>
 		</ListItem>
 	</ItemTemplate>
-	<ItemTemplate DataType='Crow.Colors'>
+	<!--<ItemTemplate DataType='Crow.Colors'>
 		<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left'
 						Selected = '{Background=${ControlHighlight}}'
 						Unselected = '{Background=Transparent}'>
@@ -26,5 +27,5 @@
 				<Label Text='{}' HorizontalAlignment='Left' />
 			</HorizontalStack>
 		</ListItem>
-	</ItemTemplate>
+	</ItemTemplate>-->
 </ListBox>

@@ -77,6 +77,13 @@ TreeLabel {
 	Foreground="White";
 	Margin = "1";
 }
+TreeLabel2 {
+	Foreground="Black";
+	Background="LightGrey";
+	Margin = "1";
+	Font = "sans, 9";
+}
+
 Splitter {
 	Thickness="1";
 	Background="Transparent";

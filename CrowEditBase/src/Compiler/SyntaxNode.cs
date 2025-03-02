@@ -201,7 +201,8 @@ namespace CrowEditBase
 			foreach (SyntaxNode node in children)
 				node.Dump (level + 1);
 		}
-		public override string ToString() => $"l:({StartLine,3},{LineCount,3}) tks:{TokenIndexBase},{TokenCount} {this.GetType().Name}";
+		//public override string ToString() => $"l:({StartLine,3},{LineCount,3}) tks:{TokenIndexBase},{TokenCount} {this.GetType().Name}";
+		public override string ToString() => $"{this.GetType().Name}";
 		public string AsText() {
 			return Span.Length < 0 ? "" : Root.GetText(Span).ToString();
 		}

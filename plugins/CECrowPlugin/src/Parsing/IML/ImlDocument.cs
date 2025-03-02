@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2021  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2025  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -6,17 +6,13 @@ using System;
 using System.Linq;
 using Crow.Text;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Crow;
 using IML = Crow.IML;
-using System.Collections;
 using System.Reflection;
 using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
 
 using CrowEdit.Xml;
-
-using AttributeSyntax = CrowEdit.Xml.AttributeSyntax;
 using Drawing2D;
 
 namespace CECrowPlugin
@@ -34,9 +30,6 @@ namespace CECrowPlugin
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (this);
 		public override string GetTokenTypeString (TokenType tokenType) => ((ImlTokenType)tokenType).ToString();
 
-		string[] allWidgetNames = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>typeof(Widget).IsAssignableFrom (t))
-					.Select (s => s.Name).ToArray ();
-
 
 		IEnumerable<MemberInfo> getAllCrowTypeMembers (string crowTypeName) {
 			Type crowType = IML.Instantiator.GetWidgetTypeFromName (crowTypeName);
@@ -51,7 +44,8 @@ namespace CECrowPlugin
 
         protected override IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change)
         {
-			IEnumerable<Type> widgetTypes = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>typeof(Widget).IsAssignableFrom (t));
+			IEnumerable<Type> widgetTypes = typeof (Widget).Assembly.GetExportedTypes ().Where(t=>
+				typeof(Widget).IsAssignableFrom (t) && !t.IsAbstract);
 			int curNameLength = 0;
 			if (!string.IsNullOrEmpty(curName)) {
 				widgetTypes = widgetTypes.Where(t=>t.Name.StartsWith(curName, StringComparison.OrdinalIgnoreCase));
@@ -59,14 +53,49 @@ namespace CECrowPlugin
 			}
 			int endPosOffset = change.HasNewText ? -change.ChangedText.Length : 0;
             return widgetTypes.Select (t
-				=> new Suggestion(t.Name,
+				=> new WidgetSuggestion(t,
 					new TextChange(change.Start, change.Length, t.Name + change.ChangedText), endPosOffset));
         }
         protected override IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string curName, TextChange change) {
 			int endPosOffset = change.HasNewText ? -1 : 0;
-			return getAllCrowTypeMembers(eltName).Select(m
-				=> new Suggestion(m.Name,
+			var members = getAllCrowTypeMembers(eltName);
+			if (!string.IsNullOrEmpty(curName))
+				members = members.Where(m =>
+					 m.Name.StartsWith (curName, StringComparison.OrdinalIgnoreCase));
+			return members.Select(m
+				=> new MemberInfoSuggestion(m,
 					new TextChange(change.Start, change.Length, m.Name + change.ChangedText), endPosOffset));
+		}
+		protected override IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) {
+			MemberInfo mi = getAllCrowTypeMembers(eltName).Where(m=>m.Name.Equals(attribName, StringComparison.Ordinal)).FirstOrDefault();
+			if (mi is PropertyInfo pi) {
+				if (pi.Name == "Style")
+					return App.Styling.Keys
+						.Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
+						.Select(s=>new Suggestion(s,
+							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+				if (pi.PropertyType.IsEnum)
+					return Enum.GetNames (pi.PropertyType)
+						.Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
+						.Select(s=>new Suggestion(s,
+							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+				if (pi.PropertyType == typeof(bool))
+					return  (new string[] {"true", "false"}).
+						Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
+						.Select(s=>new Suggestion(s,
+							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+				if (pi.PropertyType == typeof (Measure))
+					return (new string[] {"Stretched", "Fit"}).
+						Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
+						.Select(s=>new Suggestion(s,
+							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+				if (pi.PropertyType == typeof (Fill))
+					return  EnumsNET.Enums.GetValues<Colors> ()
+						.Where (s => s.ToString().StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
+						.Select(c=>new ColorSuggestion(c,
+							new TextChange(change.Start, change.Length, c + change.ChangedText)));
+			}
+			return null;
 		}
         /*public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			IList sugs = base.GetSuggestions (absoluteTextPos, currentTokenIndex, CurrentNode, loc);

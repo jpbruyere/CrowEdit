@@ -7,27 +7,25 @@ using Glfw;
 using Crow.Text;
 using Drawing2D;
 using System.Collections;
-using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
 using System.Collections.Generic;
 using System.Linq;
-using System.Collections.Frozen;
+using Crow;
+using System.Text.Unicode;
+using System.Text;
 
-namespace Crow
+namespace CrowEditBase
 {
-	public class Suggestion {
-		public string Caption;
-		public TextChange Change;
-		public TextSpan? NextSelection;
-
-		public Suggestion(string caption, TextChange change = default, int finalPositionOffset = 0) {
-			Caption = caption;
-			Change = change;
-			NextSelection = finalPositionOffset < 0 ? TextSpan.FromStartAndLength(change.End2 + finalPositionOffset) : null;
-		}
-	}
 	public class SourceEditor : Editor {
-		int currentTokenIndex = -1;
+		SourceDocument sourceDocument;
+        public override TextDocument Document {
+			 get => base.Document;
+			 set {
+				base.Document = value;
+				sourceDocument = Document as SourceDocument;
+			 }
+		}
+        int currentTokenIndex = -1;
 		SyntaxNode currentNode;
 #if DEBUG_NODE
 		SyntaxNode _hoverNode;
@@ -51,8 +49,15 @@ namespace Crow
 			}
 		}
 		
-		public Token CurrentToken => typeof(SourceDocument).IsAssignableFrom(Document?.GetType()) ?
-			(Document as SourceDocument).GetTokenByIndex(currentTokenIndex) : default;
+		public Token CurrentToken => sourceDocument != null && sourceDocument.IsParsed ?
+			sourceDocument.GetTokenByIndex(currentTokenIndex) : default;
+
+#if DEBUG
+		public string CurrentTokenString => sourceDocument != null && sourceDocument.IsParsed ? 
+			CurrentToken.AsString(Document.source) : null;
+		public string CurrentTokenType => sourceDocument != null && sourceDocument.IsParsed ? 
+			sourceDocument.GetTokenTypeString(CurrentToken.Type) : default;
+#endif
 
 		#region suggestions and autocomplete
 		ListBox overlay;
@@ -85,7 +90,33 @@ namespace Crow
 		void showOverlay () {
 			lock (IFace.UpdateMutex) {
 				if (overlay == null) {
-					overlay = IFace.Load<ListBox>(@"#ui.SuggestionsOverlay.crow");
+					//overlay = IFace.Load<ListBox>(@"#ui.SuggestionsOverlay.crow");
+					overlay = IFace.LoadIMLFragment<ListBox>(@"
+							<ListBox Style='suggestionsListBox' Data='{Suggestions}' UseLoadingThread = 'false'>
+								<ItemTemplate>
+									<ListItem Height='Fit' Margin='2' Focusable='false' HorizontalAlignment='Left' Width='Stretched'
+																	Selected = '{Background=${ControlHighlight}}'
+																	Unselected = '{Background=Transparent}'>
+										<HorizontalStack Width='Stretched' >
+											<Image Path='{Icon}' Width='12' Height='12'/>
+											<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>
+										</HorizontalStack>
+										<!--<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>-->
+									</ListItem>
+								</ItemTemplate>
+								<ItemTemplate DataType='CrowEditBase.ColorSuggestion'>
+									<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' Width='Stretched'
+																	Selected = '{Background=${ControlHighlight}}'
+																	Unselected = '{Background=Transparent}'>
+										<HorizontalStack Width='Stretched' >
+											<Image Margin='6' Path='{Icon}' Width='32' Height='24' Background='{Fill}' CornerRadius='2'/>
+											<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>
+										</HorizontalStack>
+										<!--<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>-->
+									</ListItem>
+								</ItemTemplate>
+							</ListBox>
+					");					
 					overlay.DataSource = this;
 					overlay.Loaded += (sender, arg) => (sender as ListBox).SelectedIndex = 0;
 				} else
@@ -96,9 +127,11 @@ namespace Crow
 		void hideOverlay () {
 			if (overlay == null)
 				return;
-			overlay.IsVisible = false;
+			lock(App.UpdateMutex)
+				overlay.IsVisible = false;
 		}
 		void completeToken () {
+			disableSuggestions = true;
 			if (Document is SourceDocument srcDoc) {
 				if (overlay.SelectedItem is Suggestion sug) {	
 					update (sug.Change);
@@ -107,7 +140,8 @@ namespace Crow
 				}
 			}
 			hideOverlay ();
-			tryGetSuggestions ();
+			disableSuggestions = false;
+			//tryGetSuggestions ();
 		}
 		#endregion
 		
@@ -169,6 +203,8 @@ namespace Crow
 				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
 			}
 		}
+		
+		#region Mouse & Keyboard overrides
 		public override void onMouseDown (object sender, MouseButtonEventArgs e) {
 			hideOverlay ();
 			if (mouseIsInMargin) {
@@ -318,7 +354,24 @@ namespace Crow
 						case Key.KeypadEnter:
 							//doc.updateCurrentTokAndNode (Selection.Start);
 							//Console.WriteLine ($"*** Current Token: {doc.CurrentToken} Current Node: {doc.CurrentNode}");
-							update (new TextChange (selection.Start, selection.Length, Document.GetLineBreak ()));
+							if (currentLoc.HasValue) {
+								TextLine tl = doc.GetLine(currentLoc.Value.Line);
+								int firstTok = doc.FindTokenIndexIncludingPosition(tl.Start);
+								int i = firstTok;
+								Token tok = doc.GetTokenByIndex(i);
+								StringBuilder sb = new StringBuilder(20);
+								while (tok.End < tl.End && tok.Type.HasFlag(TokenType.WhiteSpace)) {
+									if (tok.Type == TokenType.Tabulation) 
+										sb.Append(new string('\t', tok.Length));
+									else if (tok.Type == TokenType.WhiteSpace) 
+										sb.Append(new string(' ', tok.Length));
+									else
+										break;
+									tok = doc.GetTokenByIndex(++i);
+								}
+								update (new TextChange (selection.Start, selection.Length, Document.GetLineBreak () + sb.ToString()));
+							} else
+								update (new TextChange (selection.Start, selection.Length, Document.GetLineBreak ()));
 							autoAdjustScroll = true;
 							IFace.forceTextCursor();
 							e.Handled = true;
@@ -331,7 +384,7 @@ namespace Crow
 				Document.ExitReadLock ();
 			}*/
 		}
-
+		#endregion
 
 		SyntaxNode getFoldStartingAt (int line) {
 			if (!(Document is SourceDocument doc))
@@ -583,6 +636,9 @@ namespace Crow
 
 				Foreground.SetAsSource (IFace, gr);
 
+				bool showWhiteSpaces = App.ShowWhiteSpace;
+				string tabString = showWhiteSpaces ?
+					$"{new string(' ', (App.TabulationSize - 2) / 2)} \u2192{new string(' ', (App.TabulationSize - 2) / 2)}" : default;
 				ReadOnlySpan<char> sourceBytes = doc.source;
 				Span<byte> bytes = stackalloc byte[128];
 				TextExtents extents;
@@ -610,8 +666,20 @@ namespace Crow
 					int tokPtr = doc.FindTokenIndexIncludingPosition(curTxtLine.Start);
 					Token tok = doc.Tokens[tokPtr];
 
-					while (tok.Start < curTxtLine.End) {
-						buff = sourceBytes.Slice (tok.Start, tok.Length);
+					while (tok.Start < (showWhiteSpaces ? curTxtLine.EndIncludingLineBreak : curTxtLine.End)) {
+						if (showWhiteSpaces && tok.Type.HasFlag(TokenType.WhiteSpace)) {
+
+							if(tok.Type == TokenType.WhiteSpace) {
+								buff = new string('·', tok.Length);
+							} if(tok.Type == TokenType.Tabulation) {
+								buff = new StringBuilder(tok.Length*tabString.Length).Insert(0,tabString,tok.Length).ToString() ;
+							} else if (tok.Type == TokenType.LineBreak) {
+								buff = new string('\u204B', tok.Length);
+							}
+							/*gr.MoveTo (pixX, pixY + fe.Ascent);
+							gr.ShowText (buff);*/
+						} else
+							buff = sourceBytes.Slice (tok.Start, tok.Length);
 						gr.SetSource (doc.GetColorForToken (tok.Type));
 
 						int size = buff.Length * 4 + 1;
@@ -758,15 +826,6 @@ namespace Crow
 				tryGetSuggestions ();
 
 			RegisterForGraphicUpdate();
-
-			lock (IFace.UpdateMutex) {
-				if (Document is SourceDocument doc) {
-					doc.NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
-					doc.NotifyValueChanged ("SyntaxRootChildNodes", doc.SyntaxRootChildNodes);
-					CurrentNode?.ExpandToTheTop();
-				}
-			}
-			//Console.WriteLine ($"{pos}: {suggestionTok.AsString (_text)} {suggestionTok}");
 		}
 		void updateCurrentTokAndNode() {
 			if (currentLoc.HasValue && Document is SourceDocument srcdoc) {
@@ -776,6 +835,12 @@ namespace Crow
 				CurrentNode = srcdoc.Root?.FindNodeIncludingSpan(tok.Span);
 				
 				NotifyValueChanged("CurrentToken",tok);
+#if DEBUG
+				NotifyValueChanged("CurrentTokenString",CurrentTokenString);
+				NotifyValueChanged("CurrentTokenType",CurrentTokenType);
+#endif
+				
+				
 			} else {
 				currentTokenIndex = -1;
 				CurrentNode = null;

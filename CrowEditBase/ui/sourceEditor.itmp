@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}" Selected="{/tb.HasFocus='true'}">
 	<VerticalStack Spacing="0">
-			<HorizontalStack Spacing="0" Background="White">
+			<HorizontalStack Spacing="0" Background="WhiteSmoke">
 				<SourceEditor Name="tb"  Font="mono, 14" Margin='0' CurrentNode="{CurrentNode}"
 						Document="{}" TextChanged="onTextChanged" />
 				<ScrollBar Value="{²../tb.ScrollY}"
@@ -14,11 +14,11 @@
 			<HorizontalStack Height="Fit" Spacing='3'>
 				<Widget Width="Stretched"/>
 				<Label Text="TokType" Foreground="Grey"/>
-				<Label Text="{CurrentTokenType}" Margin="3"/>
+				<Label Text="{../../tb.CurrentTokenType}" Margin="3"/>
 				<Label Text="Tok" Foreground="Grey"/>
-				<Label Text="{CurrentTokenString}" Margin="3"/>
+				<Label Text="{../../tb.CurrentTokenString}" Margin="3"/>
 				<Label Text="Node" Foreground="Grey"/>
-				<Label Text="{CurrentNode}" Margin="3"/>
+				<Label Text="{../../tb.CurrentNode}" Margin="3"/>
 				<Label Text="MouseY:" Foreground="Grey"/>
 				<Label Text="{../../tb.MouseY}" Margin="3"/>
 				<Label Text="VisibleLines:" Foreground="Grey"/>

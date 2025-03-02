@@ -34,6 +34,35 @@
 										<Label Style="TreeLabel" Text="{IsFoldable}"/>
 									</HorizontalStack>
 								</Border>
+								<!--<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"
+										Foreground="Transparent"
+										MouseEnter="{Foreground=DimGrey}"
+										MouseLeave="{Foreground=Transparent}">
+									<HorizontalStack Background="{./Background}" Spacing="1" Margin="1">
+										<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand"
+											Path="{./Image}"
+											Visible="{HasChilds}"
+											SvgSub="{isExpanded}"
+											MouseEnter="{Background=LightGrey}"
+											MouseLeave="{Background=Transparent}"/>
+										<VerticalStack Fit="true" Margin="1" >
+											<Label Style="TreeLabel2" Text="{}" />
+											<Label Style="TreeLabel" Text="{./Caption}" Background="DarkGreen"/>
+										</VerticalStack>
+										<VerticalStack Fit="true" Margin="1">
+											<Label Style="TreeLabel2" Text="IsComplete"/>
+											<Label Style="TreeLabel" Text="{IsComplete}" />
+										</VerticalStack>
+										<VerticalStack Fit="true" Margin="1">
+											<Label Style="TreeLabel2" Text="Span" />
+											<Label Style="TreeLabel" Text="{Span}" />
+										</VerticalStack>
+										<VerticalStack Fit="true" Margin="1">
+											<Label Style="TreeLabel2" Text="Foldable" />
+											<Label Style="TreeLabel" Text="{IsFoldable}" />
+										</VerticalStack>
+									</HorizontalStack>
+								</Border>-->								
 								<Container Name="Content" Visible="false"/>
 							</VerticalStack>
 						</Template>

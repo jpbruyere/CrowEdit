@@ -39,6 +39,7 @@ namespace CrowEdit.Xml
 							currentNode.RemoveChild (tag);
 							currentNode = currentNode.AddChild (new ElementSyntax (tag));
 						} else if (curTok.GetTokenType() == XmlTokenType.EmptyElementClosing) {
+							tag.close = tokIdx - tag.TokenIndexBase;
 							finishCurrentNode ();
 							currentNode.RemoveChild (tag);
 							currentNode = currentNode.AddChild (new EmptyElementSyntax (tag));

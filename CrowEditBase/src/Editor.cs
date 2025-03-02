@@ -8,12 +8,12 @@ using Crow.Text;
 using System.Collections.Generic;
 using Drawing2D;
 using System.Linq;
-using CrowEditBase;
 using System.Threading;
 using System.ComponentModel;
 using static CrowEditBase.CrowEditBase;
+using Crow;
 
-namespace Crow
+namespace CrowEditBase
 {
 	public interface IDocumentClient {
 
@@ -42,7 +42,7 @@ namespace Crow
 			ContextCommands = new CommandGroup (CMDCut, CMDCopy, CMDPaste);
 		}
 
-		public TextDocument Document {
+		public virtual TextDocument Document {
 			get => document;
 			set {
 				if (document == value)
@@ -742,7 +742,7 @@ namespace Crow
 
 			RegisterForRedraw ();
 
-			(IFace as CrowEditBase.CrowEditBase).CurrentEditor = this;
+			(IFace as CrowEditBase).CurrentEditor = this;
 		}
 		public override void onMouseEnter (object sender, MouseMoveEventArgs e) {
 			base.onMouseEnter (sender, e);

@@ -17,13 +17,19 @@ namespace CrowEditBase
 			: base (fullPath, editorPath) {
 		}
 		protected SyntaxRootNode root;
-		public SyntaxRootNode Root => root;
+
+
+		public Command CMDRefreshSyntaxTree;
+        protected override void initCommands()
+        {
+            base.initCommands();
+			CMDRefreshSyntaxTree = new ActionCommand ("Reparse", parse, "#icons.refresh.svg", true);
+        }
+        public SyntaxRootNode Root => root;
 		public bool IsParsed => root != null && Tokens.Length > 0;
-
-		//public SyntaxNode EditedNode { get; protected set; }
-
 		public ReadOnlySpan<Token> Tokens => root.Tokens;
 		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
+
 		public Token FindTokenIncludingPosition (int pos) {
 			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
@@ -38,8 +44,6 @@ namespace CrowEditBase
 			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
 			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx;
 		}
-
-		
 		/// <summary>
 		/// if outermost is true, return oldest ancestor exept root node, useful for folding.
 		/// </summary>
@@ -117,18 +121,13 @@ namespace CrowEditBase
 
 			//Console.WriteLine ($"CurrentToken: idx({currentTokenIndex}) {currentToken} {RootNode.Root.GetTokenStringByIndex(currentTokenIndex)}");
 		}
-		/*static bool tryReplaceNode (SyntaxNode editedNode, SyntaxNode newNode) {
-			if (newNode is SyntaxRootNode || editedNode is SyntaxRootNode)
-				return false;
-			editedNode.Replace (newNode);
-			return true;
-		}
 
-		*/
 
 		public virtual Color GetColorForToken (TokenType tokType) {
 			if (tokType.HasFlag (TokenType.Punctuation))
 				return Colors.DarkGrey;
+			if (tokType.HasFlag (TokenType.WhiteSpace))
+				return Colors.Gainsboro;
 			if (tokType.HasFlag (TokenType.Trivia))
 				return Colors.Silver;
 			if (tokType == TokenType.Keyword)
@@ -143,8 +142,13 @@ namespace CrowEditBase
 		void parse () {
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
 			root = syntaxAnalyser?.Process ();
-			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
 
+			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
+			NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
+			NotifyValueChanged ("SyntaxRootChildNodes", SyntaxRootChildNodes);
+			
+			//CurrentNode?.ExpandToTheTop();
+			
 			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
 		}
 
