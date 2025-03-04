@@ -1,26 +1,20 @@
-﻿// Copyright (c) 2013-2022  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2025  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 using System;
 using Glfw;
-using System.Reflection;
-using System.Runtime.Loader;
-using System.IO;
 using Drawing2D;
 using System.Diagnostics;
 using System.Collections.Generic;
-using Crow.DebugLogger;
-using System.Linq;
 using CrowEditBase;
 using System.Threading;
 using Crow.Text;
-using System.Runtime.InteropServices;
 
 using static CrowEditBase.CrowEditBase;
-using CECrowPlugin;
+using Crow;
 
-namespace Crow
+namespace CECrowPlugin
 {
 	public class DebugInterfaceWidget : Widget {
 		CrowService crowIFaceService;
@@ -96,6 +90,7 @@ namespace Crow
 		string imlSource;
 
 		ImlDocument document;
+		ForeignWidgetContainer currentWidget;
 		public TextDocument Document {
 			get => document;
 			set {
@@ -113,6 +108,19 @@ namespace Crow
 				}
 			}
 		}
+
+		
+		public ForeignWidgetContainer CurrentWidget {
+			get => currentWidget;
+			set {
+				if (currentWidget == value)
+					return;
+				currentWidget = value;
+				NotifyValueChanged("CurrentWidget",currentWidget);
+				RegisterForRepaint ();
+			}
+		}
+
 
 		protected override void onInitialized(object sender, EventArgs e)
 		{
@@ -158,12 +166,13 @@ namespace Crow
 
 		public override bool Paint(IContext ctx)
 		{
-			crowIFaceService.LockRenderMutex();
+			return base.Paint(ctx);
+			/*crowIFaceService.LockRenderMutex();
 			try {
 				return base.Paint(ctx);				
 			} finally {
 				crowIFaceService.UnlockRenderMutex();
-			}
+			}*/
 		}
 		protected override void RecreateCache()
 		{
@@ -177,9 +186,9 @@ namespace Crow
 		protected override void UpdateCache(IContext ctx)
 		{
 			if (crowIFaceService != null && crowIFaceService.IsRunning && bmp != null) {
-				crowIFaceService.LockRenderMutex();
+				//crowIFaceService.LockRenderMutex();
 				paintCache (ctx, Slot + Parent.ClientRectangle.Position);
-				crowIFaceService.UnlockRenderMutex();
+				//crowIFaceService.UnlockRenderMutex();
 				crowIFaceService.ResetDirtyState ();
 			} 
 				

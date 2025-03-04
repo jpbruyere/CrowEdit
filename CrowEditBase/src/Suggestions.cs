@@ -28,20 +28,4 @@ namespace CrowEditBase
 			MemberInfo = memberInfo;
 		}
 	}
-	public class WidgetSuggestion : Suggestion {
-		public Type Type;
-        public override string Icon => $"#icons.{Type.FullName}.svg";
-        public WidgetSuggestion(Type type, TextChange change = default, int finalPositionOffset = 0)
-			: base(type.Name, change, finalPositionOffset) {
-			Type = type;
-		}
-	}
-	public class ColorSuggestion : Suggestion {
-		public Fill Fill;
-        public override string Icon => $"#icons.fill.svg";
-        public ColorSuggestion(Fill fill, TextChange change = default, int finalPositionOffset = 0)
-			: base(fill.ToString(), change, finalPositionOffset) {
-			Fill = fill;
-		}
-	}
 }

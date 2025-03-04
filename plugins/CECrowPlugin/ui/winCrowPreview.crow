@@ -3,7 +3,7 @@
 	<VerticalStack Background="Black" >
 		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true"
 					BubbleEvents="None"
-					Document="{CurrentDocument}"/>
+					Document="{CurrentDocument}" CurrentWidget="{²CurrentWidget}"/>
 		<Popper DataSource="{../dbgIfaceWidget.CrowIFaceService}" IsVisible="{PreviewHasError}" Background="DarkRed">
 			<Template>
 				<CheckBox IsChecked="{²./IsPopped}" MouseEnter="{IsChecked='true'}" MouseLeave="{IsChecked='false'}">

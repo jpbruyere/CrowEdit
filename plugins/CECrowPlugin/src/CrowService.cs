@@ -12,22 +12,37 @@ using Crow.DebugLogger;
 using System.Linq;
 using CrowEditBase;
 using static CrowEditBase.CrowEditBase;
+
+using static CECrowPlugin.ForeignWidgetContainer;
+
 using Drawing2D;
 using System.Diagnostics;
+using Crow;
 
-namespace Crow
+namespace CECrowPlugin
 {
-	public class ForeignWidgetContainer {
-		Type type;
-		object instance;
-
-	}
 	public class CrowService : Service {
 		public CrowService () : base () {
 			restoreCrowAssemblies ();
 			initCommands ();
+			App.ValueChanged += app_ValueChanged;
 		}
-		public override string ConfigurationWindowPath => "#CECrowPlugin.ui.winConfiguration.crow";
+		~CrowService() {
+			App.ValueChanged -= app_ValueChanged;
+		}
+		void app_ValueChanged(object instance, ValueChangeEventArgs e) {
+			if (e.MemberName == "CurrentProject") {
+				if (e.NewValue is CERoslynPlugin.SolutionProject sol)
+					CurrentSolution = sol;
+				else
+					CurrentSolution = null;
+			}
+		}		
+		public override string[] ServiceWindowsPath => [
+			"#CECrowPlugin.ui.winConfiguration.crow",
+			"#CECrowPlugin.ui.winGraphicTree.crow",
+			"#CECrowPlugin.ui.winProperties.crow"
+		];
 
 		#region Commands
 		public Command CMDStartRecording, CMDStopRecording, CMDRefresh;
@@ -57,10 +72,14 @@ namespace Crow
 			}
 		);
 		public ActionCommand CMDOptions_RemoveCrowAssembly;
-		public ActionCommand CMDViewPreview;
+		public ActionCommand CMDViewPreview, CMDViewGraphicTree, CMDViewProperties;
+		public CommandGroup ViewCommands;
 		void initCommands ()
 		{
-			CMDViewPreview = new ActionCommand("Crow Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App));
+			CMDViewPreview = new ActionCommand("Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App), "#icons.presentation.svg");
+			CMDViewGraphicTree = new ActionCommand("Graphic Tree", () => App.LoadWindow (ServiceWindowsPath[1], this), "#icons.Crow.TreeView.svg");
+			CMDViewProperties = new ActionCommand("Widget Properties", () => App.LoadWindow (ServiceWindowsPath[2], this), "#icons.property.svg");
+			ViewCommands = new CommandGroup("C.R.O.W.", "#icons.crow.svg" ,CMDViewPreview, CMDViewGraphicTree, CMDViewProperties);
 
 			CMDRefresh = new ActionCommand ("Refresh", refresh, "#icons.refresh.svg", IsRunning);
 			CMDStartRecording = new ActionCommand ("Start Recording", () => Recording = true, "#icons.circle.svg", false);
@@ -79,11 +98,13 @@ namespace Crow
 		#endregion
 
 		public void LoadIML (string imlSource) {
-			if (CurrentState == Status.Running)
+			if (CurrentState == Status.Running) {
+				fiITor_NextInstantiatorID?.SetValue (null, 0);
 				delSetSource (imlSource);
+			}
 		}
 		
-		Project activeSolution;
+		Project currentSolution;
 		Exception currentException;
 		public string ErrorMessage = "";
 		public bool ServiceIsInError;
@@ -91,6 +112,28 @@ namespace Crow
 		AssemblyLoadContext crowLoadCtx;
 		Assembly crowAssembly, thisAssembly;
 		Type dbgIfaceType;
+		IList<ForeignWidgetContainer> graphicTree;
+		ForeignWidgetContainer currentWidget;
+
+		
+		public IList<ForeignWidgetContainer> GraphicTree {
+			get => graphicTree;
+			set {
+				if (graphicTree == value)
+					return;
+				graphicTree = value;
+				NotifyValueChanged("GraphicTree",graphicTree);
+			}
+		}
+		public ForeignWidgetContainer CurrentWidget {
+			get => currentWidget;
+			set {
+				if (currentWidget == value)
+					return;
+				currentWidget = value;
+				NotifyValueChanged("CurrentWidget",currentWidget);
+			}
+		}
 
 
 		#region dbgIface delegates
@@ -111,12 +154,12 @@ namespace Crow
 		Action delUnlockRenderMutex;
 		Func<double> delGetZoomFactor;
 		Action<double> delSetZoomFactor;
+		Func<object, IEnumerable<object>> delGetWidgetChildren;
 
 
 		FieldInfo fiDbg_IncludedEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount, fiDbgIFace_Terminate;
+		FieldInfo fiITor_NextInstantiatorID;
 		
-		//design mode members, present only if crow compiled with DESIGN_MODE enabled
-		FieldInfo fiWidget_design_id;
 		#endregion
 
 		#region DebugLog
@@ -254,11 +297,22 @@ namespace Crow
 				delUnlockRenderMutex();
 		}
 		public bool GetDirtyState => IsRunning ? (bool)fiDbgIFace_IsDirty.GetValue (dbgIFace) : false;
-		public bool DesignModeEnabled => IsRunning && fiWidget_design_id != null ? true : false;
+		public bool DesignModeEnabled => IsRunning && ForeignWidgetContainer.fiWidget_design_id != null ? true : false;
 		public Type GetWidgetTypeFromeName(string typeName) {
 			if (!IsRunning)
 				return null;
 			return delGetWidgetTypeFromName(typeName);			
+		}
+		public IEnumerable<MemberInfo> GetAllCrowTypeMembers (string crowTypeName) {
+			Type crowType = GetWidgetTypeFromeName(crowTypeName);
+			return crowType?.GetMembers (BindingFlags.Public | BindingFlags.Instance).
+				Where (m=>((m is PropertyInfo pi && pi.CanWrite) || (m is EventInfo)) &&
+						m.GetCustomAttribute<XmlIgnoreAttribute>() == null);
+		}
+		public IEnumerable<object> GetWidgetChilren(object widget) {
+			if (!IsRunning)
+				return null;
+			return delGetWidgetChildren(widget);
 		}
 		void updateCrowDebuggerState (string errorMsg = null) {
 			ErrorMessage = errorMsg;
@@ -271,6 +325,9 @@ namespace Crow
 
 		#region DesignInterface callbacks
 		//those methods are called by designed interface
+		public void UpdateRootWidget(Type widgetType, object instance) {
+			GraphicTree = new List<ForeignWidgetContainer>([new ForeignWidgetContainer(widgetType, instance)]);
+		}
 		void getMouseScreenCoordinates (out int x, out int y) {
 			x = mouseScreenPos.X;
 			y = mouseScreenPos.Y;
@@ -330,7 +387,7 @@ namespace Crow
 
 			CurrentState = Status.Running;
 
-			App.ViewCommands.Add (CMDViewPreview);
+			App.ViewCommands.Add (ViewCommands);
 
 			updateCrowDebuggerState();
 
@@ -340,7 +397,7 @@ namespace Crow
 		{
 			if (CurrentState == Status.Running)
 				fiDbgIFace_Terminate.SetValue (dbgIFace, true);
-			App.ViewCommands.Remove (CMDViewPreview);
+			App.ViewCommands.Remove (ViewCommands);
 
 			Recording = false;
 			DebugLogIsEnabled = false;
@@ -394,6 +451,8 @@ namespace Crow
 
 			delGetWidgetTypeFromName = (Func<string, Type>)Delegate.CreateDelegate(typeof(Func<string, Type>),
 										dbgIFace, dbgIfaceType.GetMethod("GetWidgetTypeFromName"));
+			delGetWidgetChildren = (Func<object, IEnumerable<object>>)Delegate.CreateDelegate(typeof(Func<object, IEnumerable<object>>),
+										dbgIFace, dbgIfaceType.GetMethod("GetWidgetChilren"));
 
 			
 
@@ -446,10 +505,25 @@ namespace Crow
 			fiDbgIFace_MaxLayoutingTries.SetValue (null, MaxLayoutingTries);
 			fiDbgIFace_MaxDiscardCount.SetValue (null, MaxDiscardCount);
 
-			//DESIGN_MODE only
-			Type widgetType = crowAssembly.GetType("Crow.Widget");
-			fiWidget_design_id = widgetType.GetField("design_id");
+			
 
+			//*** IN ForeignWidgetContainer ****
+			typeWidget = crowAssembly.GetType("Crow.Widget");
+			/*typeGroup = crowAssembly.GetType("Crow.Group");
+			typeContainer = crowAssembly.GetType("Crow.Container");
+			typeTemplatedContainer = crowAssembly.GetType("Crow.TemplatedContainer");
+			typeTemplatedGroup = crowAssembly.GetType("Crow.TemplatedGroup");*/
+
+			//DESIGN_MODE only
+			fiWidget_design_id = typeWidget.GetField("design_id");
+			fiWidget_design_style_values = typeWidget.GetField("design_style_values");
+			fiWidget_design_style_locations = typeWidget.GetField("design_style_locations");
+			fiWidget_design_iml_values = typeWidget.GetField("design_iml_values");
+			//***********************************
+
+
+			fiITor_NextInstantiatorID = crowAssembly.GetType("Crow.IML.Instantiator").GetField("NextInstantiatorID", BindingFlags.Public | BindingFlags.Static);
+			
 			return true;
 		}
 
@@ -462,14 +536,14 @@ namespace Crow
 				NotifyValueChanged(value);
 			}
 		}
-		public Project ActiveSolution {
-			get => activeSolution;
+		public Project CurrentSolution {
+			get => currentSolution;
 			set {
 				//CERoslynPlugin.SolutionProject sol = value as CERoslynPlugin.SolutionProject;
-				if (activeSolution == value)
+				if (currentSolution == value)
 					return;
-				activeSolution = value;
-				NotifyValueChanged (activeSolution);
+				currentSolution = value;
+				NotifyValueChanged (currentSolution);
 			}
 		}
 
@@ -635,7 +709,7 @@ namespace Crow
 				return;
 			Recording = false;
 			getLog ();
-			CrowEditBase.CrowEditBase.App.LoadWindow ("#CECrowPlugin.ui.winDebugLog.crow", this);
+			App.LoadWindow ("#CECrowPlugin.ui.winDebugLog.crow", this);
 		}
 		int firstWidgetIndexToGet = 0;
 		public object LogMutex = new object ();
@@ -694,7 +768,7 @@ namespace Crow
 		bool disableCurrentEventHistory;
 		Stack<DbgEvent> CurrentEventHistoryForward = new Stack<DbgEvent>();
 		Stack<DbgEvent> CurrentEventHistoryBackward = new Stack<DbgEvent>();
-		DbgWidgetRecord curWidget = new DbgWidgetRecord();
+		DbgWidgetRecord curWidgetRecord = new DbgWidgetRecord();
 		public string[] AllEventTypes => Enum.GetNames (typeof(DbgEvtType));
 		string searchEventType;
 		DbgWidgetRecord searchWidget;
@@ -766,27 +840,27 @@ namespace Crow
 			disableCurrentEventHistory = false;
 		}
 
-		public DbgWidgetRecord CurrentWidget {
-			get => curWidget;
+		public DbgWidgetRecord CurrentWidgetRecord {
+			get => curWidgetRecord;
 			set {
-				if (curWidget == value)
+				if (curWidgetRecord == value)
 					return;
-				curWidget = value;
-				NotifyValueChanged (nameof (CurrentWidget), curWidget);
-				NotifyValueChanged ("CurWidgetRootEvents", curWidget?.RootEvents);
-				NotifyValueChanged ("CurrentWidgetEvents", curWidget?.Events);
+				curWidgetRecord = value;
+				NotifyValueChanged (nameof (CurrentWidget), curWidgetRecord);
+				NotifyValueChanged ("CurWidgetRootEvents", curWidgetRecord?.RootEvents);
+				NotifyValueChanged ("CurrentWidgetEvents", curWidgetRecord?.Events);
 				NotifyValueChanged ("CurWidgetProperties", CurWidgetProperties);
 			}
 		}
-		public List<DbgWidgetEvent> CurWidgetRootEvents => curWidget == null? new List<DbgWidgetEvent>() : curWidget.RootEvents;
+		public List<DbgWidgetEvent> CurWidgetRootEvents => curWidgetRecord == null? new List<DbgWidgetEvent>() : curWidgetRecord.RootEvents;
 
 		public IEnumerable<KeyValuePair<string, string>> CurWidgetProperties {
 			get {
-				if (curWidget == null)
+				if (curWidgetRecord == null)
 					return null;
 				long endTime = curEvent == null ? long.MaxValue : curEvent.end;
 				Dictionary<string, string> result = new Dictionary<string, string> ();
-				foreach (DbgWidgetEvent evt in curWidget?.Events?.Where (e => e.type == DbgEvtType.GOSetProperty && e.begin <= endTime)){
+				foreach (DbgWidgetEvent evt in curWidgetRecord?.Events?.Where (e => e.type == DbgEvtType.GOSetProperty && e.begin <= endTime)){
 					string[] tmp = evt.Message.Split('=');
 					if (result.ContainsKey (tmp[0]))
 						result[tmp[0]] = tmp[1];
@@ -797,5 +871,7 @@ namespace Crow
 			}
 		}
 		#endregion
+
+
 	}
 }

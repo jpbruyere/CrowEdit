@@ -4,13 +4,13 @@
 
 using System;
 using Glfw;
+using Crow;
 using Crow.Text;
 using Drawing2D;
 using System.Collections;
 using static CrowEditBase.CrowEditBase;
 using System.Collections.Generic;
 using System.Linq;
-using Crow;
 using System.Text.Unicode;
 using System.Text;
 
@@ -97,7 +97,7 @@ namespace CrowEditBase
 									<ListItem Height='Fit' Margin='2' Focusable='false' HorizontalAlignment='Left' Width='Stretched'
 																	Selected = '{Background=${ControlHighlight}}'
 																	Unselected = '{Background=Transparent}'>
-										<HorizontalStack Width='Stretched' >
+										<HorizontalStack Width='Stretched' Spacing='6'>
 											<Image Path='{Icon}' Width='12' Height='12'/>
 											<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>
 										</HorizontalStack>

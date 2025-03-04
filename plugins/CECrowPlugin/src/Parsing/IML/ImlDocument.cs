@@ -32,12 +32,6 @@ namespace CECrowPlugin
 		public override string GetTokenTypeString (TokenType tokenType) => ((ImlTokenType)tokenType).ToString();
 
 
-		IEnumerable<MemberInfo> getAllCrowTypeMembers (string crowTypeName) {
-			Type crowType = App.GetService<CrowService>()?.GetWidgetTypeFromeName(crowTypeName);
-			return crowType?.GetMembers (BindingFlags.Public | BindingFlags.Instance).
-				Where (m=>((m is PropertyInfo pi && pi.CanWrite) || (m is EventInfo)) &&
-						m.GetCustomAttribute<XmlIgnoreAttribute>() == null);
-		}
 		/*MemberInfo getCrowTypeMember (string crowTypeName, string memberName) {
 			Type crowType = App.GetService<CrowService>()?.GetWidgetTypeFromeName(crowTypeName);
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
@@ -66,21 +60,31 @@ namespace CECrowPlugin
         }
         protected override IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string curName, TextChange change) {
 			int endPosOffset = change.HasNewText ? -1 : 0;
-			var members = getAllCrowTypeMembers(eltName);
-			if (members == null)
-				return null;
-			if (!string.IsNullOrEmpty(curName))
-				members = members.Where(m =>
-					m.Name.StartsWith (curName, StringComparison.OrdinalIgnoreCase));
-			return members?.Select(m
-				=> new MemberInfoSuggestion(m,
-					new TextChange(change.Start, change.Length, m.Name + change.ChangedText), endPosOffset));
+			var members = App.GetService<CrowService>()?.GetAllCrowTypeMembers(eltName);
+			if (members != null) {
+				
+				if (!string.IsNullOrEmpty(curName))
+					members = members.Where(m => m.Name.StartsWith (curName, StringComparison.OrdinalIgnoreCase));
+
+				var suggs = members?.Where(m=>m.MemberType == MemberTypes.Property)?.Select(p
+					=> new CrowPropertySuggestion(p as PropertyInfo,
+						new TextChange(change.Start, change.Length, p.Name + change.ChangedText), endPosOffset));
+
+				foreach (var tmp in suggs.Where(s=>s.Category == "Divers"))
+					yield return tmp;
+				foreach (var tmp in suggs.Where(s=>s.Category == "Appearance"))
+					yield return tmp;
+				foreach (var tmp in suggs.Where(s=>s.Category == "Layout"))
+					yield return tmp;
+				foreach (var tmp in suggs.Where(s=>s.Category == "Data"))
+					yield return tmp;
+				foreach (var tmp in suggs.Where(s=>s.Category == "Behaviour"))
+					yield return tmp;				
+			}
+				
 		}
 		protected override IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) {
-			CrowService srv = App.GetService<CrowService>();
-			if (srv == null || !srv.IsRunning)
-				return null;
-			MemberInfo mi = getAllCrowTypeMembers(eltName)?.Where(m=>m.Name.Equals(attribName, StringComparison.Ordinal)).FirstOrDefault();
+			MemberInfo mi = App.GetService<CrowService>()?.GetAllCrowTypeMembers(eltName)?.Where(m=>m.Name.Equals(attribName, StringComparison.Ordinal)).FirstOrDefault();
 			if (mi is PropertyInfo pi) {
 				if (pi.Name == "Style")
 					return App.Styling.Keys

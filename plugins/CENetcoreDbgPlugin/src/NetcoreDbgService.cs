@@ -18,7 +18,7 @@ using Crow;
 namespace NetcoreDbgPlugin
 {
 	public class NetcoreDbgService : Service {
-		public override string ConfigurationWindowPath => "#CENetcoreDbgPlugin.ui.winConfiguration.crow";
+		public override string[] ServiceWindowsPath => ["#CENetcoreDbgPlugin.ui.winConfiguration.crow"];
 		public NetcoreDbgService () : base () {
 			initCommands();
 			App.ValueChanged += app_ValueChanged;
@@ -46,7 +46,7 @@ namespace NetcoreDbgPlugin
 			CMDViewStackFrames = new ActionCommand("Stack Frames", () => App.LoadWindow ("#CENetcoreDbgPlugin.ui.winStackFrames.crow", this));
 			CMDViewWatches = new ActionCommand("Watches", () => App.LoadWindow ("#CENetcoreDbgPlugin.ui.winWatches.crow", this));
 			CMDViewThreads = new ActionCommand("Threads", () => App.LoadWindow ("#CENetcoreDbgPlugin.ui.winThreads.crow", this));
-			ViewCommands = new CommandGroup("Debugger", CMDViewDebug, CMDViewWatches, CMDViewBreakPoints, CMDViewStackFrames, CMDViewThreads);
+			ViewCommands = new CommandGroup("Debugger", "#icons.bug.svg", CMDViewDebug, CMDViewWatches, CMDViewBreakPoints, CMDViewStackFrames, CMDViewThreads);
 		}
 		#endregion
 

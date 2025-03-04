@@ -148,9 +148,9 @@ namespace CERoslynPlugin
 
 				lastBuildResult = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
 
-				/*printEvaluatedProperties (lastBuildResult.ProjectStateAfterBuild);
+				printEvaluatedProperties (lastBuildResult.ProjectStateAfterBuild);
 
-				var test = lastBuildResult.ProjectStateAfterBuild.GetItems ("Reference");*/
+				/*var test = lastBuildResult.ProjectStateAfterBuild.GetItems ("Reference");*/
 
 				//Console.WriteLine (IsCrowProject);
 

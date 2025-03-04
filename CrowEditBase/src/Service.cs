@@ -23,17 +23,20 @@ namespace CrowEditBase
 		protected Service () {
 			Name = this.GetType().Name;
 			log = CrowEditBase.App.MainLog;
-			CMDStart = new ActionCommand ("Start", Start, "#icons.play-button.svg", true);
-			CMDStop = new ActionCommand ("Stop", Stop, "#icons.stop.svg", false);
-			CMDPause = new ActionCommand ("Pause", Pause, "#icons.pause-symbol.svg", false);
-			CMDOpenConfig = new ActionCommand ("Service configuration",
-				() => CrowEditBase.App.LoadWindow (ConfigurationWindowPath, this), "#icons.cogwheel.svg", true);
-			Commands = new CommandGroup (CMDStart, CMDPause, CMDStop, CMDOpenConfig);
-			ensureConfigWinDataSource();
+			initCommands();
+			//ensureConfigWinDataSource();
 			Log(LogType.Low, $"[{Name}] Service Instanciated");
 		}
 		public Command CMDStart, CMDStop, CMDPause, CMDOpenConfig;
 		public CommandGroup Commands;
+		void initCommands() {
+			CMDStart = new ActionCommand ("Start", Start, "#icons.play-button.svg", true);
+			CMDStop = new ActionCommand ("Stop", Stop, "#icons.stop.svg", false);
+			CMDPause = new ActionCommand ("Pause", Pause, "#icons.pause-symbol.svg", false);
+			CMDOpenConfig = new ActionCommand ("Service configuration",
+				() => CrowEditBase.App.LoadWindow (ServiceWindowsPath[0], this), "#icons.cogwheel.svg", true);
+			Commands = new CommandGroup (CMDStart, CMDPause, CMDStop, CMDOpenConfig);
+		}
 		Status currentState;
 		public Status CurrentState {
 			get => currentState;
@@ -55,15 +58,16 @@ namespace CrowEditBase
 			CMDStop.CanExecute = IsRunning || CurrentState == Status.Paused;
 			Log(LogType.High, $"[{Name}] Status: {previousState} -> {newState}");
 		}
-		protected void ensureConfigWinDataSource() {
-			if (CrowEditBase.App.TryGetWindow (ConfigurationWindowPath, out Window win))
+		/*protected void ensureConfigWinDataSource() {
+			if (CrowEditBase.App.TryGetWindow (ServiceWindowsPath[0], out Window win))
 				win.DataSource = this;
-		}
+		}*/
 		public readonly string Name;
 		public abstract void Start ();
 		public abstract void Stop ();
 		public abstract void Pause ();
-		public virtual string ConfigurationWindowPath => "#ui.winServiceConfig.crow";
+		//windows having this service as datasource
+		public virtual string[] ServiceWindowsPath => ["#ui.winServiceConfig.crow"];
 
 		public virtual Document OpenDocument (string fullPath) => null;
 	}

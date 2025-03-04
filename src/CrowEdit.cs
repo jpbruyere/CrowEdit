@@ -76,9 +76,13 @@ namespace CrowEdit
 
 			reloadWinConfigs ();
 
-			foreach (Service service in Services) {
-				if (TryGetWindow (service.ConfigurationWindowPath, out Window win))
-					win.DataSource = service;
+			lock(UpdateMutex) {
+				foreach (Service service in Services) {
+					foreach (string winPath in service.ServiceWindowsPath) {
+						if (TryGetWindow (winPath, out Window win))
+							win.DataSource = service;
+					}
+				}
 			}
 
 			reloadLogsConfigs ();
@@ -115,9 +119,9 @@ namespace CrowEdit
 
 			);
 			ViewCommands = new CommandGroup ("View",
-	 			new ActionCommand("Explorer", () => LoadWindow ("#CrowEdit.ui.windows.winFileExplorer.crow", this)),
-				new ActionCommand("Editors", () => LoadWindow ("#CrowEdit.ui.windows.winEditor.crow", this)),
-				new ActionCommand("Exceptions", () => LoadWindow ("#CrowEdit.ui.windows.winExceptions.crow", this)),
+	 			new ActionCommand("Explorer", () => LoadWindow ("#CrowEdit.ui.windows.winFileExplorer.crow", this), "#icons.folder.svg"),
+				new ActionCommand("Editors", () => LoadWindow ("#CrowEdit.ui.windows.winEditor.crow", this), "#icons.edit.svg"),
+				new ActionCommand("Exceptions", () => LoadWindow ("#CrowEdit.ui.windows.winExceptions.crow", this), "#icons.exclamation.svg"),
 				new ActionCommand("Projects", () => LoadWindow ("#CrowEdit.ui.windows.winProjects.crow", this)),
 				new ActionCommand("Logs", () => LoadWindow ("#CrowEdit.ui.windows.winLogs.crow", this), "#icons.log.svg"),
 				new ActionCommand("Services", () => LoadWindow ("#CrowEdit.ui.windows.winServices.crow", this), "#icons.services.svg"),

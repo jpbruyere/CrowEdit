@@ -92,6 +92,8 @@ namespace CECrowPlugin
 		string source;
 		//Action delRegisterForRepaint;//call RegisterForRepaint in the container widget (DebugInterfaceWidget)
 		Action<Exception> delCrowServiceSetCurrentException;
+		Action<Type,object> delCrowServiceUpdateRootWidget;
+
 
 		delegate void GetScreenCoordinateDelegateType(out int x, out int y);
 		GetScreenCoordinateDelegateType delCrowServiceGetScreenCoordinate;
@@ -104,6 +106,9 @@ namespace CECrowPlugin
 			//delRegisterForRepaint = (Action)Delegate.CreateDelegate(typeof(Action), w, t.GetMethod("RegisterForRepaint"));
 			delCrowServiceSetCurrentException = (Action<Exception>)Delegate.CreateDelegate(typeof(Action<Exception>), crowService,
 				t.GetProperty("CurrentException").GetSetMethod(true));
+			delCrowServiceUpdateRootWidget = (Action<Type,object>)Delegate.CreateDelegate(typeof(Action<Type,object>), crowService,
+				t.GetMethod("UpdateRootWidget"));
+
 			delCrowServiceGetScreenCoordinate = (GetScreenCoordinateDelegateType)Delegate.CreateDelegate(typeof(GetScreenCoordinateDelegateType), crowService,
 				t.GetMethod("getMouseScreenCoordinates", BindingFlags.Instance | BindingFlags.NonPublic));
 			delCrowServiceGetStyling = (Func<IEnumerable<object>>)Delegate.CreateDelegate (typeof (Func<IEnumerable<object>>), crowService,
@@ -130,6 +135,7 @@ namespace CECrowPlugin
 						AddWidget (tmp);
 						tmp.DataSource = this;
 					}
+					delCrowServiceUpdateRootWidget(GraphicTree[0].GetType(), (object)GraphicTree[0]);
 				}
 				catch (IML.InstantiatorException iTorEx)
 				{
@@ -141,6 +147,8 @@ namespace CECrowPlugin
 				}
 			}
 		}
+
+
 		
 		void resetInterface () {
 			ClearInterface();
@@ -268,7 +276,25 @@ namespace CECrowPlugin
 			}
 			return null;
 		}
-	
+		public IEnumerable<object> GetWidgetChilren(object widget) {
+			Type goType = widget.GetType();
+			if (typeof (Group).IsAssignableFrom (goType)) {
+				foreach (Widget w in (widget as Group).Children)
+					yield return w;
+			} else if (typeof(Container).IsAssignableFrom (goType))
+				yield return (widget as Container).Child;
+			else if (typeof(TemplatedContainer).IsAssignableFrom (goType))
+				yield return (widget as TemplatedContainer).Content;
+			else if (typeof(TemplatedGroup).IsAssignableFrom (goType)) {
+				foreach (Widget w in (widget as TemplatedGroup).Items)
+					yield return w;
+			}
+			/* for template tree
+			} else if (typeof(PrivateContainer).IsAssignableFrom (goType)) {
+				FieldInfo fi = typeof(PrivateContainer).GetField("child", BindingFlags.NonPublic | BindingFlags.Instance);
+				yield return fi.GetValue(widget);
+			*/
+		}
 	
 		public void LockRenderMutex() => Monitor.Enter(this.UpdateMutex);
 		public void UnlockRenderMutex() => Monitor.Exit(this.UpdateMutex);

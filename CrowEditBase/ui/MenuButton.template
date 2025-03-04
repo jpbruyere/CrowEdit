@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <Button Command="{}" Width="Stretched" BubbleEvents="All">
 	<Template>
-		<HorizontalStack Background="{./Background}" Width="Stretched" Height="Stretched" Margin="3" Spacing="2"
+		<HorizontalStack Background="{./Background}" Width="Stretched" Height="Stretched" Margin="3" Spacing="6"
 						MouseEnter="{Background=${ControlHighlight}}"
 						MouseLeave="{Background=Transparent}">
 			<Image Style="MenuIcon" Picture="{./Icon}" />

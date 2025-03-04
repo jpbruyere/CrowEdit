@@ -1,0 +1,43 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Graphic Tree"  Width="30%">
+	<VerticalStack RootDataLevel="true" Spacing="0">
+		<Button Command="{CMDRefresh}"/>
+		<TreeView Data="{GraphicTree}" SelectedItem="{²CurrentWidget}">
+			<ItemTemplate Data="Children">
+				<ListItem IsSelected="{IsSelected}"
+						Selected="{/exp.Background=${ControlHighlight}}"
+						Unselected="{/exp.Background=${TreeItemBackground}}">
+					<Expandable Name="exp" Caption="{Name}" MouseDoubleClick="/onClickForExpand" BubbleEvents="All" IsExpanded="{²IsExpanded}"
+								Tooltip="{AsText}">
+						<Template>
+							<VerticalStack>
+								<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"
+										Foreground="Transparent"
+										MouseEnter="{Foreground=DimGrey}"
+										MouseLeave="{Foreground=Transparent}">
+									<HorizontalStack Background="{./Background}" Spacing="1">
+										<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand"
+											Path="{./Image}"
+											Visible="{HasChilds}"
+											SvgSub="{IsExpanded}"
+											MouseEnter="{Background=LightGrey}"
+											MouseLeave="{Background=Transparent}"/>
+										<Image Path='{Icon}' Width='16' Height='16'/>
+										<Label Style="TreeLabel" Text="{./Caption}"/>
+									</HorizontalStack>
+								</Border>								
+								<Container Name="Content" Visible="false"/>
+							</VerticalStack>
+						</Template>
+						<HorizontalStack Height="Fit">
+							<Widget Width="12" Height="10"/>
+							<VerticalStack Height="Fit" Name="ItemsContainer"/>
+						</HorizontalStack>
+					</Expandable>
+				</ListItem>
+			</ItemTemplate>
+		</TreeView>
+	</VerticalStack>
+</DockWindow>
+
+

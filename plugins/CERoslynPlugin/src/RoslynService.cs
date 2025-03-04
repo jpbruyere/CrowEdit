@@ -18,6 +18,7 @@ using Crow;
 namespace CERoslynPlugin
 {
 	public class RoslynService : Service {
+		public override string[] ServiceWindowsPath => ["#CERoslynPlugin.ui.winConfiguration.crow"];
 		CELogger logger;
 		internal CELogger Logger {
 			get => logger;
@@ -154,7 +155,7 @@ namespace CERoslynPlugin
 				return (Document)Activator.CreateInstance (t, new object[] {fullPath});
 			}
 		}*/
-		public override string ConfigurationWindowPath => "#CERoslynPlugin.ui.winConfiguration.crow";
+		
 
 		public string SDKFolder {
 			get => Configuration.Global.Get<string> ("SDKFolder");
