@@ -335,7 +335,7 @@ namespace CECrowPlugin
 		IEnumerable<object> getStyling () {
 			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
 				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
-					foreach (var style in csprj.Flatten.OfType<CERoslynPlugin.ProjectItemNode>()
+					foreach (var style in csprj.Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>()
 						.Where (pin=>pin.NodeType == NodeType.EmbeddedResource && pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase)))
 						yield return style.FullPath;
 				}

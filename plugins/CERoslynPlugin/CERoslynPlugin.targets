@@ -1,0 +1,48 @@
+﻿<!--<Project>
+ <Target Name="CrowIDEGetResolvedReferences" AfterTargets="ResolveReferences" Outputs="$(localProp)">
+	 <PropertyGroup>
+		 <localProp>Y</localProp>
+	 </PropertyGroup>
+	 <ItemGroup>
+		 <MySourceItemsWithMetadata Include="@(ReferencePath)"/>
+	 </ItemGroup>
+	 <Message Importance="High" Text="@(ReferencePath)" />
+	 <Output TaskParameter="TargetOutputs" ItemName="@(ReferencePath)" />
+ </Target>
+</Project>-->
+
+<Project>
+	<UsingTask AssemblyFile="CERoslynPlugin.dll" TaskName="CEHookTask" />
+	<Target Name="CEHookTaskResolveReferences" AfterTargets="ResolveReferences">
+		<CEHookTask HookedItemsName="ReferencePath" OutputDirectory="$(IntermediateOutputPath)"
+					HookedItems="@(ReferencePath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
+	</Target>
+	<Target Name="CEHookTaskResolveTargetPathes" AfterTargets="GetCopyToOutputDirectoryItems">
+		<CEHookTask HookedItemsName="AllItemsFullPathWithTargetPath" OutputDirectory="$(IntermediateOutputPath)"
+					HookedItems="@(AllItemsFullPathWithTargetPath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
+	</Target>
+	<Target Name="CEHookTaskResolveTargetPath" AfterTargets="GetTargetPath">
+		<CEHookTask HookedItemsName="TargetPath" OutputDirectory="$(IntermediateOutputPath)"
+					HookedItems="$(TargetPath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
+	</Target>
+	<Target Name="CEHookTaskResolveAssemblyReference" AfterTargets="ResolveAssemblyReference">
+		<CEHookTask HookedItemsName="ReferencePath" OutputDirectory="$(IntermediateOutputPath)"
+					HookedItems="@(ReferencePath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
+	</Target>
+
+	<Target Name="CEHookTaskResolveRessourcesNames" AfterTargets="CreateManifestResourceNames">
+		<CEHookTask HookedItemsName="EmbeddedResource" OutputDirectory="$(IntermediateOutputPath)"
+					HookedItems="@(EmbeddedResource)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
+	</Target>
+
+	<!--<Target Name="anotherTargetTest" AfterTargets="GetCopyToOutputDirectoryItems">
+        <Message Importance="high" Text="**TEST**  @(AllItemsFullPathWithTargetPath->'%(Identity)')" />
+    </Target>-->
+	<!--<Target Name="CustomAfterBuild2" AfterTargets="ResolveReferences" Outputs="@(ReferencePath)">
+        <Message Importance="high" Text="AFTER BUILD TARGET" />
+        <ItemGroup>
+            <DynamicItem Include="@(ReferencePath)"/>
+        </ItemGroup>
+    </Target>-->
+
+</Project>

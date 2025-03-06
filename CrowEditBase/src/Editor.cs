@@ -1017,7 +1017,8 @@ namespace CrowEditBase
 				OnTextChanged (this, new TextChangeEventArgs (change));
 
 			selectionStart = null;
-			CharLocation newLoc = document.GetLocation (change.Start + change.ChangedText.Length);
+			CharLocation newLoc = change.ChangedText == null ?
+				document.GetLocation (change.Start)	: document.GetLocation (change.Start + change.ChangedText.Length);
 			updateLocation(ref newLoc);//ensure tabulated column is uptodate on each changes
 			CurrentLoc = newLoc;
 

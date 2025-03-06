@@ -69,6 +69,9 @@ namespace CrowEditBase
 			registeredClients[client].Add (tc);
 		}
 
+		public virtual void SetLocation(CharLocation loc) {
+			notifyClients(new TextChange(GetAbsolutePosition(loc),0));
+		}
 
 		protected override void writeToDisk () {
 			using (Stream s = new FileStream(FullPath, FileMode.Create)) {

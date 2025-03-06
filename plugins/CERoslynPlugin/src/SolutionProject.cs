@@ -23,6 +23,8 @@ using Project = CrowEditBase.Project;
 
 
 using System.Runtime.Loader;
+using System.Xml.Schema;
+using Crow.IML;
 
 namespace CERoslynPlugin
 {
@@ -69,6 +71,18 @@ namespace CERoslynPlugin
 		}
 		public override bool ContainsFile (string fullPath) =>
 				FlattenProjetcs.Any (f => f.ContainsFile (fullPath));
+		public override bool TryGetFile (string path, out IFileNode fileNode) {
+			foreach(Project prj in FlattenProjetcs) {
+				if (prj.TryGetFile (path, out IFileNode node)) {
+					fileNode = node;
+					return true;
+				}
+			}
+			fileNode = null;
+			return false;
+		}
+				
+
 		public override string Name => Path.GetFileNameWithoutExtension (FullPath);
 		public override string Icon => "#icons.file_type_sln2.svg";
 		public Project StartupProject {
@@ -129,19 +143,24 @@ namespace CERoslynPlugin
 				projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 
 				projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine(roslynService.MSBuildRoot, "Roslyn"));
+				//https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2019
+				projectCollection.SetGlobalProperty ("CustomBeforeMicrosoftCommonTargets",
+					Path.Combine(Path.GetDirectoryName(this.GetType().Assembly.Location), "CERoslynPlugin.targets"));
+				
+
 				//projectCollection.SetGlobalProperty ("NoWarn", "");
 				
 
 				//IDE.ProgressNotify (10);
+				
 
-				//ide.projectCollection.HostServices
 				buildParams = new BuildParameters (projectCollection) {
 					Loggers = projectCollection.Loggers,
 					LogInitialPropertiesAndItems = true,
 					LogTaskInputs = true,
 					UseSynchronousLogging = true,
 					ResetCaches = true,
-					DetailedSummary = true
+					DetailedSummary = true,
 				};
 
 				//projectCollection.IsBuildEnabled = false;

@@ -10,9 +10,14 @@ using static CrowEditBase.CrowEditBase;
 namespace CrowEditBase
 {
 	public abstract class Project : TreeNode {
+		public Project (string fullPath) {
+			initCommands ();
+			FullPath = fullPath;
+		}
 		bool isLoaded;
 		protected Project parent;
 		public abstract bool ContainsFile (string fullPath);
+		public abstract bool TryGetFile (string path, out IFileNode fileNode);
 		public IEnumerable<Project> SubProjetcs => Childs.OfType<Project> ();
 		public virtual IEnumerable<Project> FlattenProjetcs {
 			get {
@@ -40,10 +45,7 @@ namespace CrowEditBase
 				CMDReload.CanExecute = CMDUnload.CanExecute = IsLoaded;
 			}
 		}
-		public Project (string fullPath) {
-			initCommands ();
-			FullPath = fullPath;
-		}
+
 		public Command CMDLoad, CMDUnload, CMDReload, CMDClose;
 		public override CommandGroup Commands => new CommandGroup (
 			CMDLoad, CMDUnload, CMDReload, CMDClose);
@@ -60,6 +62,8 @@ namespace CrowEditBase
 			IsLoaded = false;
 		}
 		public virtual void Close () {
+			if (IsLoaded)
+				Unload();
 			if (App.CurrentProject == this)
 				App.CurrentProject = null;
 			App.Projects.Remove (this);

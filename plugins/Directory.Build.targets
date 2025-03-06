@@ -6,5 +6,6 @@
 		<MakeDir Directories="$(DestinationFolder)\"/>
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DestinationFolder)$(ProjectName)\" ContinueOnError="true" />
 		<Copy SourceFiles="$(ProjectDir)$(OutputPath)$(TargetName).pdb" DestinationFolder="$(DestinationFolder)$(ProjectName)\" ContinueOnError="true" />
+		<Copy SourceFiles="$(ProjectDir)$(OutputPath)$(ProjectName).targets" DestinationFolder="$(DestinationFolder)$(ProjectName)\" ContinueOnError="true" />
 	</Target>
 </Project>

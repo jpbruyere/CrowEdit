@@ -23,11 +23,14 @@ using static CrowEditBase.CrowEditBase;
 using Project = CrowEditBase.Project;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+
 using System.Threading.Tasks;
 
 namespace CERoslynPlugin
 {
-	public class MSBuildProject : Project {
+	public class MSBuildProject : Project, ITaskHost {
+		static string[] defaultTargets = { "Clean", "Restore", "Build", "Rebuild", "Pack", "Publish"};
+
 		ProjectInSolution projectInSolution;
 		SolutionProject solutionProject;
 		Microsoft.Build.Evaluation.Project project;
@@ -37,9 +40,7 @@ namespace CERoslynPlugin
 		CommandGroup commands;
 
 
-		public string RootDir => project.DirectoryPath;
 
-		static string[] defaultTargets = { "Clean", "Restore", "Build", "Rebuild", "Pack", "Publish"};
 		public override CommandGroup Commands => commands;
 		public CommandGroup CMDSBuild { get; private set; }
 		public Command CMDSetAsStartupProject { get; private set; }
@@ -59,6 +60,7 @@ namespace CERoslynPlugin
 				CMDSBuild.Add (new ActionCommand (target, () => Build (target), null, false));
 
 			commands.Add (CMDSBuild.Commands.ToArray());
+			//commands.Add (new ActionCommand("try pi", ()=>testFetchEvaluated()));
 
 			Load ();
 		}
@@ -73,6 +75,8 @@ namespace CERoslynPlugin
 				using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
 					ProjectRootElement projectRootElt = ProjectRootElement.Open (projectInSolution.AbsolutePath);
 					project = new Microsoft.Build.Evaluation.Project (projectInSolution.AbsolutePath, null, "Current", solutionProject.projectCollection);
+
+					solutionProject.projectCollection.HostServices.RegisterHostObject(project.FullPath, "CEHookTaskResolveRessourcesNames", "CEHookTask", this);
 					
 					ProjectProperty msbuildProjExtPath = project.GetProperty ("MSBuildProjectExtensionsPath");
 					ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");
@@ -119,31 +123,31 @@ namespace CERoslynPlugin
 				//App.Log(LogType.Error, $"[MSBuildProject.Load] Error: {ex.ToString()}");
 			}
 		}
-
 		public override void Unload () {
 			CMDSBuild.ToggleAllCommand (false);
 			if (commands.Contains (CMDSetAsStartupProject))
 				commands.Remove (CMDSetAsStartupProject);
 			if (IsLoaded) {
+				solutionProject.projectCollection.HostServices.UnregisterProject(project.FullPath);
 				solutionProject.projectCollection.UnloadProject (project);
 				project = null;
 				this.Childs.Clear();
 			}
 			IsLoaded = false;
 		}
+
 		public void Build () => Build ("Build");
 		public void Build (params string[] targets)
 		{
-			using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
-				BuildManager.DefaultBuildManager.ResetCaches ();
-			
+			//using (var ctx = System.Runtime.Loader.AssemblyLoadContext.GetLoadContext (this.GetType().Assembly).EnterContextualReflection()) {
+				BuildManager.DefaultBuildManager.ResetCaches ();		
 				ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
-
-				Console.ForegroundColor = ConsoleColor.Green;
-				/*Console.WriteLine ($"Initial properties");
+				/*Console.ForegroundColor = ConsoleColor.Green;
+				Console.WriteLine ($"Initial properties");
 				printEvaluatedProperties (pi);*/
+				//HostServices hs = new HostServices();
 
-				BuildRequestData request = new BuildRequestData (pi, targets, null,
+				BuildRequestData request = new BuildRequestData (pi, targets, solutionProject.projectCollection.HostServices,
 					BuildRequestDataFlags.ProvideProjectStateAfterBuild);
 
 				lastBuildResult = BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
@@ -154,7 +158,7 @@ namespace CERoslynPlugin
 
 				//Console.WriteLine (IsCrowProject);
 
-			}
+			//}
 		}
 		public async void DesignBuild () {
 			lastBuildResult = await Task.Run (()=> designBuild());
@@ -163,10 +167,11 @@ namespace CERoslynPlugin
 			string[] targets = {"Build"};
 			BuildManager.DefaultBuildManager.ResetCaches ();
 			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
-			BuildRequestData request = new BuildRequestData (pi, targets, null,
+			BuildRequestData request = new BuildRequestData (pi, targets, solutionProject.projectCollection.HostServices,
 				BuildRequestDataFlags.ProvideProjectStateAfterBuild);
 			return BuildManager.DefaultBuildManager.Build (solutionProject.buildParams, request);
 		}
+		
 		public override string Icon {
 			get {
 				switch (Path.GetExtension (FullPath)) {
@@ -177,7 +182,6 @@ namespace CERoslynPlugin
 				}
 			}
 		}
-
 		public bool IsCrowProject {
 			get {
 				/*foreach (ProjectItemNode reference in Childs[0].Flatten.OfType<ProjectItemNode>()) {
@@ -200,8 +204,23 @@ namespace CERoslynPlugin
 			}
 		}
 		public override string StatusIcon => solutionProject.StartupProject == this ? "#icons.startup.svg" : null;
-		public override bool ContainsFile (string fullPath) =>
-			Flatten.OfType<ProjectItemNode> ().Any (f => f.FullPath == fullPath);
+		public override bool ContainsFile (string path) =>
+			Flatten.OfType<MSBuildProjectItemNode> ().Any (f => f.FullPath == path || f.LogicalName == path);
+		public override bool TryGetFile (string path, out IFileNode fileNode) {
+			fileNode = Flatten.OfType<MSBuildProjectItemNode> ()?.FirstOrDefault (f => f.FullPath == path || f.LogicalName == path);
+			return fileNode != null;
+		}
+			
+		
+		public void MSBuildHookTaskCallBack(ITaskItem HookedItemsName, IEnumerable<ITaskItem> items) {
+			if (items == null)
+				return;
+			foreach (var item in items) {
+				if (TryGetFile(item.GetMetadata("FullPath"), out IFileNode node) && node is MSBuildProjectItemNode msbpin) {
+					msbpin.LogicalName = item.GetMetadata("LogicalName");
+				}
+			}
+		}
 
 		void populateTreeNodes ()
 		{
@@ -221,7 +240,7 @@ namespace CERoslynPlugin
 				case "Reference":
 				case "PackageReference":
 				case "ProjectReference":
-					refs.AddChild (new ProjectItemNode (pn));
+					refs.AddChild (new MSBuildProjectItemNode (pn));
 					break;
 				case "Compile":
 				case "None":
@@ -261,7 +280,7 @@ namespace CERoslynPlugin
 							pi = new ProjectFileNode (pi);
 							break;
 						}*/
-						curNode.AddChild (new ProjectItemNode (pn));
+						curNode.AddChild (new MSBuildProjectItemNode (pn));
 
 					} catch (Exception ex) {
 						
@@ -287,6 +306,7 @@ namespace CERoslynPlugin
 		}
 
 		public override string Name => project == null ? projectInSolution.ProjectName : project.GetProperty ("MSBuildProjectName").EvaluatedValue;
+		public string RootDir => project.DirectoryPath;
 		public string ToolsVersion => project.ToolsVersion;
 		public string DefaultTargets => project.Xml.DefaultTargets;
 		public ICollection<ProjectProperty> Properties => project.Properties;
@@ -325,16 +345,16 @@ namespace CERoslynPlugin
 		public int WarningLevel => int.Parse (project.GetProperty ("WarningLevel").EvaluatedValue);
 
 		public Stream GetStreamFromTargetPath (string targetPath) {
-			IEnumerable<ProjectItemNode> piNodes = Flatten.OfType<CERoslynPlugin.ProjectItemNode>();
+			IEnumerable<MSBuildProjectItemNode> piNodes = Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>();
 			if (targetPath.StartsWith ('#')) {
 				targetPath = targetPath.Substring (1);
-				ProjectItemNode pin = piNodes.FirstOrDefault (n =>
+				MSBuildProjectItemNode pin = piNodes.FirstOrDefault (n =>
 					n.NodeType == NodeType.EmbeddedResource &&
 					n.HasMetadataValue ("LogicalName", targetPath));
 				if (pin != null)
 					return new FileStream (pin.FullPath, FileMode.Open);
 			} else {
-				ProjectItemNode pin = piNodes.FirstOrDefault (n =>
+				MSBuildProjectItemNode pin = piNodes.FirstOrDefault (n =>
 					n.NodeType == NodeType.None &&
 					(n.HasMetadataValue ("CopyToOutputDirectory", "PreserveNewest") || n.HasMetadataValue ("CopyToOutputDirectory", "Always")) &&
 					n.EvaluatedInclude == targetPath);
@@ -345,7 +365,7 @@ namespace CERoslynPlugin
 		}
 
 
-#region debug
+		#region debug
 		void printEvaluatedProperties (ProjectInstance pi) {
 			Console.ForegroundColor = ConsoleColor.Green;
 			Console.WriteLine ($"Evaluated Globals properties for {Name}");
@@ -356,12 +376,20 @@ namespace CERoslynPlugin
 				Console.WriteLine ($"{item.EvaluatedValue}");
 
 			}
-			/*ICollection<ProjectItemInstance> pii = pi.GetItems ("InnerOutput");
-			ProjectRootElement pre = pi.ToProjectRootElement();
-			pre.FullPath = "/home/jp/test.csproj";
-			pre.Save();*/
+			foreach (var test in pi.GetItems ("EmbeddedResource")) {
+				Console.WriteLine($"{test.EvaluatedInclude}");
+				if (test.HasMetadata("ManifestResourceName"))
+					Console.WriteLine($"\t->{test.GetMetadataValue("ManifestResourceName")}");
+			}
+
+
+			var test2 = pi.Targets.Where(t=>t.Key == "CreateManifestResourceNames");
+			//ProjectRootElement pre = pi.ToProjectRootElement();
+			//pre.FullPath = "/home/jp/test.csproj";
+			//pre.Save();*/
 
 		}
-#endregion
+
+		#endregion
 	}
 }

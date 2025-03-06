@@ -19,12 +19,12 @@ namespace CERoslynPlugin
 		Always,
 		PreserveNewest
 	}*/
-	public class ProjectItemNode  : TreeNode, IFileNode
+	public class MSBuildProjectItemNode  : TreeNode, IFileNode
 	{
-
 		ProjectItem projectItem;
+
 		#region CTOR
-		public ProjectItemNode (ProjectItem projectItem) {
+		public MSBuildProjectItemNode (ProjectItem projectItem) {
 			this.projectItem = projectItem;
 		}
 		#endregion
@@ -41,6 +41,12 @@ namespace CERoslynPlugin
 		public string FullPath =>
 			NodeType == NodeType.EmbeddedResource || NodeType == NodeType.None || NodeType == NodeType.Compile ?
 				Path.Combine (GetFirstAncestorOfType<MSBuildProject>().RootDir, projectItem.EvaluatedInclude) : null;
+
+		string hookedLogicalName;
+		public string LogicalName {//TODO connect with project file logic
+			get => TryGetMetadata("LogicalName", out string logiName) ? logiName : hookedLogicalName;
+			set => hookedLogicalName = value;
+		}
 
 		public override bool IsSelected {
 			get => base.IsSelected;

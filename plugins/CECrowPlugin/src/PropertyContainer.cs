@@ -13,6 +13,7 @@ using Drawing2D;
 using Crow;
 
 using static CrowEditBase.CrowEditBase;
+using Crow.Text;
 
 namespace CECrowPlugin
 {
@@ -104,8 +105,11 @@ namespace CECrowPlugin
 			CrowService srv = App.GetService<CrowService> ();
 			if (srv?.CurrentSolution == null)
 				return;
-			if (srv.CurrentSolution.ContainsFile(fl.FilePath)) {
-				Console.WriteLine($"file found: {fl.FilePath}");
+			if (srv.CurrentSolution.TryGetFile(fl.FilePath, out IFileNode node)) {
+				if (App.OpenFile(node.FullPath) is TextDocument doc) {
+					doc.IsSelected = true;
+					doc.SetLocation(new CharLocation(fl.Line, fl.Column));
+				}
 			}
 			
 

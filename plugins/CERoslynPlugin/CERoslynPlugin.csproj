@@ -4,11 +4,13 @@
 		<TargetFrameworks>net9</TargetFrameworks>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>
-
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
 		<EmbeddedResource Include="ui\**\*.*" />
 		<EmbeddedResource Include="default.conf" />
+		<None Include="CERoslynPlugin.targets" >
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Enums.NET" Version="4.0.0" />
@@ -18,31 +20,6 @@
 		<PackageReference Include="Microsoft.Build.Runtime" Version="15.1.*" ExcludeAssets="runtime" />
 		<!--<PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.1.*"/>    -->
 		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.1.*" ExcludeAssets="runtime" />
-
-		<!--<PackageReference Include="Microsoft.Build" Version="15.1.*">
-			<PrivateAssets>all</PrivateAssets>
-		 	<Private>true</Private>
-			 <Visible>False</Visible>
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Framework" Version="15.1.*">
-			<PrivateAssets>all</PrivateAssets>
-			<Visible>False</Visible>
-		 	<Private>true</Private>
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.1.*">
-			<PrivateAssets>all</PrivateAssets>
-			<Visible>False</Visible>
-		 	<Private>true</Private>
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.1.*">
-			<PrivateAssets>all</PrivateAssets>
-			<Visible>False</Visible>
-		 	<Private>true</Private>
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>-->
 	</ItemGroup>
 
 	<ItemGroup>
@@ -60,4 +37,8 @@
 		</PackageReference>
 		<!--<PackageReference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" />-->
 	</ItemGroup>
+
+
+
+
 </Project>

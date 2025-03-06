@@ -31,7 +31,7 @@ Editor {
 	Width="Stretched";
 	Background="White";
 	Foreground="Black";
-	MouseWheelSpeed = "5";
+	MouseWheelSpeed = "20";
 	BubbleEvents ="None";
 	ClipToClientRect = "true";
 	MouseCursor = "ibeam";
