@@ -56,14 +56,14 @@ namespace CrowEditBase
 			registeredClients.Remove (client);
 			ExitWriteLock();
 		}
-		void notifyClients (TextChange tc, object triggeringClient = null) {
+		protected void notifyClients (TextChange tc, object triggeringClient = null) {
 			object[] clients = registeredClients.Keys.ToArray ();
 			for (int i = 0; i < clients.Length; i++) {
 				if (clients[i] != triggeringClient)
 					notifyClient (clients[i], tc);
 			}
 		}
-		void notifyClient (object client, TextChange tc) {
+		protected void notifyClient (object client, TextChange tc) {
 			if (registeredClients[client] == null)
 				registeredClients[client] = new List<TextChange> ();
 			registeredClients[client].Add (tc);

@@ -5,6 +5,7 @@
 	<VerticalStack Spacing="0" Name="MoveHandle">
 		<HorizontalStack Visible="{./IsDockedInStack}" Height="Fit" Margin="1" Background="Jet" Width="Stretched">
 			<Label  Text="{./Caption}" TextAlignment="Left" Width="Stretched" Foreground="DimGrey" Font="${SmallUIFont}"/>
+			<ListBox Style="DockWinTitleBarIconMenu" Data="{./AdditionalCommands}"/>
 			<ListBox Style="DockWinTitleBarIconMenu" Data="{./DockCommands}"/>
 			<ListBox Style="DockWinTitleBarIconMenu" Data="{./Commands}"/>
 		</HorizontalStack>
@@ -13,6 +14,7 @@
 			<Widget Width="5"/>
 			<Image Margin="1" Width="10" Height="10" Path="{./Icon}"/>
 			<Label Width="Stretched" Foreground="White" Margin="1" TextAlignment="Left" Text="{./Caption}"  />
+			<ListBox Style="DockWinTitleBarIconMenu" Data="{./AdditionalCommands}"/>
 			<ListBox Style="DockWinTitleBarIconMenu" Data="{./DockCommands}"/>
 			<ListBox Style="DockWinTitleBarIconMenu" Data="{./Commands}"/>
 			<Widget Width="5"/>

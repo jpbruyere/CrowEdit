@@ -4,7 +4,11 @@
         <ListBox Data="{Properties}">
             <Template>
                 <VerticalStack Background="{./Background}">
-                    <Label Text="{Name}"/>
+                    <HorizontalStack Height="Fit" Spacing="10" Margin="10" Background="DimGrey">
+                        <Image Width="40" Height="40" Margin="4" Path="{Icon}" Background="Jet"/>
+                        <Label Text="{TypeName}" Width="Stretched" TextAlignment="Left" />
+                        <Label Font="mono bold, 16" Foreground="PaleGreen" Text="{DesignId}" Width="Fit" Margin="4" />
+                    </HorizontalStack>
                     <HorizontalStack Margin="1">
                         <Scroller Name="ItemsScroller" Margin="2">
                             <VerticalStack Height="Fit" MinimumSize="10,10"

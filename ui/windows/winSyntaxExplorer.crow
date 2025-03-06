@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Syntax"  Width="30%">
+<DockWindow Caption="Syntax"  Width="30%" AdditionalCommands="{SyntaxViewCommands}">
 	<VerticalStack RootDataLevel="true" Spacing="0" DataSource="{CurrentDocument}">
-		<Button Command="{CMDRefreshSyntaxTree}"/>
 		<Label Text="{}"/>
 		<Label Text="{SyntaxRootNode}"/>
 		<Label Text="{CurrentNode}"/>

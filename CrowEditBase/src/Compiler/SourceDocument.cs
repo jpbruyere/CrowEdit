@@ -18,11 +18,12 @@ namespace CrowEditBase
 		}
 		protected SyntaxRootNode root;
 
-
 		public Command CMDRefreshSyntaxTree;
+
         protected override void initCommands()
         {
             base.initCommands();
+
 			CMDRefreshSyntaxTree = new ActionCommand ("Reparse", parse, "#icons.refresh.svg", true);
         }
         public SyntaxRootNode Root => root;
@@ -150,6 +151,14 @@ namespace CrowEditBase
 			//CurrentNode?.ExpandToTheTop();
 			
 			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
+		}
+
+		public SyntaxException CurrentException {
+			get => CrowEditBase.App.CurrentException;
+			set {
+				CrowEditBase.App.CurrentException = value;
+				SetLocation(value.Location);
+			} 
 		}
 
 	}

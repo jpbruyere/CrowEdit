@@ -193,6 +193,8 @@ namespace CrowEditBase
 			return false;
 		}
 
+		public CommandGroup SyntaxViewCommands => 
+			currentDocument is SourceDocument src ? new CommandGroup (src.CMDRefreshSyntaxTree) : null;
 		public Document CurrentDocument {
 			get => currentDocument;
 			set {
@@ -214,6 +216,7 @@ namespace CrowEditBase
 				EditCommands[0] = currentDocument.CMDUndo;
 				EditCommands[1] = currentDocument.CMDRedo;
 
+				NotifyValueChanged("SyntaxViewCommands", SyntaxViewCommands);
 			}
 		}
 		public Project CurrentProject {
@@ -240,6 +243,16 @@ namespace CrowEditBase
 				EditCommands[4] = currentEditor.CMDPaste;
 			}
 		}
+		SyntaxException currentException;
+		public SyntaxException CurrentException {
+			get => currentException;
+			set {
+				if (currentException == value)
+					return;
+				currentException = value;
+				NotifyValueChanged(currentException);
+			}
+		} 
 		public string CurrentDir {
 			get => Configuration.Global.Get<string>("CurrentDir");
 			set {
@@ -552,7 +565,6 @@ namespace CrowEditBase
 				CurrentEditor?.RegisterForGraphicUpdate ();
 			}
 		}
-
 		public bool IndentWithSpace {
 			get => Configuration.Global.Get<bool> ("IndentWithSpace", false);
 			set {

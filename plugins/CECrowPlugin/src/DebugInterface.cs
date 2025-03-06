@@ -50,11 +50,26 @@ namespace CECrowPlugin
 			t.Start ();
 		}
 		public bool Terminate;
+		public bool Edition = true;
+		public bool FirstRenderingFinished = false;
 		void interfaceThread () {
 			while (!Terminate) {
 				try
 				{
-					Update();
+					if (Edition) {
+						if (FirstRenderingFinished)
+							Thread.Sleep(500);	
+
+						int lqiCount;
+						lock(LayoutMutex)
+							lqiCount = LayoutingQueue.Count;
+						while(lqiCount > 0) {
+							Update();
+							lock(LayoutMutex)
+								lqiCount = LayoutingQueue.Count;
+						}
+						FirstRenderingFinished = true;
+					}
 				}
 				catch (System.Exception ex)
 				{
@@ -79,7 +94,7 @@ namespace CECrowPlugin
 					delCrowServiceSetCurrentException (ex);
 					Console.WriteLine ($"[DbgIFace] {ex}");
 					ClearInterface();
-					Thread.Sleep(1000);
+					Thread.Sleep(2000);
 				}
 
 				/*if (IsDirty)
@@ -131,6 +146,7 @@ namespace CECrowPlugin
 						resetInterface ();
 						if (string.IsNullOrEmpty(source))
 							return;
+						FirstRenderingFinished = false;
 						Widget tmp = CreateITorFromIMLFragment (source).CreateInstance();
 						AddWidget (tmp);
 						tmp.DataSource = this;
@@ -169,6 +185,7 @@ namespace CECrowPlugin
 		}
 		public void Resize (int width, int height) {
 			ProcessResize (new Rectangle(0, 0, width, height));
+			FirstRenderingFinished = false;
 		}
         /*public override void ProcessResize(Rectangle bounds) {
 			lock (UpdateMutex) {

@@ -29,7 +29,6 @@ namespace CECrowPlugin
 			delGetName = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), instance, type.GetProperty("Name").GetGetMethod());
 		}
 
-		public string Icon => $"#icons.{type.FullName}.svg";
 
 		public IEnumerable<MemberInfo> Members => type.GetMembers (BindingFlags.Public | BindingFlags.Instance).
 				Where (m=>((m is PropertyInfo pi && pi.CanWrite) || (m is EventInfo)) &&
@@ -38,6 +37,10 @@ namespace CECrowPlugin
 		public IEnumerable<PropertyContainer> Properties => Members.Where(m=>m.MemberType == MemberTypes.Property).Select(p=> new PropertyContainer(this, p as PropertyInfo));
 
 		public string Name => delGetName();
+		public string DesignId => (string)fiWidget_design_id?.GetValue(instance);
+		public string Icon => $"#icons.{type.FullName}.svg";
+
+		public string TypeName => type.FullName;
 
 		public IEnumerable<ForeignWidgetContainer> Children  {
 			get {

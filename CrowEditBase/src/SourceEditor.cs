@@ -104,7 +104,7 @@ namespace CrowEditBase
 										<!--<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>-->
 									</ListItem>
 								</ItemTemplate>
-								<ItemTemplate DataType='CrowEditBase.ColorSuggestion'>
+								<ItemTemplate DataType='CECrowPlugin.ColorSuggestion'>
 									<ListItem Height='Fit' Margin='0' Focusable='false' HorizontalAlignment='Left' Width='Stretched'
 																	Selected = '{Background=${ControlHighlight}}'
 																	Unselected = '{Background=Transparent}'>
@@ -112,7 +112,6 @@ namespace CrowEditBase
 											<Image Margin='6' Path='{Icon}' Width='32' Height='24' Background='{Fill}' CornerRadius='2'/>
 											<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>
 										</HorizontalStack>
-										<!--<Label Text='{Caption}' HorizontalAlignment='Left' Width='Stretched'/>-->
 									</ListItem>
 								</ItemTemplate>
 							</ListBox>
@@ -646,6 +645,7 @@ namespace CrowEditBase
 				
 				int printedLines = 0;
 				int linesToSkip = (int)Math.Floor(ScrollY / lineHeight);
+
 				
 				IEnumerator<SyntaxNode> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
 				bool notEndOfFolds = foldsEnum.MoveNext();
@@ -659,7 +659,14 @@ namespace CrowEditBase
 				int curLine = linesToSkip;
 				pixY = -(ScrollY % lineHeight);
 
+				IEnumerator<int> exceptionLines = doc.Root.GetAllExceptions()?.Select(e=>e.Location.Line).Order().GetEnumerator();
+				bool hasExceptions = exceptionLines.MoveNext();
+
 				while (curLine < doc.LinesCount && printedLines < Math.Min(visibleLines, doc.LinesCount)) {
+
+					while (hasExceptions && exceptionLines.Current < curLine) {
+						hasExceptions = exceptionLines.MoveNext();
+					}
 										
 					int encodedChar = 0;
 					TextLine curTxtLine = doc.GetLine (curLine);
@@ -722,7 +729,14 @@ namespace CrowEditBase
 						fillHighlight (gr, curLine, hoverNodeStart.Value, hoverNodeEnd.Value, lineRect, new Color(0,0,0.8,0.1));;
 #endif
 					if (selectionNotEmpty && curLine >= selStart.Line && curLine <= selEnd.Line)
-						fillHighlight (gr, curLine, selStart, selEnd, lineRect, SelectionBackground);				
+						fillHighlight (gr, curLine, selStart, selEnd, lineRect, SelectionBackground);
+					if (hasExceptions && exceptionLines.Current == curLine) {
+						gr.Operator = Operator.DestOver;
+						gr.SetSource (new Color(1.0,0,0.0,0.3));
+						gr.Rectangle (lineRect);
+						gr.Fill ();
+						gr.Operator = Operator.Over;						
+					}
 					
 					//Draw line numbering
 					if (printLineNumbers){

@@ -136,7 +136,7 @@ namespace Crow
 				lock (filteredLinesMutex) {
 					//Console.WriteLine("updatefilteredlines");
 					lock (logger.LogMutext)
-						filteredLines = logger.log.Where (l=>((int)l.Type & (int)filter) > 0);
+						filteredLines = logger.log.Where (l=>((int)l.Type & (int)filter) > 0).ToArray();
 					MaxScrollY = filteredLines == null ? 0 : filteredLines.Count() - visibleLines;
 					NotifyValueChanged ("ChildHeightRatio", Math.Min (1.0, (double)visibleLines / filteredLines.Count()));
 				}
@@ -318,7 +318,7 @@ namespace Crow
 
 			IEnumerable<LogEntry> entries;
 			lock (filteredLinesMutex) {
-				entries = filteredLines.Skip(ScrollY).Take(visibleLines);
+				entries = filteredLines.Skip(ScrollY).Take(visibleLines).ToArray();
 			}
 
 			//perf.Restart();

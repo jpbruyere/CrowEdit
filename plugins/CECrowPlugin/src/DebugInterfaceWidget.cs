@@ -27,7 +27,8 @@ namespace CECrowPlugin
 				NotifyValueChangedAuto (crowIFaceService);
 			}
 		}
-		Command CMDRefresh, CMDZoomIn, CMDZoomOut;
+		
+		Command CMDRefresh, CMDZoomIn, CMDZoomOut, CMDRun;
 		public DebugInterfaceWidget () : base () {
 			CMDRefresh = new ActionCommand (this, "Refresh",
 				() => {
@@ -51,6 +52,7 @@ namespace CECrowPlugin
 						RegisterForGraphicUpdate ();
 					}
 				}, "#icons.zoom-out.svg");
+			//CMDRun = new ToggleCommand(this,"Run",,)
 
 			Thread t = new Thread (backgroundThreadFunc);
 			t.IsBackground = true;
@@ -74,12 +76,17 @@ namespace CECrowPlugin
 			}
 		}
 		void updateIMLSource (TextChange change) {
+			if (string.IsNullOrEmpty(change.ChangedText) && change.CharDiff == 0)
+				return;
 			ReadOnlySpan<char> src = imlSource.AsSpan ();
-			Span<char> tmp = stackalloc char[src.Length + (change.ChangedText.Length - change.Length)];
+			Span<char> tmp = stackalloc char[src.Length + change.CharDiff];
 			//Console.WriteLine ($"{Text.Length,-4} {change.Start,-4} {change.Length,-4} {change.ChangedText.Length,-4} tmp:{tmp.Length,-4}");
 			src.Slice (0, change.Start).CopyTo (tmp);
-			change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
-			src.Slice (change.End).CopyTo (tmp.Slice (change.Start + change.ChangedText.Length));
+
+			if (!string.IsNullOrEmpty(change.ChangedText)) {
+				change.ChangedText.AsSpan ().CopyTo (tmp.Slice (change.Start));
+			}
+			src.Slice (change.End).CopyTo (tmp.Slice (change.End2));
 
 			imlSource = tmp.ToString ();
 

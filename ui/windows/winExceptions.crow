@@ -1,6 +1,21 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Exceptions"  Width="40%" Height="20%">
-	<ListBox DataSource="{CurrentDocument}" Data='{Exceptions}' Height='Stretched' Width='Stretched'/>
+	<ListBox DataSource="{CurrentDocument}" Data='{Exceptions}' SelectedItem="{²CurrentException}"
+		Height='Stretched' Width='Stretched'>
+		<Template>
+			<Scroller  Name="scroller1"  >
+				<Table Columns="Message,Stretched;Location,Fit"
+					Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+			</Scroller>
+		</Template>
+		<ItemTemplate>
+			<TableRow 	Selected = "{Background=${ControlHighlight}}"
+						Unselected = "{Background=Transparent}">
+				<Label Text="{Message}" />
+				<Label Text="{Location}"/>
+			</TableRow>
+		</ItemTemplate>
+	</ListBox>
 </DockWindow>
 
 
