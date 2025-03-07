@@ -579,6 +579,10 @@ namespace CECrowPlugin
 			fiWidget_design_style_values = typeWidget.GetField("design_style_values");
 			fiWidget_design_style_locations = typeWidget.GetField("design_style_locations");
 			fiWidget_design_iml_values = typeWidget.GetField("design_iml_values");
+			fiWidget_design_line = typeWidget.GetField("design_line");
+			fiWidget_design_column = typeWidget.GetField("design_column");
+			fiWidget_design_imlPath = typeWidget.GetField("design_imlPath");
+
 			//***********************************
 			fiWidget_slot = typeWidget.GetField("Slot");
 

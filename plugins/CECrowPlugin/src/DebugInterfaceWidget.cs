@@ -220,23 +220,19 @@ namespace CECrowPlugin
 				if (hoverWidget != null && hoverWidget != currentWidget) {
 					//currentWidget.
 					RectangleD r = hoverWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
-					//ctx.ResetClip();
-					ctx.LineWidth = 1;
 					ctx.SetDash([1,3]);
-					ctx.Rectangle(r.Inflated(2));
 					ctx.SetSource(Colors.Yellow);
-					ctx.Stroke();
+					ctx.Rectangle(r, 1);
 					ctx.SetDash([]);
 				}				
 				if (currentWidget != null) {
 					//currentWidget.
 					RectangleD r = currentWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
 					//ctx.ResetClip();
-					ctx.LineWidth = 1.0;
 					//ctx.SetDash([2,3]);
-					ctx.Rectangle(r.Inflated(1));
 					ctx.SetSource(Colors.White);
-					ctx.Stroke();
+					ctx.Rectangle(r.Inflated(1), 1);
+//					ctx.Stroke();
 					//ctx.SetDash([0]);
 				}				
 				//crowIFaceService.UnlockRenderMutex();

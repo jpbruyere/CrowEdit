@@ -24,6 +24,7 @@ namespace CrowEdit.Ebnf
 
 		}
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new EbnfSyntaxAnalyser (this);
+		public override string GetTokenTypeString (TokenType tokenType) => ((EbnfTokenType)tokenType).ToString();
 
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			Token currentToken = GetTokenByIndex(currentTokenIndex);
@@ -36,9 +37,13 @@ namespace CrowEdit.Ebnf
 			if (xmlTokType == EbnfTokenType.OpenBracket || xmlTokType == EbnfTokenType.ClosingBracket)
 				return Colors.RebeccaPurple;
 			if (xmlTokType == EbnfTokenType.StringDelimiter)
-				return Colors.DarkGoldenRod;
+				return Colors.Teal;
 			if (xmlTokType == EbnfTokenType.StringLiteral)
-				return Colors.DarkGoldenRod;
+				return Colors.Teal;
+			if (xmlTokType.HasFlag(EbnfTokenType.CharMatch))
+				return Colors.Green;
+			if (xmlTokType.HasFlag(EbnfTokenType.Operator))
+				return Colors.Fuchsia;
 
 			if (xmlTokType.HasFlag (EbnfTokenType.Punctuation))
 				return Colors.DarkGrey;

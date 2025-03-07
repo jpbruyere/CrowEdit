@@ -46,7 +46,14 @@ namespace CECrowPlugin
 		}
 		public string Name => pi.Name;
 		public object Value {
-			get => pi.GetValue(host.Instance);
+			get {
+				if (IsSetByIML) {
+					return host.ImlValues[Name];
+				} else if (IsSetByStyling) {
+					return host.StyleValues[Name];
+				} else
+					return pi.GetValue(host.Instance);
+			} 
 			set {
 				
 					

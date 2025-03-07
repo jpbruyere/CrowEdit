@@ -9,6 +9,11 @@
                         <Label Text="{TypeName}" Width="Stretched" TextAlignment="Left" />
                         <Label Font="mono bold, 16" Foreground="PaleGreen" Text="{DesignId}" Width="Fit" Margin="4" />
                     </HorizontalStack>
+                    <HorizontalStack Height="Fit" Spacing="10" >
+                        <Label Text="{DesignPath}" />
+                        <Label Text="{DesignLine}" />
+                        <Label Text="{DesignColumn}" />
+                    </HorizontalStack>                    
                     <HorizontalStack Margin="1">
                         <Scroller Name="ItemsScroller" Margin="2">
                             <VerticalStack Height="Fit" MinimumSize="10,10"

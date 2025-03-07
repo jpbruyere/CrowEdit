@@ -20,6 +20,7 @@ namespace CECrowPlugin
 		internal static Type typeWidget;//, typeGroup, typeContainer, typeTemplatedContainer, typeTemplatedGroup;
 		//design mode members, present only if crow compiled with DESIGN_MODE enabled
 		internal static FieldInfo fiWidget_design_id, fiWidget_design_style_values,	fiWidget_design_iml_values, fiWidget_design_style_locations,
+									fiWidget_design_line, fiWidget_design_column, fiWidget_design_imlPath,
 									fiWidget_slot;
 		Func<string> delGetName;
 		Func<Rectangle,Rectangle> delGetScreenCoordinates;
@@ -28,7 +29,8 @@ namespace CECrowPlugin
 		Type type;
 		object instance;
 		ForeignWidgetContainer parent;
-		string designId;
+		string designId, designImlPath;
+		int designLine, designColumn;
 		public ForeignWidgetContainer(Type widgetType, object instance, ForeignWidgetContainer parent = null) {
 			type = widgetType;
 			this.instance = instance;
@@ -38,7 +40,10 @@ namespace CECrowPlugin
 			delGetScreenCoordinates = (Func<Rectangle,Rectangle>)Delegate.CreateDelegate(typeof(Func<Rectangle,Rectangle>), instance, type.GetMethod("ScreenCoordinates"));
 
 			designId = (string)fiWidget_design_id?.GetValue(instance);
-			
+			designLine = (int)fiWidget_design_line?.GetValue(instance);
+			designColumn = (int)fiWidget_design_column?.GetValue(instance);
+			designImlPath = (string)fiWidget_design_imlPath?.GetValue(instance);
+
 			Console.WriteLine($"new ForeignWidgetContainer: {this} {parent}");
 		}
 
@@ -52,6 +57,9 @@ namespace CECrowPlugin
 		public string Icon => $"#icons.{type.FullName}.svg";
 		public string Name => delGetName();
 		public string DesignId => designId;
+		public string DesignPath => designImlPath;
+		public int DesignLine => designLine;
+		public int DesignColumn => designColumn;
 		public Rectangle GetScreenCoordinate() => delGetScreenCoordinates(Slot);
 		public Rectangle Slot => (Rectangle)fiWidget_slot?.GetValue(instance);
 

@@ -67,7 +67,8 @@ namespace CrowEdit.Ebnf
 				switch (reader.Peek) {
 				case '/':
 					reader.Advance ();
-					if (reader.TryRead ('*')) {
+					if (reader.TryPeek ('*')) {
+						reader.Advance ();
 						addTok (ref reader, EbnfTokenType.BlockCommentStart);
 						while (!reader.EndOfSpan) {
 							if (reader.Eol()) {
@@ -78,13 +79,15 @@ namespace CrowEdit.Ebnf
 							}
 							if (reader.TryPeek ("*/")) {
 								addTok (ref reader, EbnfTokenType.BlockComment);
-								reader.Advance (3);
+								reader.Advance (2);
 								addTok (ref reader, EbnfTokenType.BlockCommentEnd);
 								break;
 							} else
 								reader.Read ();
-						}						
+						}
+						break;					
 					}
+					addTok (ref reader, EbnfTokenType.Unknown);
 					break;
 				case '"':
 				case '\'':
