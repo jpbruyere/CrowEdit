@@ -94,7 +94,8 @@ namespace CrowEditBase
 							if (typeExts.Length < 3)
 								continue;
 							foreach (string editorPath in typeExts[2].Split (','))//comma separated list of supported editor path.
-								App.AddSupportedEditor (clientClass, editorPath.Trim());
+								foreach (string ext in typeExts[1].Split (','))
+									App.AddSupportedEditor (ext, editorPath.Trim());
 						}
 					}
 					catch (System.Exception ex)	{

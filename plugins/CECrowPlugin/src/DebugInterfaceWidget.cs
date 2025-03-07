@@ -171,8 +171,6 @@ namespace CECrowPlugin
 		protected override void onInitialized(object sender, EventArgs e)
 		{
 			base.onInitialized(sender, e);
-
-			
 			crowIFaceService?.Start ();
 		}
 		/*public CommandGroup LoggerCommands =>

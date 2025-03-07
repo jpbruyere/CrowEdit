@@ -23,6 +23,7 @@ namespace CrowEditBase
 		public ReadOnlyMemory<char> ImmutableBufferCopy => buffer.ReadOnlyCopy;
 		internal LineCollection Lines => buffer.GetLineListCopy();
 		System.Text.Encoding encoding = System.Text.Encoding.UTF8;
+		public event EventHandler<TextChangeEventArgs> TextChanged;
 
 		public override bool IsDirty => buffer.IsDirty;
 				/// dictionnary of object per document client, when not null, client must reload content of document.
@@ -186,6 +187,7 @@ namespace CrowEditBase
 		}
 		protected void onTextChanged (object sender, TextChangeEventArgs e) {
 			applyTextChange (e.Change, sender);
+			TextChanged.Raise (sender, e);
 		}
 
 		public string GetLineBreak () {

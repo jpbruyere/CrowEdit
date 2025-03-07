@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<ListItem IsVisible="{IsSelected}" IsSelected="{²IsSelected}" Selected="{/tb.HasFocus='true'}">
+	<VerticalStack Spacing="0">
+		<ListBox Style="DockWinTitleBarIconMenu" Data="{../svgView.Commands}"/>
+		<SVGPreviewWidget Name="svgView" XmlDocument="{}" Width="Stretched" Height="200" Background="Black" Margin="10"/>
+		<Splitter/>
+		<HorizontalStack Spacing="0" Background="WhiteSmoke">
+			<SourceEditor Name="tb"  Font="mono, 14" Margin='0' CurrentNode="{CurrentNode}"
+					Document="{}" TextChanged="onTextChanged" />
+			<ScrollBar Value="{²../tb.ScrollY}"
+					LargeIncrement="{../tb.PageHeight}" SmallIncrement="1"
+					CursorRatio="{../tb.ChildHeightRatio}" Maximum="{../tb.MaxScrollY}" />
+		</HorizontalStack>
+		<ScrollBar Style="HScrollBar" Value="{²../tb.ScrollX}"
+				LargeIncrement="{../tb.PageWidth}" SmallIncrement="1"
+				CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />
+		<HorizontalStack Height="Fit" Spacing='3'>
+			<Widget Width="Stretched"/>
+			<Label Text="TokType" Foreground="Grey"/>
+			<Label Text="{../../tb.CurrentTokenType}" Margin="3"/>
+			<Label Text="Tok" Foreground="Grey"/>
+			<Label Text="{../../tb.CurrentTokenString}" Margin="3"/>
+			<Label Text="Node" Foreground="Grey"/>
+			<Label Text="{../../tb.CurrentNode}" Margin="3"/>
+			<Label Text="MouseY:" Foreground="Grey"/>
+			<Label Text="{../../tb.MouseY}" Margin="3"/>
+			<Label Text="VisibleLines:" Foreground="Grey"/>
+			<Label Text="{../../tb.VisibleLines}" Margin="3"/>
+			<Label Text="ScrollX:" Foreground="Grey"/>
+			<Label Text="{../../tb.ScrollX}" Margin="3"/>
+			<Label Text="ScrollY:" Foreground="Grey"/>
+			<Label Text="{../../tb.ScrollY}" Margin="3"/>
+			<Label Text="ScrollLine:" Foreground="Grey"/>
+			<Label Text="{../../tb.ScrollLine}" Margin="3"/>
+			<Label Text="HoverLine:" Foreground="Grey"/>
+			<Label Text="{../../tb.HoverLine}" Margin="3"/>
+			<Label Text="Line:" Foreground="Grey"/>
+			<Label Text="{../../tb.CurrentLine}" Margin="3"/>
+			<Label Text="Col:" Foreground="Grey"/>
+			<Label Text="{../../tb.TabulatedColumn}" Margin="3"/>
+		</HorizontalStack>
+	</VerticalStack>
+</ListItem>

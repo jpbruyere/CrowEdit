@@ -112,7 +112,7 @@ namespace CrowEditBase
 
 		#region File associations and supported editors
 		protected Dictionary<string, List<Type>> FileAssociations = new Dictionary<string, List<Type>> ();
-		protected Dictionary<Type, List<string>> SupportedEditors = new Dictionary<Type, List<string>> ();
+		protected Dictionary<string, List<string>> SupportedEditors = new Dictionary<string, List<string>> ();
 		public void AddFileAssociation (string extension, Type clientClass) {
 			if (!FileAssociations.ContainsKey (extension))
 				FileAssociations.Add (extension, new List<Type> ());
@@ -128,15 +128,15 @@ namespace CrowEditBase
 			clientType = FileAssociations.ContainsKey (extension) ? FileAssociations[extension].FirstOrDefault () : null;
 			return clientType != null;
 		}
-		public void AddSupportedEditor (Type clientClass, string editorPath) {
-			if (!SupportedEditors.ContainsKey (clientClass))
-				SupportedEditors.Add (clientClass, new List<string> ());
-			if (!SupportedEditors[clientClass].Contains (editorPath))
-				SupportedEditors[clientClass].Add (editorPath);
+		public void AddSupportedEditor (string extension, string editorPath) {
+			if (!SupportedEditors.ContainsKey (extension))
+				SupportedEditors.Add (extension, new List<string> ());
+			if (!SupportedEditors[extension].Contains (editorPath))
+				SupportedEditors[extension].Add (editorPath);
 			NotifyValueChanged ("EditorItemTemplates", (object)EditorItemTemplates);
 		}
-		public bool TryGetDefaultEditorForDocumentType (Type clientType, out string editorPath) {
-			editorPath = SupportedEditors.ContainsKey (clientType) ? SupportedEditors[clientType].FirstOrDefault () : null;
+		public bool TryGetDefaultEditorForDocumentType (string extension, out string editorPath) {
+			editorPath = SupportedEditors.ContainsKey (extension) ? SupportedEditors[extension].FirstOrDefault () : null;
 			return editorPath != null;
 		}
 		#endregion

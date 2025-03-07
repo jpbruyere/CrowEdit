@@ -158,7 +158,7 @@ namespace CrowEdit
 				if (TryGetDefaultTypeForExtension (ext, out Type clientType)) {
 					if (typeof(Document).IsAssignableFrom (clientType)) {
 						if (editorPath == null)
-							TryGetDefaultEditorForDocumentType (clientType, out editorPath);
+							TryGetDefaultEditorForDocumentType (ext, out editorPath);
 						doc = (Document)Activator.CreateInstance (clientType, new object[] {CurrentFilePath, editorPath});
 					}else if (typeof(Service).IsAssignableFrom (clientType))
 						doc = GetService (clientType)?.OpenDocument (CurrentFilePath);
