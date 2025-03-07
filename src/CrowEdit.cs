@@ -120,7 +120,12 @@ namespace CrowEdit
 			);
 			ViewCommands = new CommandGroup ("View",
 	 			new ActionCommand("Explorer", () => LoadWindow ("#CrowEdit.ui.windows.winFileExplorer.crow", this), "#icons.folder.svg"),
-				new ActionCommand("Editors", () => LoadWindow ("#CrowEdit.ui.windows.winEditor.crow", this), "#icons.edit.svg"),
+				new ActionCommand("Editors", () => {
+					if (!TryGetWindow("#CrowEdit.ui.windows.winEditor.crow", out Window we)) {
+						LoadWindow ("#CrowEdit.ui.windows.winEditor.crow", this);
+						selecteLastCurrentDocument();
+					}
+				}, "#icons.edit.svg"),
 				new ActionCommand("Exceptions", () => LoadWindow ("#CrowEdit.ui.windows.winExceptions.crow", this), "#icons.exclamation.svg"),
 				new ActionCommand("Projects", () => LoadWindow ("#CrowEdit.ui.windows.winProjects.crow", this)),
 				new ActionCommand("Logs", () => LoadWindow ("#CrowEdit.ui.windows.winLogs.crow", this), "#icons.log.svg"),
@@ -255,12 +260,15 @@ namespace CrowEdit
 				return;
 			foreach (string f in tmp.Split(';'))
 				openOrCreateFile (f);
+			selecteLastCurrentDocument();
+		}
+		void selecteLastCurrentDocument() {
 			string lastCurDoc = Configuration.Global.Get<string> ("CurrentDocument");
 			if (string.IsNullOrEmpty (lastCurDoc))
 				return;
 			Document doc = OpenedDocuments.FirstOrDefault (d => d.FullPath == lastCurDoc);
 			if (doc != null)
-				CurrentDocument = doc;
+				CurrentDocument = doc;			
 		}
 		void saveProjectList () {
 			if (Projects.Count == 0)

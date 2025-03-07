@@ -325,12 +325,9 @@ namespace CrowEditBase
 				return;
 			int idx = OpenedDocuments.IndexOf (doc);
 			OpenedDocuments.Remove (doc);
-			if (doc == CurrentDocument) {
-				if (OpenedDocuments.Count > 0)
-					CurrentDocument = OpenedDocuments[Math.Min (idx, OpenedDocuments.Count - 1)];
-				else
-					CurrentDocument = null;
-			}
+			doc.CloseEvent -= onQueryCloseDocument;
+			if (CurrentDocument == null && OpenedDocuments.Count > 0)
+				CurrentDocument = OpenedDocuments[Math.Min (idx, OpenedDocuments.Count - 1)];
 		}
 		protected void onQueryCloseDocument (object sender, EventArgs e) {
 			Document doc = sender as Document;

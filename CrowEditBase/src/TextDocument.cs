@@ -9,9 +9,6 @@ using System.IO;
 using Crow;
 using Crow.Text;
 using static CrowEditBase.CrowEditBase;
-using System.Collections.Immutable;
-using System.Reflection.Metadata;
-using System.Diagnostics;
 
 namespace CrowEditBase
 {
