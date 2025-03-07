@@ -17,19 +17,13 @@ using Crow;
 namespace CECrowPlugin
 {
 	public class DebugInterfaceWidget : Widget {
-		CrowService crowIFaceService;
-		public CrowService CrowIFaceService {
-			get => crowIFaceService;
-			set {
-				if (crowIFaceService == value)
-					return;
-				crowIFaceService = value;
-				NotifyValueChangedAuto (crowIFaceService);
-			}
-		}
-		
-		Command CMDRefresh, CMDZoomIn, CMDZoomOut, CMDRun;
 		public DebugInterfaceWidget () : base () {
+			
+			CrowIFaceService = App.GetService<CrowService> ();
+			
+			if (crowIFaceService != null)
+				crowIFaceService.ValueChanged += service_ValueChanged;
+
 			CMDRefresh = new ActionCommand (this, "Refresh",
 				() => {
 					crowIFaceService?.LoadIML ("");
@@ -57,6 +51,86 @@ namespace CECrowPlugin
 			Thread t = new Thread (backgroundThreadFunc);
 			t.IsBackground = true;
 			t.Start ();
+		}
+        ~DebugInterfaceWidget() {
+			if (crowIFaceService != null)
+				crowIFaceService.ValueChanged -= service_ValueChanged;			
+		}
+        void service_ValueChanged(object instance, ValueChangeEventArgs e) {
+			if (e.MemberName == "CurrentWidget") {
+				if (e.NewValue is ForeignWidgetContainer fwc)
+					CurrentWidget = fwc;
+				else
+					CurrentWidget = null;
+			} else	if (e.MemberName == "HoverWidget") {
+				if (e.NewValue is ForeignWidgetContainer fwc)
+					HoverWidget = fwc;
+				else
+					HoverWidget = null;
+			}
+		}		
+		CrowService crowIFaceService;
+		string imlSource;
+		ImlDocument document;
+		ForeignWidgetContainer currentWidget, hoverWidget;
+		
+		Command CMDRefresh, CMDZoomIn, CMDZoomOut, CMDRun;
+		public CommandGroup WindowCommands => new CommandGroup (
+			CMDRefresh, //CMDZoomIn, CMDZoomOut,
+			crowIFaceService.CMDStartRecording,
+			crowIFaceService.CMDStopRecording,
+			crowIFaceService.CMDOpenConfig,
+			(Parent.LogicalParent as DockWindow).CMDClose
+		);
+		public CrowService CrowIFaceService {
+			get => crowIFaceService;
+			set {
+				if (crowIFaceService == value)
+					return;
+				crowIFaceService = value;
+				NotifyValueChangedAuto (crowIFaceService);
+			}
+		}
+		public TextDocument Document {
+			get => document;
+			set {
+				if (document == value)
+					return;
+
+				if (value is ImlDocument imlDoc) {
+					document?.UnregisterClient (this);
+					document = imlDoc;
+					imlSource = default;
+					document?.RegisterClient (this, true);
+
+					NotifyValueChangedAuto (document);
+					RegisterForGraphicUpdate ();
+				}
+			}
+		}		
+		public ForeignWidgetContainer CurrentWidget {
+			get => currentWidget;
+			set {
+				if (!(value?.GetType().Name == "ForeignWidgetContainer"))
+					return;
+				if (currentWidget == value)
+					return;
+				currentWidget = value;
+				NotifyValueChanged("CurrentWidget",currentWidget);
+				RegisterForRepaint ();
+			}
+		}
+		public ForeignWidgetContainer HoverWidget {
+			get => hoverWidget;
+			set {
+				if (!(value?.GetType().Name == "ForeignWidgetContainer"))
+					return;
+				if (hoverWidget == value)
+					return;
+				hoverWidget = value;
+				NotifyValueChanged("HoverWidget",hoverWidget);
+				RegisterForRepaint ();
+			}
 		}
 		protected void backgroundThreadFunc () {
 			Stopwatch sw = Stopwatch.StartNew ();
@@ -94,47 +168,11 @@ namespace CECrowPlugin
 
 			RegisterForRedraw ();
 		}
-		string imlSource;
-
-		ImlDocument document;
-		ForeignWidgetContainer currentWidget;
-		public TextDocument Document {
-			get => document;
-			set {
-				if (document == value)
-					return;
-
-				if (value is ImlDocument imlDoc) {
-					document?.UnregisterClient (this);
-					document = imlDoc;
-					imlSource = default;
-					document?.RegisterClient (this, true);
-
-					NotifyValueChangedAuto (document);
-					RegisterForGraphicUpdate ();
-				}
-			}
-		}
-
-		
-		public ForeignWidgetContainer CurrentWidget {
-			get => currentWidget;
-			set {
-				if (currentWidget == value)
-					return;
-				currentWidget = value;
-				NotifyValueChanged("CurrentWidget",currentWidget);
-				RegisterForRepaint ();
-			}
-		}
-
-
 		protected override void onInitialized(object sender, EventArgs e)
 		{
 			base.onInitialized(sender, e);
 
-
-			CrowIFaceService = App.GetService<CrowService> ();
+			
 			crowIFaceService?.Start ();
 		}
 		/*public CommandGroup LoggerCommands =>
@@ -144,13 +182,7 @@ namespace CECrowPlugin
 				new Command("Save to file", () => saveLogToDebugLogFilePath ()),
 				new Command("Load from file", () => loadLogFromDebugLogFilePath ())
 			);*/
-		public CommandGroup WindowCommands => new CommandGroup (
-			CMDRefresh, //CMDZoomIn, CMDZoomOut,
-			crowIFaceService.CMDStartRecording,
-			crowIFaceService.CMDStopRecording,
-			crowIFaceService.CMDOpenConfig,
-			(Parent.LogicalParent as DockWindow).CMDClose
-		);
+
 
 		protected override void onDraw(IContext gr)
 		{
@@ -171,16 +203,6 @@ namespace CECrowPlugin
 		public override void onMouseUp(object sender, MouseButtonEventArgs e) => crowIFaceService?.onMouseUp(e);
 		public override void onMouseWheel(object sender, MouseWheelEventArgs e) => crowIFaceService?.onMouseWheel(e);
 
-		public override bool Paint(IContext ctx)
-		{
-			return base.Paint(ctx);
-			/*crowIFaceService.LockRenderMutex();
-			try {
-				return base.Paint(ctx);				
-			} finally {
-				crowIFaceService.UnlockRenderMutex();
-			}*/
-		}
 		protected override void RecreateCache()
 		{
 			if (crowIFaceService != null && crowIFaceService.IsRunning) {
@@ -195,6 +217,28 @@ namespace CECrowPlugin
 			if (crowIFaceService != null && crowIFaceService.IsRunning && bmp != null) {
 				//crowIFaceService.LockRenderMutex();
 				paintCache (ctx, Slot + Parent.ClientRectangle.Position);
+				if (hoverWidget != null && hoverWidget != currentWidget) {
+					//currentWidget.
+					RectangleD r = hoverWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
+					//ctx.ResetClip();
+					ctx.LineWidth = 1;
+					ctx.SetDash([1,3]);
+					ctx.Rectangle(r.Inflated(2));
+					ctx.SetSource(Colors.Yellow);
+					ctx.Stroke();
+					ctx.SetDash([]);
+				}				
+				if (currentWidget != null) {
+					//currentWidget.
+					RectangleD r = currentWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
+					//ctx.ResetClip();
+					ctx.LineWidth = 1.0;
+					//ctx.SetDash([2,3]);
+					ctx.Rectangle(r.Inflated(1));
+					ctx.SetSource(Colors.White);
+					ctx.Stroke();
+					//ctx.SetDash([0]);
+				}				
 				//crowIFaceService.UnlockRenderMutex();
 				crowIFaceService.ResetDirtyState ();
 			} 

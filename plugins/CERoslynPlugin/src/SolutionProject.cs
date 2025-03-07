@@ -214,9 +214,9 @@ namespace CERoslynPlugin
 				msbProj?.DesignBuild();
 		}
 
-		void build (params string[] targets) {
+		/*void build (params string[] targets) {
 			BuildRequestData buildRequest = new BuildRequestData (FullPath, null, "Current", targets, null);
 			BuildResult buildResult = BuildManager.DefaultBuildManager.Build (buildParams, buildRequest);
-		}
+		}*/
 	}
 }

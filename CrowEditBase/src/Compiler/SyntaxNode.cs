@@ -118,7 +118,7 @@ namespace CrowEditBase
 		public int? LastTokenIndex =>  lastTokenOfset.HasValue ? TokenIndexBase + lastTokenOfset.Value : null;
 
 		public int EndLine {
-			internal set {
+			set {
 				lineCount = value - StartLine + 1;
 			}
 			get => StartLine + lineCount - 1;

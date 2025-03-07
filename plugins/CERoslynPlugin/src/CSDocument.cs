@@ -19,7 +19,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using static CrowEditBase.CrowEditBase;
-using CrowEdit.Xml;
+
 
 namespace CERoslynPlugin
 {
@@ -38,9 +38,6 @@ namespace CERoslynPlugin
 
 			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default);
 			var root = tree.GetRoot();
-			/*foreach (SyntaxKind v in Enum.GetValues<SyntaxKind>().OrderBy(k=>(uint)k)) {
-				Console.WriteLine($"{v,50} {(((uint)v) ).ToString("B16") } {(((uint)v) ).ToString("X4") }");
-			}*/
 		}
 
 		#region SourceDocument abstract class implementation
@@ -48,12 +45,13 @@ namespace CERoslynPlugin
 
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc)
 		{
-			Token currentToken = GetTokenByIndex(currentTokenIndex);
-			throw new NotImplementedException();
+			/*Token currentToken = GetTokenByIndex(currentTokenIndex);
+			throw new NotImplementedException();*/
+			return null;
 		}
 		#endregion
 
-		public override Color GetColorForToken (TokenType tokType) {
+		/*public override Color GetColorForToken (TokenType tokType) {
 			uint rawkind = (uint)tokType;
 			uint tokCat = rawkind & 0xFF;
 			CSTokenType cat = (CSTokenType)tokCat;
@@ -63,11 +61,39 @@ namespace CERoslynPlugin
 			//Console.WriteLine($"{k,50} {(((uint)tokType) ).ToString("B16") } {cat}");
 			
 			switch (cat) {
-				case CSTokenType.Trivia: return Colors.Grey;
-				case CSTokenType.Keyword: return Colors.DarkSlateBlue;
-				default: return Colors.Black;
+				case CSTokenType.Trivia:
+					return Colors.Grey;
+				case CSTokenType.Keyword:
+					return Colors.DarkSlateBlue;
+				default:
+					return Colors.Black;
 			}
-		}
+		}*/
+		public override string GetTokenTypeString (TokenType tokenType) => ((SyntaxKind)tokenType).ToString();
+		public override Color GetColorForToken(TokenType tokType)
+		{
+			CSTokenType xmlTokType = (CSTokenType)tokType;
+			if (xmlTokType.HasFlag (CSTokenType.Punctuation))
+				return Colors.DarkGrey;
+			if (tokType.HasFlag (TokenType.WhiteSpace))
+				return Colors.Silver;			
+			if (xmlTokType.HasFlag (CSTokenType.Trivia))
+				return Colors.DimGrey;
+			else if (xmlTokType == CSTokenType.Name)
+				return Colors.Green;
+			if (xmlTokType == CSTokenType.TypeKeyword)
+				return Colors.Blue;
+			if (xmlTokType == CSTokenType.Keyword)
+				return Colors.DarkBlue;
+			if (xmlTokType == CSTokenType.VisibilityKeyword)
+				return Colors.SlateBlue;
+			if (xmlTokType == CSTokenType.Directive)
+				return Colors.Black;
+			if (xmlTokType == CSTokenType.Operator)
+				return Colors.DarkSlateBlue;
+			return Colors.Red;
+
+		}		
 
 	}
 }

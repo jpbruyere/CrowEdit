@@ -25,6 +25,12 @@ namespace CrowEditBase
 			idx >= 0 && idx < tokens.Length ? GetText(tokens[idx].Span).ToString() : null : null;
 		public Token GetTokenByIndex (int idx) => tokens != null ?
 			idx >= 0 && idx < tokens.Length ? tokens[idx] : default : default;
+		public int FindTokenIndexIncludingPosition (int pos) {
+			if (pos == 0 || Tokens.Length == 0)
+				return default;
+			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
+			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx;
+		}
 		public ReadOnlySpan<char> GetText(TextSpan span) =>
 			source.Span.Slice(span.Start, span.Length);
 		public string GetTokenString(Token tok) =>

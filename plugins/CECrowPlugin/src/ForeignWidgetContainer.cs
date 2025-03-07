@@ -8,25 +8,38 @@ using System.Collections.Generic;
 using System.Linq;
 using CrowEditBase;
 using Crow;
+using Drawing2D;
 
 using static CrowEditBase.CrowEditBase;
+using System.Diagnostics;
+
 
 namespace CECrowPlugin
 {
 	public class ForeignWidgetContainer : CrowEditComponent {
 		internal static Type typeWidget;//, typeGroup, typeContainer, typeTemplatedContainer, typeTemplatedGroup;
 		//design mode members, present only if crow compiled with DESIGN_MODE enabled
-		internal static FieldInfo fiWidget_design_id, fiWidget_design_style_values,	fiWidget_design_iml_values, fiWidget_design_style_locations;
+		internal static FieldInfo fiWidget_design_id, fiWidget_design_style_values,	fiWidget_design_iml_values, fiWidget_design_style_locations,
+									fiWidget_slot;
 		Func<string> delGetName;
+		Func<Rectangle,Rectangle> delGetScreenCoordinates;
 
 		bool isExpanded;
 		Type type;
 		object instance;
-		public ForeignWidgetContainer(Type widgetType, object instance) {
+		ForeignWidgetContainer parent;
+		string designId;
+		public ForeignWidgetContainer(Type widgetType, object instance, ForeignWidgetContainer parent = null) {
 			type = widgetType;
 			this.instance = instance;
+			this.parent = parent;
 
 			delGetName = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), instance, type.GetProperty("Name").GetGetMethod());
+			delGetScreenCoordinates = (Func<Rectangle,Rectangle>)Delegate.CreateDelegate(typeof(Func<Rectangle,Rectangle>), instance, type.GetMethod("ScreenCoordinates"));
+
+			designId = (string)fiWidget_design_id?.GetValue(instance);
+			
+			Console.WriteLine($"new ForeignWidgetContainer: {this} {parent}");
 		}
 
 
@@ -36,23 +49,44 @@ namespace CECrowPlugin
 
 		public IEnumerable<PropertyContainer> Properties => Members.Where(m=>m.MemberType == MemberTypes.Property).Select(p=> new PropertyContainer(this, p as PropertyInfo));
 
-		public string Name => delGetName();
-		public string DesignId => (string)fiWidget_design_id?.GetValue(instance);
 		public string Icon => $"#icons.{type.FullName}.svg";
+		public string Name => delGetName();
+		public string DesignId => designId;
+		public Rectangle GetScreenCoordinate() => delGetScreenCoordinates(Slot);
+		public Rectangle Slot => (Rectangle)fiWidget_slot?.GetValue(instance);
 
 		public string TypeName => type.FullName;
 
-		public IEnumerable<ForeignWidgetContainer> Children  {
+		volatile bool childrenFetched = false;
+		IList<ForeignWidgetContainer> children;
+		public IList<ForeignWidgetContainer> Children  {
 			get {
 				var srv = App.GetService<CrowService> ();
 				if (srv == null || !srv.IsRunning)
 					return null;
-				return srv.GetWidgetChilren(instance)?.Select(c=>new ForeignWidgetContainer(c.GetType(),c));
-			}
-			
+				if (!childrenFetched) {
+					children = srv.GetWidgetChilren(instance)?.Select(c => new ForeignWidgetContainer(c.GetType(),c,this)).ToList();
+					childrenFetched = true;
+				}
+					
+				return children;
+			}			
 		} 
-			
-				
+		public bool TryFindWidgetById (string designId, out ForeignWidgetContainer widgetContainer) {
+			widgetContainer = null;
+			if (designId == DesignId) {
+				widgetContainer = this;
+				return true;
+			}
+			foreach (var child in Children) {
+				if (child.TryFindWidgetById(designId, out ForeignWidgetContainer childContainer)) {
+					widgetContainer = childContainer;
+					return true;
+				}
+			}
+			return false;
+		}
+
 		
 		public object Instance => instance;
 
@@ -70,6 +104,14 @@ namespace CECrowPlugin
 			}
 		}
 		public bool HasChildren => Children?.Count() > 0;		
+		public void ExpandToTheTop() {
+			ForeignWidgetContainer p = parent;
+			while(p != null) {
+				p.IsExpanded = true;
+				p = p.parent;
+			}
+		}
 
-	}
+        public override string ToString() => $"{DesignId}:{Name}";
+    }
 }

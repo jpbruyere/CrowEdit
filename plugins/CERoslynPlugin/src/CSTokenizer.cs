@@ -10,98 +10,35 @@ using CrowEditBase;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using SyntaxNode = Microsoft.CodeAnalysis.SyntaxNode;
+using System.Text.RegularExpressions;
 
 namespace CERoslynPlugin
 {
 	public class CSTokenizer : Tokenizer
 	{
-		
-
-		int startOfTok;
 		protected List<Token> Toks;
-		void addTok (ref SpanCharReader reader, Enum tokType) {
-			if (reader.CurrentPosition == startOfTok)
-				return;
-			Toks.Add (new Token((TokenType)tokType, startOfTok, reader.CurrentPosition));
-			startOfTok = reader.CurrentPosition;
-		}
-		void skipWhiteSpacesAndLineBreaks (ref SpanCharReader reader) {
-			while(!reader.EndOfSpan) {
-				switch (reader.Peek) {
-					case '\x85':
-					case '\x2028':
-					case '\xA':
-						reader.Read();
-						addTok (ref reader, TokenType.LineBreak);
-						break;
-					case '\xD':
-						reader.Read();
-						if (reader.IsNextCharIn ('\xA', '\x85'))
-							reader.Read();
-						addTok (ref reader, TokenType.LineBreak);
-						break;
-					case '\x20':
-					case '\x9':
-						char c = reader.Read();
-						while (reader.TryPeek (c))
-							reader.Read();
-						addTok (ref reader, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
-						break;
-					default:
-						return;
-				}
-			}
-		}
-		void skipWhiteSpaces (ref SpanCharReader reader) {
-			while(!reader.EndOfSpan) {
-				switch (reader.Peek) {
-					case '\x20':
-					case '\x9':
-						char c = reader.Read();
-						while (reader.TryPeek (c))
-							reader.Read();
-						addTok (ref reader, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
-						break;
-					default:
-						return;
-				}
-			}
-		}
+		public SyntaxTree syntaxTree;
 
 		public override Token[] Tokenize(ReadOnlySpan<char> source)
 		{
-			var tree = CSharpSyntaxTree.ParseText(source.ToString());
-			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge();
-			bridge.Visit(tree.GetRoot());
-			//SpanCharReader reader = new SpanCharReader(source);
-
-			//startOfTok = 0;
-			//curState = States.Init;
-			
-
-			/*while(!reader.EndOfSpan) {
-
-				skipWhiteSpaces (ref reader);
-
-				if (reader.EndOfSpan)
-					break;
-
-				switch (reader.Peek) {
-					case '/':
-						reader.Advance ();
-
-						break;
-				}
+			/*foreach (var e in Enum.GetNames(typeof(SyntaxKind))) {
+				Console.WriteLine($"case SyntaxKind.{e}:");
+				Console.WriteLine($"\treturn CSTokenType.Unknown;");
 			}*/
-			Toks = bridge.Toks;
 
+			syntaxTree = CSharpSyntaxTree.ParseText(source.ToString());
+			CsharpSyntaxWalkerTokenizer bridge = new CsharpSyntaxWalkerTokenizer();
+			bridge.Visit(syntaxTree.GetRoot());
+			Toks = bridge.Toks;
 			return Toks.ToArray();
 		}
+
 	}
-	class CsharpSyntaxWalkerBridge : CSharpSyntaxWalker
+
+	class CsharpSyntaxWalkerTokenizer : CSharpSyntaxWalker
 	{
 		public List<Token> Toks;
-		public CsharpSyntaxWalkerBridge () : base (SyntaxWalkerDepth.StructuredTrivia)
+		public CsharpSyntaxWalkerTokenizer () : base (SyntaxWalkerDepth.StructuredTrivia)
 		{
 			Toks = new List<Token>(100);
 		}
@@ -112,20 +49,14 @@ namespace CERoslynPlugin
 		
 		public override void VisitToken (SyntaxToken token)
 		{
-			/*Console.ForegroundColor = ConsoleColor.Blue;
-			Console.Write(((uint)token.Kind()));
-			Console.ForegroundColor = ConsoleColor.Gray;
-			Console.Write(token.ToFullString());*/
-
-			
-			
 			VisitLeadingTrivia (token);
 
 			if (SyntaxFacts.IsLiteralExpression (token.Kind ())) {
-				addMultilineTok (token);
+				addMultilineToken(token.ToString(), token.Span, (TokenType)convertTokenType(token.Kind()));
 			} else {
 				Microsoft.CodeAnalysis.Text.TextSpan span = token.Span;
-				Toks.Add (new Token(span.Start, span.Length, (TokenType)token.RawKind));
+				
+				Toks.Add (new Token(span.Start, span.Length, (TokenType)convertTokenType(token.Kind())));
 			}
 
 			VisitTrailingTrivia (token);
@@ -134,24 +65,1057 @@ namespace CERoslynPlugin
         public override void VisitTrivia (SyntaxTrivia trivia)
 		{
 			SyntaxKind kind = trivia.Kind ();
+			Microsoft.CodeAnalysis.Text.TextSpan span = trivia.Span;
+			if (kind == SyntaxKind.EndOfLineTrivia) {
+				Toks.Add (new Token(span.Start, span.Length, TokenType.LineBreak));
+				return;
+			}
 			if (trivia.HasStructure)
 				this.Visit ((CSharpSyntaxNode)trivia.GetStructure());
 			else if (trivia.IsKind (SyntaxKind.DisabledTextTrivia) || trivia.IsKind (SyntaxKind.MultiLineCommentTrivia))
-                addMultilineTok (trivia);
+                addMultilineToken(trivia.ToString(), trivia.Span, (TokenType)trivia.RawKind);
 			else {
-				Microsoft.CodeAnalysis.Text.TextSpan span = trivia.Span;
 				Toks.Add (new Token(span.Start, span.Length, (TokenType)trivia.RawKind));
 			}
 		}
-
-		void addMultilineTok (SyntaxTrivia trivia) {
-			Microsoft.CodeAnalysis.Text.TextSpan span = trivia.Span;
-			Toks.Add (new Token(span.Start, span.Length, (TokenType)trivia.RawKind));
+		int startOfTok;
+		void addTok (ref SpanCharReader reader, int offset, Enum tokType) {
+			if (reader.CurrentPosition == startOfTok)
+				return;
+			Toks.Add (new Token((TokenType)tokType,startOfTok + offset, reader.CurrentPosition + offset));
+			startOfTok = reader.CurrentPosition;
 		}
-		void addMultilineTok (SyntaxToken token) {
-			Microsoft.CodeAnalysis.Text.TextSpan span = token.Span;
-			Toks.Add (new Token(span.Start, span.Length, (TokenType)token.RawKind));
-		}
+		void addMultilineToken(ReadOnlySpan<char> txt, Microsoft.CodeAnalysis.Text.TextSpan span, TokenType mainType) {
+			SpanCharReader reader = new SpanCharReader(txt);
+			startOfTok = 0;
 
+			while(!reader.EndOfSpan) {
+				switch (reader.Peek) {
+					case '\x85':
+					case '\x2028':
+					case '\xA':
+						addTok (ref reader, span.Start, mainType);
+						reader.Read();
+						addTok (ref reader, span.Start, TokenType.LineBreak);
+						break;
+					case '\xD':
+						addTok (ref reader, span.Start, mainType);
+						reader.Read();
+						if (reader.IsNextCharIn ('\xA', '\x85'))
+							reader.Read();
+						addTok (ref reader, span.Start, TokenType.LineBreak);
+						break;
+					case '\x20':
+					case '\x9':
+						addTok (ref reader, span.Start, mainType);
+						char c = reader.Read();
+						while (reader.TryPeek (c))
+							reader.Read();
+						addTok (ref reader, span.Start, c == '\x20' ? TokenType.WhiteSpace : TokenType.Tabulation);
+						break;
+					default:
+						reader.Read();
+						break;
+				}
+			}			
+			addTok (ref reader, span.Start, mainType);
+		}
+		CSTokenType convertTokenType(SyntaxKind kind) {
+			return (CSTokenType)kind;
+			switch (kind) {
+				case SyntaxKind.None:
+					return CSTokenType.Unknown;
+				case SyntaxKind.List:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TildeToken:
+				case SyntaxKind.ExclamationToken:
+				case SyntaxKind.DollarToken:
+					return CSTokenType.Punctuation;
+				case SyntaxKind.PercentToken:
+					return CSTokenType.Operator;
+				case SyntaxKind.CaretToken:
+				case SyntaxKind.AmpersandToken:
+				case SyntaxKind.AsteriskToken:
+					return CSTokenType.Punctuation;
+				case SyntaxKind.OpenParenToken:
+					return CSTokenType.OpenParen;
+				case SyntaxKind.CloseParenToken:
+					return CSTokenType.CloseParenToken;
+				case SyntaxKind.MinusToken:
+				case SyntaxKind.PlusToken:
+				case SyntaxKind.EqualsToken:
+					return CSTokenType.Operator;
+				case SyntaxKind.OpenBraceToken:
+					return CSTokenType.OpenBrace;
+				case SyntaxKind.CloseBraceToken:
+					return CSTokenType.CloseBrace;
+				case SyntaxKind.OpenBracketToken:
+					return CSTokenType.OpenBracket;
+				case SyntaxKind.CloseBracketToken:
+					return CSTokenType.CloseBracket;
+				case SyntaxKind.BarToken:
+					return CSTokenType.Operator;
+				case SyntaxKind.BackslashToken:
+				case SyntaxKind.ColonToken:
+				case SyntaxKind.SemicolonToken:
+					return CSTokenType.Punctuation;
+				case SyntaxKind.DoubleQuoteToken:
+					return CSTokenType.DoubleQuote;
+				case SyntaxKind.SingleQuoteToken:
+					return CSTokenType.SingleQuote;
+				case SyntaxKind.LessThanToken:
+					return CSTokenType.Operator;
+				case SyntaxKind.CommaToken:
+					return CSTokenType.Punctuation;
+				case SyntaxKind.GreaterThanToken:
+					return CSTokenType.Operator;
+				case SyntaxKind.DotToken:
+					return CSTokenType.Punctuation;
+				case SyntaxKind.QuestionToken:
+				case SyntaxKind.HashToken:
+				case SyntaxKind.SlashToken:
+				case SyntaxKind.DotDotToken:
+					return CSTokenType.Punctuation;
+				case SyntaxKind.SlashGreaterThanToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LessThanSlashToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlCommentStartToken:
+					return CSTokenType.BlockCommentStart;
+				case SyntaxKind.XmlCommentEndToken:
+					return CSTokenType.BlockCommentEnd;
+				case SyntaxKind.XmlCDataStartToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlCDataEndToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlProcessingInstructionStartToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlProcessingInstructionEndToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BarBarToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AmpersandAmpersandToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MinusMinusToken:
+				case SyntaxKind.PlusPlusToken:
+				case SyntaxKind.ColonColonToken:
+				case SyntaxKind.QuestionQuestionToken:
+				case SyntaxKind.MinusGreaterThanToken:
+				case SyntaxKind.ExclamationEqualsToken:
+				case SyntaxKind.EqualsEqualsToken:
+				case SyntaxKind.EqualsGreaterThanToken:
+				case SyntaxKind.LessThanEqualsToken:
+				case SyntaxKind.LessThanLessThanToken:
+				case SyntaxKind.LessThanLessThanEqualsToken:
+				case SyntaxKind.GreaterThanEqualsToken:
+				case SyntaxKind.GreaterThanGreaterThanToken:
+				case SyntaxKind.GreaterThanGreaterThanEqualsToken:
+				case SyntaxKind.SlashEqualsToken:
+				case SyntaxKind.AsteriskEqualsToken:
+				case SyntaxKind.BarEqualsToken:
+				case SyntaxKind.AmpersandEqualsToken:
+				case SyntaxKind.PlusEqualsToken:
+				case SyntaxKind.MinusEqualsToken:
+				case SyntaxKind.CaretEqualsToken:
+				case SyntaxKind.PercentEqualsToken:
+				case SyntaxKind.QuestionQuestionEqualsToken:
+				case SyntaxKind.GreaterThanGreaterThanGreaterThanToken:
+				case SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken:
+					return CSTokenType.Operator;
+				case SyntaxKind.BoolKeyword:
+				case SyntaxKind.ByteKeyword:
+				case SyntaxKind.SByteKeyword:
+				case SyntaxKind.ShortKeyword:
+				case SyntaxKind.UShortKeyword:
+				case SyntaxKind.IntKeyword:
+				case SyntaxKind.UIntKeyword:
+				case SyntaxKind.LongKeyword:
+				case SyntaxKind.ULongKeyword:
+				case SyntaxKind.DoubleKeyword:
+				case SyntaxKind.FloatKeyword:
+				case SyntaxKind.DecimalKeyword:
+				case SyntaxKind.StringKeyword:
+				case SyntaxKind.CharKeyword:
+				case SyntaxKind.VoidKeyword:
+				case SyntaxKind.ObjectKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.TypeOfKeyword:
+				case SyntaxKind.SizeOfKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.NullKeyword:
+				case SyntaxKind.TrueKeyword:
+				case SyntaxKind.FalseKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.IfKeyword:
+				case SyntaxKind.ElseKeyword:
+				case SyntaxKind.WhileKeyword:
+				case SyntaxKind.ForKeyword:
+				case SyntaxKind.ForEachKeyword:
+				case SyntaxKind.DoKeyword:
+				case SyntaxKind.SwitchKeyword:
+				case SyntaxKind.CaseKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.DefaultKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.TryKeyword:
+				case SyntaxKind.CatchKeyword:
+				case SyntaxKind.FinallyKeyword:
+					return CSTokenType.TryKeyword;
+				case SyntaxKind.LockKeyword:
+				case SyntaxKind.GotoKeyword:
+				case SyntaxKind.BreakKeyword:
+				case SyntaxKind.ContinueKeyword:
+				case SyntaxKind.ReturnKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.ThrowKeyword:
+					return CSTokenType.TryKeyword;
+				case SyntaxKind.PublicKeyword:
+				case SyntaxKind.PrivateKeyword:
+				case SyntaxKind.InternalKeyword:
+				case SyntaxKind.ProtectedKeyword:
+				case SyntaxKind.StaticKeyword:
+				case SyntaxKind.ReadOnlyKeyword:
+				case SyntaxKind.SealedKeyword:
+					return CSTokenType.VisibilityKeyword;
+				case SyntaxKind.ConstKeyword:
+				case SyntaxKind.FixedKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.StackAllocKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.VolatileKeyword:
+					return CSTokenType.VisibilityKeyword;
+				case SyntaxKind.NewKeyword:
+					return CSTokenType.NewKeyword;
+				case SyntaxKind.OverrideKeyword:
+				case SyntaxKind.AbstractKeyword:
+				case SyntaxKind.VirtualKeyword:
+					return CSTokenType.VisibilityKeyword;
+				case SyntaxKind.EventKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.ExternKeyword:
+					return CSTokenType.VisibilityKeyword;
+				case SyntaxKind.RefKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.OutKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.InKeyword:
+				case SyntaxKind.IsKeyword:
+				case SyntaxKind.AsKeyword:
+					return CSTokenType.Operator;
+				case SyntaxKind.ParamsKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ArgListKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MakeRefKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RefTypeKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RefValueKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ThisKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.BaseKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.NamespaceKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.UsingKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.ClassKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.StructKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.InterfaceKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.EnumKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.DelegateKeyword:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.CheckedKeyword:
+				case SyntaxKind.UncheckedKeyword:
+				case SyntaxKind.UnsafeKeyword:
+				case SyntaxKind.OperatorKeyword:
+				case SyntaxKind.ExplicitKeyword:
+				case SyntaxKind.ImplicitKeyword:
+				case SyntaxKind.YieldKeyword:
+				case SyntaxKind.PartialKeyword:
+				case SyntaxKind.AliasKeyword:
+				case SyntaxKind.GlobalKeyword:
+				case SyntaxKind.AssemblyKeyword:
+				case SyntaxKind.ModuleKeyword:
+				case SyntaxKind.TypeKeyword:
+				case SyntaxKind.FieldKeyword:
+				case SyntaxKind.MethodKeyword:
+				case SyntaxKind.ParamKeyword:
+				case SyntaxKind.PropertyKeyword:
+				case SyntaxKind.TypeVarKeyword:
+				case SyntaxKind.GetKeyword:
+				case SyntaxKind.SetKeyword:
+				case SyntaxKind.AddKeyword:
+				case SyntaxKind.RemoveKeyword:
+				case SyntaxKind.WhereKeyword:
+				case SyntaxKind.FromKeyword:
+				case SyntaxKind.GroupKeyword:
+				case SyntaxKind.JoinKeyword:
+				case SyntaxKind.IntoKeyword:
+				case SyntaxKind.LetKeyword:
+				case SyntaxKind.ByKeyword:
+				case SyntaxKind.SelectKeyword:
+				case SyntaxKind.OrderByKeyword:
+					return CSTokenType.Keyword;
+				case SyntaxKind.OnKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EqualsKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AscendingKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DescendingKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NameOfKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AsyncKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AwaitKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WhenKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OrKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AndKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NotKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WithKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InitKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RecordKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ManagedKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnmanagedKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RequiredKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ScopedKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FileKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ElifKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EndIfKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RegionKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EndRegionKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DefineKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UndefKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WarningKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ErrorKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LineKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PragmaKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.HiddenKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ChecksumKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DisableKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RestoreKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ReferenceKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedStringStartToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedStringEndToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedVerbatimStringStartToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LoadKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NullableKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EnableKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WarningsKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AnnotationsKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.VarKeyword:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnderscoreToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OmittedTypeArgumentToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OmittedArraySizeExpressionToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EndOfDirectiveToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EndOfDocumentationCommentToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EndOfFileToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BadToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IdentifierToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NumericLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CharacterLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.StringLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlEntityLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlTextLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlTextLiteralNewLineToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedStringToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedStringTextToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SingleLineRawStringLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MultiLineRawStringLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Utf8StringLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Utf8SingleLineRawStringLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Utf8MultiLineRawStringLiteralToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EndOfLineTrivia:
+					return CSTokenType.LineBreak;
+				case SyntaxKind.WhitespaceTrivia:
+					return CSTokenType.WhiteSpace;
+				case SyntaxKind.SingleLineCommentTrivia:
+					return CSTokenType.LineComment;
+				case SyntaxKind.MultiLineCommentTrivia:
+					return CSTokenType.LineComment;
+				case SyntaxKind.DocumentationCommentExteriorTrivia:
+				case SyntaxKind.SingleLineDocumentationCommentTrivia:
+				case SyntaxKind.MultiLineDocumentationCommentTrivia:
+				case SyntaxKind.DisabledTextTrivia:
+					return CSTokenType.Trivia;
+				case SyntaxKind.PreprocessingMessageTrivia:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IfDirectiveTrivia:
+				case SyntaxKind.ElifDirectiveTrivia:
+				case SyntaxKind.ElseDirectiveTrivia:
+				case SyntaxKind.EndIfDirectiveTrivia:
+					return CSTokenType.Directive;
+				case SyntaxKind.RegionDirectiveTrivia:
+				case SyntaxKind.EndRegionDirectiveTrivia:
+					return CSTokenType.Region;
+				case SyntaxKind.DefineDirectiveTrivia:
+				case SyntaxKind.UndefDirectiveTrivia:
+				case SyntaxKind.ErrorDirectiveTrivia:
+				case SyntaxKind.WarningDirectiveTrivia:
+				case SyntaxKind.LineDirectiveTrivia:
+				case SyntaxKind.PragmaWarningDirectiveTrivia:
+				case SyntaxKind.PragmaChecksumDirectiveTrivia:
+				case SyntaxKind.ReferenceDirectiveTrivia:
+					return CSTokenType.Directive;
+				case SyntaxKind.BadDirectiveTrivia:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SkippedTokensTrivia:
+					return CSTokenType.Trivia;
+				case SyntaxKind.ConflictMarkerTrivia:
+					return CSTokenType.Unknown;
+				case SyntaxKind.XmlElement:
+				case SyntaxKind.XmlElementStartTag:
+				case SyntaxKind.XmlElementEndTag:
+				case SyntaxKind.XmlEmptyElement:
+				case SyntaxKind.XmlTextAttribute:
+				case SyntaxKind.XmlCrefAttribute:
+				case SyntaxKind.XmlNameAttribute:
+				case SyntaxKind.XmlName:
+				case SyntaxKind.XmlPrefix:
+				case SyntaxKind.XmlText:
+				case SyntaxKind.XmlCDataSection:
+				case SyntaxKind.XmlComment:
+				case SyntaxKind.XmlProcessingInstruction:
+					return CSTokenType.Trivia;
+				case SyntaxKind.TypeCref:
+					return CSTokenType.Unknown;
+				case SyntaxKind.QualifiedCref:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NameMemberCref:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IndexerMemberCref:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OperatorMemberCref:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ConversionOperatorMemberCref:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CrefParameterList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CrefBracketedParameterList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CrefParameter:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IdentifierName:
+					return CSTokenType.Name;
+				case SyntaxKind.QualifiedName:
+					return CSTokenType.Name;
+				case SyntaxKind.GenericName:
+					return CSTokenType.Name;
+				case SyntaxKind.TypeArgumentList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AliasQualifiedName:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PredefinedType:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.ArrayType:
+					return CSTokenType.TypeKeyword;
+				case SyntaxKind.ArrayRankSpecifier:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PointerType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NullableType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OmittedTypeArgument:
+					return CSTokenType.Unknown;
+					
+				case SyntaxKind.ParenthesizedExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ConditionalExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InvocationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ElementAccessExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ArgumentList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BracketedArgumentList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Argument:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NameColon:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CastExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AnonymousMethodExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SimpleLambdaExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ParenthesizedLambdaExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ObjectInitializerExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CollectionInitializerExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ArrayInitializerExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AnonymousObjectMemberDeclarator:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ComplexElementInitializerExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ObjectCreationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AnonymousObjectCreationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ArrayCreationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ImplicitArrayCreationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.StackAllocArrayCreationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OmittedArraySizeExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedStringExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ImplicitElementAccess:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IsPatternExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RangeExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ImplicitObjectCreationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AddExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SubtractExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MultiplyExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DivideExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ModuloExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LeftShiftExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RightShiftExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LogicalOrExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LogicalAndExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BitwiseOrExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BitwiseAndExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ExclusiveOrExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EqualsExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NotEqualsExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LessThanExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LessThanOrEqualExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GreaterThanExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GreaterThanOrEqualExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IsExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AsExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CoalesceExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SimpleMemberAccessExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PointerMemberAccessExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ConditionalAccessExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnsignedRightShiftExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MemberBindingExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ElementBindingExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SimpleAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AddAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SubtractAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MultiplyAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DivideAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ModuloAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AndAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ExclusiveOrAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OrAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LeftShiftAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RightShiftAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CoalesceAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnsignedRightShiftAssignmentExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnaryPlusExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnaryMinusExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BitwiseNotExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LogicalNotExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PreIncrementExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PreDecrementExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PointerIndirectionExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AddressOfExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PostIncrementExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PostDecrementExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AwaitExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IndexExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ThisExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BaseExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ArgListExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NumericLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.StringLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CharacterLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TrueLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FalseLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NullLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DefaultLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Utf8StringLiteralExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TypeOfExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SizeOfExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CheckedExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UncheckedExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DefaultExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MakeRefExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RefValueExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RefTypeExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.QueryExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.QueryBody:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FromClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LetClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.JoinClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.JoinIntoClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WhereClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OrderByClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AscendingOrdering:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DescendingOrdering:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SelectClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GroupClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.QueryContinuation:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Block:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LocalDeclarationStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.VariableDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.VariableDeclarator:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EqualsValueClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ExpressionStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EmptyStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LabeledStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GotoStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GotoCaseStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GotoDefaultStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BreakStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ContinueStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ReturnStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.YieldReturnStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.YieldBreakStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ThrowStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WhileStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DoStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ForStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ForEachStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UsingStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FixedStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CheckedStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UncheckedStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnsafeStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LockStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IfStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ElseClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SwitchStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SwitchSection:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CaseSwitchLabel:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DefaultSwitchLabel:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TryStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CatchClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CatchDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CatchFilterClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FinallyClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LocalFunctionStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CompilationUnit:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GlobalStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NamespaceDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UsingDirective:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ExternAliasDirective:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FileScopedNamespaceDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AttributeList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AttributeTargetSpecifier:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Attribute:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AttributeArgumentList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AttributeArgument:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NameEquals:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ClassDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.StructDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterfaceDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EnumDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DelegateDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BaseList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SimpleBaseType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TypeParameterConstraintClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ConstructorConstraint:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ClassConstraint:
+					return CSTokenType.Unknown;
+				case SyntaxKind.StructConstraint:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TypeConstraint:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ExplicitInterfaceSpecifier:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EnumMemberDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FieldDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EventFieldDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.MethodDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OperatorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ConversionOperatorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ConstructorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BaseConstructorInitializer:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ThisConstructorInitializer:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DestructorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PropertyDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.EventDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IndexerDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AccessorList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.GetAccessorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SetAccessorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AddAccessorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RemoveAccessorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.UnknownAccessorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ParameterList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.BracketedParameterList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Parameter:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TypeParameterList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TypeParameter:
+					return CSTokenType.Unknown;
+				case SyntaxKind.IncompleteMember:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ArrowExpressionClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Interpolation:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedStringText:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolationAlignmentClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolationFormatClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ShebangDirectiveTrivia:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LoadDirectiveTrivia:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TupleType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TupleElement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TupleExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SingleVariableDesignation:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ParenthesizedVariableDesignation:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ForEachVariableStatement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DeclarationPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ConstantPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CasePatternSwitchLabel:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WhenClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DiscardDesignation:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RecursivePattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PropertyPatternClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.Subpattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PositionalPatternClause:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DiscardPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SwitchExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SwitchExpressionArm:
+					return CSTokenType.Unknown;
+				case SyntaxKind.VarPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ParenthesizedPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RelationalPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.TypePattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.OrPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.AndPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NotPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SlicePattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ListPattern:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DeclarationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RefExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RefType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ThrowExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ImplicitStackAllocArrayCreationExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SuppressNullableWarningExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.NullableDirectiveTrivia:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FunctionPointerType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FunctionPointerParameter:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FunctionPointerParameterList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FunctionPointerCallingConvention:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InitAccessorDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WithExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.WithInitializerExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RecordDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.DefaultConstraint:
+					return CSTokenType.Unknown;
+				case SyntaxKind.PrimaryConstructorBaseType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FunctionPointerUnmanagedCallingConventionList:
+					return CSTokenType.Unknown;
+				case SyntaxKind.FunctionPointerUnmanagedCallingConvention:
+					return CSTokenType.Unknown;
+				case SyntaxKind.RecordStructDeclaration:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ExpressionColon:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LineDirectivePosition:
+					return CSTokenType.Unknown;
+				case SyntaxKind.LineSpanDirectiveTrivia:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedSingleLineRawStringStartToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedMultiLineRawStringStartToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.InterpolatedRawStringEndToken:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ScopedType:
+					return CSTokenType.Unknown;
+				case SyntaxKind.CollectionExpression:
+					return CSTokenType.Unknown;
+				case SyntaxKind.ExpressionElement:
+					return CSTokenType.Unknown;
+				case SyntaxKind.SpreadElement:
+					return CSTokenType.Unknown;
+				default:
+					return CSTokenType.Unknown;
+			}
+		}
 	}
 }

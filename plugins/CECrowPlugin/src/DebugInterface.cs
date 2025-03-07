@@ -14,6 +14,7 @@ using IML = Crow.IML;
 using System.Diagnostics;
 using Crow.IML;
 using System.Runtime.Loader;
+using Glfw;
 
 namespace CECrowPlugin
 {
@@ -23,6 +24,8 @@ namespace CECrowPlugin
 		}
 		public DebugInterface (IntPtr hWin) : base (100, 100, hWin)
 		{
+			fiWidget_design_id = typeof(Widget).GetField("design_id");
+			fiPrivateContainer_child = typeof(PrivateContainer).GetField("child", BindingFlags.Instance | BindingFlags.NonPublic);
 			clientRectangle = new Rectangle (0, 0, 100, 100);
 		}
 		protected override void initBackend()
@@ -52,13 +55,30 @@ namespace CECrowPlugin
 		public bool Terminate;
 		public bool Edition = true;
 		public bool FirstRenderingFinished = false;
+		
+		bool checkEditHoverWidget() {
+			if (lastEditHoverWidget != editHoverWidget) {
+				if (editHoverWidget == null)
+					delCrowServiceSetHoverDesignId(null);
+				else {
+					string id = (string)fiWidget_design_id?.GetValue(editHoverWidget);
+					delCrowServiceSetHoverDesignId(id);
+				}
+				lastEditHoverWidget = editHoverWidget;
+				return true;
+			} else
+				return false;
+		}
 		void interfaceThread () {
 			while (!Terminate) {
 				try
 				{
 					if (Edition) {
-						if (FirstRenderingFinished)
-							Thread.Sleep(500);	
+						if (FirstRenderingFinished) {
+							Thread.Sleep(100);
+							checkEditHoverWidget();
+							continue;
+						}
 
 						int lqiCount;
 						lock(LayoutMutex)
@@ -104,16 +124,18 @@ namespace CECrowPlugin
 			}
 			Dispose();
 		}
-		string source;
+        string source;
 		//Action delRegisterForRepaint;//call RegisterForRepaint in the container widget (DebugInterfaceWidget)
 		Action<Exception> delCrowServiceSetCurrentException;
 		Action<Type,object> delCrowServiceUpdateRootWidget;
+		Action<string> delCrowServiceSetCurrentDesignId, delCrowServiceSetHoverDesignId;
 
 
 		delegate void GetScreenCoordinateDelegateType(out int x, out int y);
 		GetScreenCoordinateDelegateType delCrowServiceGetScreenCoordinate;
 		Func<IEnumerable<object>> delCrowServiceGetStyling;
 		Func<string, Stream> delCrowServiceGetStreamFromPath;
+		FieldInfo fiWidget_design_id, fiPrivateContainer_child;
 
 		
 		public void RegisterDebugInterfaceCallback (object crowService){
@@ -121,6 +143,11 @@ namespace CECrowPlugin
 			//delRegisterForRepaint = (Action)Delegate.CreateDelegate(typeof(Action), w, t.GetMethod("RegisterForRepaint"));
 			delCrowServiceSetCurrentException = (Action<Exception>)Delegate.CreateDelegate(typeof(Action<Exception>), crowService,
 				t.GetProperty("CurrentException").GetSetMethod(true));
+			delCrowServiceSetCurrentDesignId = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), crowService,
+				t.GetProperty("CurrentWidgetDesignId").GetSetMethod(true));
+			delCrowServiceSetHoverDesignId = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), crowService,
+				t.GetProperty("HoverWidgetDesignId").GetSetMethod(true));
+			
 			delCrowServiceUpdateRootWidget = (Action<Type,object>)Delegate.CreateDelegate(typeof(Action<Type,object>), crowService,
 				t.GetMethod("UpdateRootWidget"));
 
@@ -199,15 +226,110 @@ namespace CECrowPlugin
 				RegisterClip (clientRectangle);
 			}
 		}*/
-        public override Widget HoverWidget {
-			get => base.HoverWidget;
-			set {
-				base.HoverWidget = value;
-			}
+
+		Widget lastEditHoverWidget, editHoverWidget, editActiveWidget;
+		bool checkHoverWidget() {
+			while (true) {
+				bool mouseInChildren = false;
+				foreach(Widget child in GetWidgetChilren(editHoverWidget)) {
+					if (child.MouseIsIn(MousePosition)) {
+						editHoverWidget = child;
+						mouseInChildren = true;
+						break;
+					}
+				}
+				if (!mouseInChildren)
+					return true;
+				/*if (typeof(TemplatedControl).IsAssignableFrom(editHoverWidget.GetType())) {
+					return true;
+				} else if (typeof(PrivateContainer).IsAssignableFrom(editHoverWidget.GetType())) {
+					Widget child = (Widget)fiPrivateContainer_child.GetValue(editHoverWidget);
+					if (child == null || !child.MouseIsIn(MousePosition))
+						return true;
+					editHoverWidget = child;
+				} else if (typeof(GroupBase).IsAssignableFrom(editHoverWidget.GetType())) {
+					bool mouseInChildren = false;
+					foreach (Widget w in ((GroupBase)editHoverWidget).Children)	{
+						if (w.MouseIsIn(MousePosition)) {
+							editHoverWidget = w;
+							mouseInChildren = true;
+							break;
+						}
+					}
+					if (!mouseInChildren)
+						return true;
+				} else
+					return true;*/
+			}			
 		}
         public override bool OnMouseMove(int x, int y)
         {
-            return base.OnMouseMove(x, y);
+			int deltaX = x - base.MousePosition.X;
+			int deltaY = y - base.MousePosition.Y;
+
+			MousePosition = new Point(x,y);
+			MouseMoveEventArgs e = new MouseMoveEventArgs (x, y, deltaX, deltaY);
+			
+			if (Edition) {
+				if (editHoverWidget != null) {
+					//check topmost graphicobject first
+					Widget topContainer = editHoverWidget;
+					while (topContainer.LogicalParent is Widget w)
+						topContainer = w;
+
+					int indexOfTopContainer = GraphicTree.IndexOf (topContainer);
+					if (indexOfTopContainer != 0) {//0 is topMost
+						for (int i = 0; i < indexOfTopContainer; i++) {//check all top containers that are at a higher level
+							//if logical parent of top container is the Interface, that's not a popup.
+							if (typeof(Interface).IsAssignableFrom(GraphicTree [i].LogicalParent.GetType()) ) {
+								if (GraphicTree [i].MouseIsIn (MousePosition)) {
+									editHoverWidget = GraphicTree [i];
+									if (checkHoverWidget())
+										return true;
+								}
+							}
+						}
+					}
+
+					if (editHoverWidget.MouseIsIn (MousePosition)) {
+						return checkHoverWidget();
+					} else {
+						while (editHoverWidget.Parent is Widget parent) {
+							editHoverWidget = parent;
+							if (editHoverWidget.MouseIsIn (e.Position)) {
+								return checkHoverWidget();
+							}
+						}
+					}
+				}
+
+				//top level graphic obj's parsing
+				lock (GraphicTree) {
+					for (int i = 0; i < GraphicTree.Count; i++) {
+						Widget g = GraphicTree [i];
+						if (g.MouseIsIn (e.Position)) {
+							editHoverWidget = g;
+							return checkHoverWidget();
+						}
+					}
+				}
+				editHoverWidget = null;
+				return false;
+			} else
+            	return base.OnMouseMove(x, y);
+        }
+        public override bool OnMouseButtonDown(MouseButton button)
+        {
+			if (Edition) {
+				/*if (editHoverWidget != null) {
+					editActiveWidget = editHoverWidget;
+					string id = (string)fiWidget_design_id?.GetValue(editHoverWidget);
+					delCrowServiceSetCurrentDesignId(id);
+					return true;
+				}*/
+				return false;
+			} else
+            	return base.OnMouseButtonDown(button);
         }
 
         public override void ForceMousePosition()

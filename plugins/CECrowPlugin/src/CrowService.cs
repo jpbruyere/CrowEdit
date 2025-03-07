@@ -48,6 +48,7 @@ namespace CECrowPlugin
 		public Command CMDStartRecording, CMDStopRecording, CMDRefresh;
 		public Command CMDGotoParentEvent, CMDEventHistoryForward, CMDEventHistoryBackward;
 		public CommandGroup LoggerCommands => new CommandGroup (CMDRefresh, CMDStartRecording, CMDStopRecording);
+		public CommandGroup GraphicTreeCommands => new CommandGroup (CMDRefresh);
 		public CommandGroup EventCommands => new CommandGroup(
 				CMDGotoParentEvent, CMDEventHistoryBackward, CMDEventHistoryForward);
 		public ActionCommand CMDOptions_SelectCrowAssemblyLocation => new ActionCommand ("...",
@@ -113,7 +114,7 @@ namespace CECrowPlugin
 		Assembly crowAssembly, thisAssembly;
 		Type dbgIfaceType;
 		IList<ForeignWidgetContainer> graphicTree;
-		ForeignWidgetContainer currentWidget;
+		ForeignWidgetContainer currentWidget, hoverWidget;
 
 		
 		public IList<ForeignWidgetContainer> GraphicTree {
@@ -130,12 +131,71 @@ namespace CECrowPlugin
 			set {
 				if (currentWidget == value)
 					return;
+
 				currentWidget = value;
+
+				if (currentWidget == null)
+					CurrentWidgetDesignId = null;
+				else {
+					currentWidget.ExpandToTheTop();
+					CurrentWidgetDesignId = currentWidget.DesignId;
+				}
+
 				NotifyValueChanged("CurrentWidget",currentWidget);
 			}
 		}
+		public string CurrentWidgetDesignId {
+			get => currentWidget?.DesignId;
+			set {
+				if (CurrentWidgetDesignId == value)
+					return;
+				if (string.IsNullOrEmpty(value))
+					CurrentWidget = null;
+				else {
+					bool result = graphicTree[0].TryFindWidgetById(value, out ForeignWidgetContainer tmp);
+					if (result)
+						CurrentWidget = tmp;
+					else
+						CurrentWidget = null;
+						//throw new Exception("graphicTree[0].TryFindWidgetById: design id not found");*/
+				}
+				NotifyValueChanged(CurrentWidgetDesignId);
+			}
+		}
+		public ForeignWidgetContainer HoverWidget {
+			get => hoverWidget;
+			set {
+				if (hoverWidget == value)
+					return;
 
+				hoverWidget = value;
 
+				if (hoverWidget == null)
+					HoverWidgetDesignId = null;
+				else {
+					HoverWidgetDesignId = hoverWidget.DesignId;
+				}
+
+				NotifyValueChanged("HoverWidget",hoverWidget);
+			}
+		}
+		public string HoverWidgetDesignId {
+			get => hoverWidget?.DesignId;
+			set {
+				if (HoverWidgetDesignId == value)
+					return;
+				if (string.IsNullOrEmpty(value))
+					HoverWidget = null;
+				else {
+					bool result = graphicTree[0].TryFindWidgetById(value, out ForeignWidgetContainer tmp);
+					if (result)
+						HoverWidget = tmp;
+					else
+						HoverWidget = null;
+				}
+				NotifyValueChanged(HoverWidgetDesignId);
+			}
+		}
 		#region dbgIface delegates
 		Func<string,Type> delGetWidgetTypeFromName;
 		Action<int, int> delResize;
@@ -520,6 +580,7 @@ namespace CECrowPlugin
 			fiWidget_design_style_locations = typeWidget.GetField("design_style_locations");
 			fiWidget_design_iml_values = typeWidget.GetField("design_iml_values");
 			//***********************************
+			fiWidget_slot = typeWidget.GetField("Slot");
 
 
 			fiITor_NextInstantiatorID = crowAssembly.GetType("Crow.IML.Instantiator").GetField("NextInstantiatorID", BindingFlags.Public | BindingFlags.Static);
@@ -625,7 +686,8 @@ namespace CECrowPlugin
 				try
 				{
 					mouseScreenPos = _mouseScreenPos;//absolute on screen position.
-					e.Handled = delMouseMove ((int)(e.X / ZoomFactor), (int)(e.Y / ZoomFactor));//DebugInterface local coordinate for mouse.
+					//e.Handled = delMouseMove ((int)(e.X / ZoomFactor), (int)(e.Y / ZoomFactor));//DebugInterface local coordinate for mouse.
+					e.Handled = delMouseMove (e.X, e.Y);//DebugInterface local coordinate for mouse.
 				}
 				catch (System.Exception ex)
 				{
@@ -640,7 +702,8 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = delMouseDown (e.Button);
+					//e.Handled = delMouseDown (e.Button);
+					CurrentWidget = HoverWidget;
 				}
 				catch (System.Exception ex)
 				{
@@ -653,7 +716,7 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = delMouseUp (e.Button);
+					e.Handled = true;//delMouseUp (e.Button);
 				}
 				catch (System.Exception ex)
 				{
@@ -666,7 +729,7 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = delMouseWheelChanged (e.Delta);
+					e.Handled = true;// delMouseWheelChanged (e.Delta);
 				}
 				catch (System.Exception ex)
 				{
@@ -700,8 +763,11 @@ namespace CECrowPlugin
 		void refresh () {
 			if (!IsRunning)
 				Start ();
-			if (IsRunning)
+			if (IsRunning) {
+				fiITor_NextInstantiatorID?.SetValue (null, 0);
 				delReloadIml ();
+			}
+				
 			//updateCrowApp();
 		}
 		void stopRecording () {

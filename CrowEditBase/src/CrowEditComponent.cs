@@ -5,6 +5,7 @@
 using System;
 using Crow;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace CrowEditBase
 {
@@ -34,7 +35,8 @@ namespace CrowEditBase
 					return;
 
 				isSelected = value;
-				NotifyValueChanged (isSelected);
+				//Debug.WriteLine($"{this} selected: {isSelected}");
+				NotifyValueChanged (isSelected);					
 			}
 		}
 		#endregion

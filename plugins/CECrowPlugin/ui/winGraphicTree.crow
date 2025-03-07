@@ -1,8 +1,12 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Graphic Tree"  Width="30%">
+<DockWindow Caption="Graphic Tree"  Width="30%" AdditionalCommands="{GraphicTreeCommands}">
 	<VerticalStack RootDataLevel="true" Spacing="0">
-		<Button Command="{CMDRefresh}"/>
-		<TreeView Data="{GraphicTree}" SelectedItem="{²CurrentWidget}">
+		<!--<HorizontalStack Height="Fit" Spacing="10" Margin="10" Background="DimGrey" DataSource="{CurrentWidget}">
+			<Image Width="40" Height="40" Margin="4" Path="{Icon}" Background="Jet"/>
+			<Label Text="{TypeName}" Width="Stretched" TextAlignment="Left" />
+			<Label Font="mono bold, 16" Foreground="PaleGreen" Text="{DesignId}" Width="Fit" Margin="4" />
+		</HorizontalStack>-->
+		<TreeView Name="gttv" Data="{GraphicTree}" SelectedItem="{²CurrentWidget}">
 			<ItemTemplate Data="Children">
 				<ListItem IsSelected="{IsSelected}"
 						Selected="{/exp.Background=${ControlHighlight}}"
@@ -15,15 +19,17 @@
 										Foreground="Transparent"
 										MouseEnter="{Foreground=DimGrey}"
 										MouseLeave="{Foreground=Transparent}">
-									<HorizontalStack Background="{./Background}" Spacing="1">
+									<HorizontalStack Background="{./Background}" Spacing="2">
 										<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand"
 											Path="{./Image}"
 											Visible="{HasChilds}"
 											SvgSub="{IsExpanded}"
 											MouseEnter="{Background=LightGrey}"
 											MouseLeave="{Background=Transparent}"/>
-										<Image Path='{Icon}' Width='16' Height='16'/>
+										<Image Path='{Icon}' Width='20' Height='20' Margin="2"/>
+										<Label Style="TreeLabel" Text="{DesignId}" Foreground="PaleGreen"/>
 										<Label Style="TreeLabel" Text="{./Caption}"/>
+										<Label Style="TreeLabel" Text="{IsSelected}"/>
 									</HorizontalStack>
 								</Border>								
 								<Container Name="Content" Visible="false"/>

@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Crow Preview"  Width="60%" Commands="{/dbgIfaceWidget.WindowCommands}">
-	<VerticalStack Background="Black" >
-		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true"
+	<VerticalStack Background="Black" >	
+		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true" CurrentWidget="{CurrentWidget}"
 					BubbleEvents="None"
-					Document="{CurrentDocument}" CurrentWidget="{²CurrentWidget}"/>
+					Document="{CurrentDocument}"/>
 		<Popper DataSource="{../dbgIfaceWidget.CrowIFaceService}" IsVisible="{PreviewHasError}" Background="DarkRed">
 			<Template>
 				<CheckBox IsChecked="{²./IsPopped}" MouseEnter="{IsChecked='true'}" MouseLeave="{IsChecked='false'}">
