@@ -192,8 +192,9 @@ namespace CECrowPlugin
 			return null;
 		}*/
 
-		public override Color GetColorForToken(TokenType tokType)
+		public override Color GetColorForToken(Token token)
 		{
+			TokenType tokType = token.Type;
 			switch ((ImlTokenType)tokType) {
 				case ImlTokenType.BindingOpen:
 				case ImlTokenType.BindingClose:
@@ -208,7 +209,7 @@ namespace CECrowPlugin
 				case ImlTokenType.ConstantRefClose:
 					return Colors.Brown;
 			}
-			return base.GetColorForToken (tokType);
+			return base.GetColorForToken (token);
 		}
 	}
 }

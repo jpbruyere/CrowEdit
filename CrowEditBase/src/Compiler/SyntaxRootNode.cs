@@ -30,7 +30,7 @@ namespace CrowEditBase
 		public int FindTokenIndexIncludingPosition (int pos) {
 			if (pos == 0 || Tokens.Length == 0)
 				return default;
-			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
+			int idx = Tokens.BinarySearch(new  Token (pos));
 			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx;
 		}
 		public ReadOnlySpan<char> GetText(TextSpan span) =>

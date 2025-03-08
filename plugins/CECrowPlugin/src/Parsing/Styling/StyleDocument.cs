@@ -32,26 +32,37 @@ namespace CECrowPlugin.Style
 			return null;
 		}
 		public override string GetTokenTypeString (TokenType tokenType) => ((StyleTokenType)tokenType).ToString();
-		public override Color GetColorForToken(TokenType tokType)
+		public override Color GetColorForToken(Token token)
 		{
+			TokenType tokType = token.Type;
 			StyleTokenType xmlTokType = (StyleTokenType)tokType;
 			if (xmlTokType.HasFlag (StyleTokenType.Punctuation))
 				return Colors.DarkGrey;
+			if (tokType.HasFlag (TokenType.WhiteSpace))
+				return Colors.Silver;					
 			if (xmlTokType.HasFlag (StyleTokenType.Trivia))
 				return Colors.DimGrey;
-			if (xmlTokType == StyleTokenType.MemberName)
-				return Colors.Blue;
+			
+				
 			if (xmlTokType == StyleTokenType.ConstantName)
 				return Colors.DarkCyan;
-			else if (xmlTokType.HasFlag (StyleTokenType.Name))
-				return Colors.Green;
+			if (xmlTokType.HasFlag (StyleTokenType.Name)) {
+				if (token.syntaxNode is ConstantNameSyntax)
+					return Colors.DarkCyan;
+				if (token.syntaxNode is StyleIdentifierSyntax)
+					return Colors.Blue;
+				if (token.syntaxNode is MemberIdentifierSyntax)
+					return Colors.Green;
+				return Colors.Red;
+			}
+				
 			if (xmlTokType == StyleTokenType.MemberValuePart)
-				return Colors.OrangeRed;
+				return Colors.DarkGoldenRod;
 			if (xmlTokType == StyleTokenType.EqualSign)
 				return Colors.Black;
 			if (xmlTokType == StyleTokenType.Unknown)
 				return Colors.Red;
-			return Colors.YellowGreen;
+			return Colors.DarkRed;
 		}
 	}
 }

@@ -6,20 +6,35 @@ using System.Collections.Generic;
 using System.Linq;
 using Crow.Text;
 using Crow;
+using System.Diagnostics;
 
 namespace CrowEditBase
 {
+	public class UnexpectedTokenSyntax : SingleTokenSyntax {
+		public UnexpectedTokenSyntax(Token tok) : base (tok) { }
+	}
 	public class SingleTokenSyntax : SyntaxNode {
-		Token token;
+		protected Token token;
         public override TokenType Type => token.Type;
         public override int SpanStart => token.Start;
 		public override int SpanEnd => token.End;
-		public SingleTokenSyntax(Token tok) {
+        public override bool IsComplete => token.Type != TokenType.Unknown && token.Length > 0;
+        public SingleTokenSyntax(Token tok) {
 			token = tok;
+			token.syntaxNode = this;
 		}
 	}
-	public class MultiNodeSyntax : SyntaxNode {
-		internal List<SyntaxNode> children = new List<SyntaxNode> ();
+	public class CommentTriviaSyntax : MultiNodeSyntax {
+		bool block;
+		public CommentTriviaSyntax(bool block) {
+			this.block = block;
+		}
+        public override bool IsComplete => true;
+			
+    }
+	public abstract class MultiNodeSyntax : SyntaxNode {
+		public MultiNodeSyntax() { }
+        internal List<SyntaxNode> children = new List<SyntaxNode> ();
 		public IEnumerable<SyntaxNode> Children => children;
 		public SyntaxNode AddChild (SyntaxNode child) {
 			children.Add (child);
@@ -32,8 +47,35 @@ namespace CrowEditBase
 		}
 		public IEnumerable<T> GetChilds<T> () => children.OfType<T>();
 
-		
-		public override bool HasChilds => children.Count > 0;
+		public bool ChildIs<T> (int idx) => children.Count() <= idx ? false : children[idx] is T;
+		public bool ChildSequenceIs(params object[] sequ) {
+			if (children.Count != sequ.Length)
+				return false;
+			for (int i = 0; i < sequ.Length; i++) {
+				if (typeof(Type).IsAssignableFrom(sequ[i].GetType())) {
+					if ((sequ[i] as Type) != children[i].GetType())
+						return false;
+				} else if (sequ[i].GetType().IsEnum) {
+					if (!(children[i] is SingleTokenSyntax tok) || (TokenType)sequ[i] != tok.Type)
+						return false;
+				} else
+					return false;
+				if (!children[i].IsComplete)
+					return false;
+				
+			}
+			return true;
+		}
+        public override bool IsComplete {
+			get {
+				for (int i = 0; i < children.Count(); i++) {
+					if (!children[i].IsComplete)
+						return false;
+				}
+				return true;
+			}
+		}
+        public override bool HasChilds => children.Count > 0;
         public override int SpanStart => HasChilds ? children[0].SpanStart : 0;
 		public override int SpanEnd => HasChilds ? children[children.Count - 1].SpanEnd : 0;
 
@@ -85,24 +127,41 @@ namespace CrowEditBase
 					return node.FindNodeIncludingPosition (pos);
 			}
 			return this;
+		}
+		bool _isExpanded;
+		public override bool isExpanded {
+			get => _isExpanded;
+			set {
+				bool expand = HasChilds ? value : false;
+				if  (_isExpanded == expand)
+					return;
+				_isExpanded = value;
+				if (isExpanded && Parent is SyntaxNode sn) {
+					try {
+						sn.isExpanded = true;
+					} catch (Exception ex) {
+						Debug.WriteLine($"SyntaxNode expand to the top failed:{ex.Message}");
+						Debug.WriteLine(ex.StackTrace);
+					}
+					
+				}
+				NotifyValueChanged (_isExpanded);
+			}
 		}		
     }
 	public abstract class SyntaxNode : CrowEditComponent {
 
 
 		#region  Folding and ?expand?
-		bool _isExpanded;
-		public bool isExpanded {
-			get => _isExpanded;
+		public virtual bool isExpanded {
+			get => false;
 			set {
-				if  (_isExpanded == value)
-					return;
-				_isExpanded = value;
-				NotifyValueChanged (_isExpanded);
+				if (value && Parent is SyntaxNode sn) {
+					sn.isExpanded = true;					
+				}
 			}
 		}
 		#endregion
-
 		public MultiNodeSyntax Parent { get; internal set; }
 		public virtual SyntaxRootNode Root => Parent.Root;
 		public virtual TokenType Type => TokenType.Unknown;

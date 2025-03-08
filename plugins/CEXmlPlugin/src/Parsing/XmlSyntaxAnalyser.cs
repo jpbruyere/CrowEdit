@@ -19,7 +19,7 @@ namespace CrowEdit.Xml
 			Tokenizer tokenizer = new XmlTokenizer();
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
 			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
-			currentNode = Root = new XMLRootSyntax (buff, tokens);
+			Root = new XMLRootSyntax (buff, tokens);
 
 			currentLine = 0;
 			tokIdx = 0;

@@ -27,7 +27,7 @@ namespace CrowEdit.Ebnf
 			Tokenizer tokenizer = new EbnfTokenizer();
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
 			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
-			currentNode = Root = new EbnfRootSyntax (buff, tokens);
+			Root = new EbnfRootSyntax (buff, tokens);
 
 			currentLine = 0;
 			tokIdx = 0;

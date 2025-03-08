@@ -31,8 +31,9 @@ namespace CrowEdit.Ebnf
 			return null;
 		}
 
-		public override Color GetColorForToken(TokenType tokType)
+		public override Color GetColorForToken(Token token)
 		{
+			TokenType tokType = token.Type;
 			EbnfTokenType xmlTokType = (EbnfTokenType)tokType;
 			if (xmlTokType == EbnfTokenType.OpenBracket || xmlTokType == EbnfTokenType.ClosingBracket)
 				return Colors.RebeccaPurple;
@@ -51,7 +52,7 @@ namespace CrowEdit.Ebnf
 				return Colors.Blue;
 			if (xmlTokType == EbnfTokenType.Name)
 				return Colors.Green;
-			return base.GetColorForToken(tokType);
+			return base.GetColorForToken(token);
 
 		}
 	}

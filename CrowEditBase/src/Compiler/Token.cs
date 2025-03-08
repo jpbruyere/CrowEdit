@@ -8,8 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace CrowEditBase
 {
-	public struct Token : IComparable<Token>, IEquatable<Token> {
+	public class Token : IComparable<Token>, IEquatable<Token> {
 		public TokenType Type;
+		public SyntaxNode syntaxNode;
 		public int Start;
 		public int Length;
 		public int End => Start + Length;
@@ -32,6 +33,9 @@ namespace CrowEditBase
 			Type = type;
 			Start = start;
 			Length = length;
+		}
+		public Token (int start) {
+			Start = start;
 		}
 
 		public int CompareTo([AllowNull] Token other)

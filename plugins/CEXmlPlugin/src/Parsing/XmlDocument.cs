@@ -213,8 +213,9 @@ namespace CrowEdit.Xml
 			return true;
 		}*/
 
-		public override Color GetColorForToken(TokenType tokType)
+		public override Color GetColorForToken(Token token)
 		{
+			TokenType tokType = token.Type;
 			XmlTokenType xmlTokType = (XmlTokenType)tokType;
 			if (xmlTokType.HasFlag (XmlTokenType.Punctuation))
 				return Colors.DarkGrey;

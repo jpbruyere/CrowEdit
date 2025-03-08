@@ -44,7 +44,15 @@ namespace CrowEditBase
 			set {
 				if (currentNode == value)
 					return;
+				if (currentNode != null)
+					currentNode.IsSelected = false;
 				currentNode = value;
+				if (currentNode != null) {
+					currentNode.IsSelected = true;
+					if (currentNode.Parent is SyntaxNode sn)
+						sn.isExpanded = true;
+				}
+					
 				NotifyValueChanged ("CurrentNode", currentNode);
 			}
 		}
@@ -55,7 +63,7 @@ namespace CrowEditBase
 #if DEBUG
 		public string CurrentTokenString => sourceDocument != null && sourceDocument.IsParsed ? 
 			CurrentToken.AsString(Document.source) : null;
-		public string CurrentTokenType => sourceDocument != null && sourceDocument.IsParsed ? 
+		public string CurrentTokenType => sourceDocument != null && CurrentToken != null && sourceDocument.IsParsed ? 
 			sourceDocument.GetTokenTypeString(CurrentToken.Type) : default;
 #endif
 
@@ -691,7 +699,7 @@ namespace CrowEditBase
 							gr.ShowText (buff);*/
 						} else
 							buff = sourceBytes.Slice (tok.Start, tok.Length);
-						gr.SetSource (doc.GetColorForToken (tok.Type));
+						gr.SetSource (doc.GetColorForToken (tok));
 
 						int size = buff.Length * 4 + 1;
 						if (bytes.Length < size)
@@ -707,11 +715,11 @@ namespace CrowEditBase
 								gr.ShowText (bytes.Slice (0, encodedBytes));
 							}
 
-							if (CurrentToken.Equals(tok)) {
+							if (CurrentToken != null && CurrentToken.Equals(tok)) {
 								Rectangle r = new RectangleD(pixX, pixY, extents.Width, lineHeight);
 								r.Inflate(1);
 								gr.Rectangle(r);
-								gr.SetSource(doc.GetColorForToken (tok.Type).AdjustAlpha(0.5));
+								gr.SetSource(doc.GetColorForToken (tok).AdjustAlpha(0.5));
 								gr.Stroke();
 							}
 
@@ -850,6 +858,7 @@ namespace CrowEditBase
 				int pos = srcdoc.GetAbsolutePosition(currentLoc.Value);
 				currentTokenIndex = srcdoc.FindTokenIndexIncludingPosition(pos);
 				Token tok = srcdoc.GetTokenByIndex(currentTokenIndex);
+
 				CurrentNode = srcdoc.Root?.FindNodeIncludingSpan(tok.Span);
 				
 				NotifyValueChanged("CurrentToken",tok);
@@ -857,7 +866,7 @@ namespace CrowEditBase
 				NotifyValueChanged("CurrentTokenString",CurrentTokenString);
 				NotifyValueChanged("CurrentTokenType",CurrentTokenType);
 #endif
-				
+			
 				
 			} else {
 				currentTokenIndex = -1;

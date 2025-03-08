@@ -22,15 +22,9 @@ namespace CrowEditBase
 		protected Token curTok => tokIdx < 0 ? default : tokens[tokIdx];
 		
 		protected ReadOnlySpan<Token> tokens => Root.Tokens;
-		protected bool EOF => tokIdx == tokens.Length;
-		protected bool tryRead (out Token tok) {
-			if (EOF) {
-				tok = default;
-				return false;
-			}
-			tok = tokens [tokIdx++];
-			return true;
-		}
+		protected bool EOF => tokIdx >= tokens.Length;
+		protected Token Read() => tokens [tokIdx++];
+		protected Token Peek() => tokens [tokIdx];
 		protected bool tryPeek (out Token tok) {
 			if (EOF) {
 				tok = default;
@@ -41,15 +35,6 @@ namespace CrowEditBase
 		}
 		protected bool tryPeek (Enum expectedType)
 			=> EOF ? false : Enum.Equals(tokens [tokIdx].Type, expectedType);
-		
-		protected bool tryRead (out Token tok, Enum expectedType) {
-			if (EOF) {
-				tok = default;
-				return false;
-			}
-			tok = tokens [tokIdx++];
-			return Enum.Equals(tok.Type, expectedType);
-		}		
 		protected bool tryPeek (out Token tok, Enum expectedType) {
 			if (EOF) {
 				tok = default;
@@ -66,12 +51,30 @@ namespace CrowEditBase
 			tok = tokens [tokIdx];
 			return tok.Type.HasFlag(expectedFlag);
 		}		
+		
+		protected bool tryRead (out Token tok) {
+			if (EOF) {
+				tok = default;
+				return false;
+			}
+			tok = tokens [tokIdx++];
+			return true;
+		}		
+		protected bool tryRead (out Token tok, Enum expectedType) {
+			if (EOF) {
+				tok = default;
+				return false;
+			}
+			tok = tokens [tokIdx++];
+			return Enum.Equals(tok.Type, expectedType);
+		}
+
 
 		#endregion
 
 		#region parsing context
 		protected int currentLine = 0, tokIdx = 0;
-		protected SyntaxNode currentNode;
+		//protected MultiNodeSyntax currentNode;
 		#endregion
 
 		/// <summary>
@@ -106,6 +109,17 @@ namespace CrowEditBase
 			}
 			return !EOF;
 		}
+		protected bool skipWhiteSpaces(bool skipLineBreaks = true) {
+			while (tryPeekFlag(out Token tok, TokenType.WhiteSpace)) {
+				if (tok.Type == TokenType.LineBreak) {
+					if (!skipLineBreaks)
+						return true;
+					currentLine++;
+				}
+				tokIdx++;
+			}
+			return !EOF;
+		}		
 		protected void addException(string message) {
 			/*CharLocation loc = lines.GetLocation(curTok.Start);
 			currentNode.AddException(new SyntaxException(message, loc, curTok));*/

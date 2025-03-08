@@ -69,9 +69,14 @@ namespace CERoslynPlugin
 			}
 		}*/
 		public override string GetTokenTypeString (TokenType tokenType) => ((SyntaxKind)tokenType).ToString();
-		public override Color GetColorForToken(TokenType tokType)
+		public override Color GetColorForToken(Token token)
 		{
+			SyntaxKind tokType = (SyntaxKind)token.Type;
 			CSTokenType xmlTokType = (CSTokenType)tokType;
+			if (tokType == SyntaxKind.IdentifierToken)
+				return Colors.Blue;
+			
+			/*CSTokenType xmlTokType = (CSTokenType)tokType;
 			if (xmlTokType.HasFlag (CSTokenType.Punctuation))
 				return Colors.DarkGrey;
 			if (tokType.HasFlag (TokenType.WhiteSpace))
@@ -89,7 +94,7 @@ namespace CERoslynPlugin
 			if (xmlTokType == CSTokenType.Directive)
 				return Colors.Black;
 			if (xmlTokType == CSTokenType.Operator)
-				return Colors.DarkSlateBlue;
+				return Colors.DarkSlateBlue;*/
 			return Colors.Red;
 
 		}

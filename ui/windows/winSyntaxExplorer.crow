@@ -17,20 +17,18 @@
 										Foreground="Transparent"
 										MouseEnter="{Foreground=DimGrey}"
 										MouseLeave="{Foreground=Transparent}">
-									<HorizontalStack Background="{./Background}" Spacing="1">
+									<HorizontalStack Background="{./Background}" Spacing="3">
 										<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand"
 											Path="{./Image}"
 											Visible="{HasChilds}"
 											SvgSub="{isExpanded}"
 											MouseEnter="{Background=LightGrey}"
 											MouseLeave="{Background=Transparent}"/>
-										<Label Style="TreeLabel" Text="{./Caption}"/>
-										<Label Style="TreeLabel" Text="ok:"/>
-										<Label Style="TreeLabel" Text="{IsComplete}"/>
+										<Label Style="TreeLabel" Text="{StartLocation}"/>
+										<CheckBox Style="StateBoxSmall" Caption="{./Caption}" IsChecked="{IsComplete}"/>
 										<Label Style="TreeLabel" Text="span:"/>
 										<Label Style="TreeLabel" Text="{Span}"/>
-										<Label Style="TreeLabel" Text="foldable:"/>
-										<Label Style="TreeLabel" Text="{IsFoldable}"/>
+										<CheckBox Style="StateBoxSmall" Caption="Foldable" IsChecked="{IsFoldable}"/>
 									</HorizontalStack>
 								</Border>
 								<!--<Border CornerRadius="2" Margin="0" Height="Fit" MouseDoubleClick="./onClickForExpand"

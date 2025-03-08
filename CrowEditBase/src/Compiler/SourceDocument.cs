@@ -38,7 +38,7 @@ namespace CrowEditBase
 		public Token FindTokenIncludingPosition (int pos) {
 			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
-			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
+			int idx = Tokens.BinarySearch(new  Token (pos));
 			return idx == 0 ? Tokens[0] : idx < 0 ? Tokens[~idx - 1] : Tokens[idx];
 		}
 		public Token GetTokenByIndex(int tokIdx) => IsParsed && tokIdx >= 0 ?
@@ -46,7 +46,7 @@ namespace CrowEditBase
 		public int FindTokenIndexIncludingPosition (int pos) {
 			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
-			int idx = Tokens.BinarySearch(new  Token () {Start = pos});
+			int idx = Tokens.BinarySearch(new  Token (pos));
 			return idx == 0 ? 0 : idx < 0 ? ~idx - 1 : idx;
 		}
 		/// <summary>
@@ -124,7 +124,9 @@ namespace CrowEditBase
 		}
 
 
-		public virtual Color GetColorForToken (TokenType tokType) {
+		public virtual Color GetColorForToken (Token token)
+		{
+			TokenType tokType = token.Type;
 			if (tokType.HasFlag (TokenType.Punctuation))
 				return Colors.DarkGrey;
 			if (tokType.HasFlag (TokenType.WhiteSpace))

@@ -20,7 +20,6 @@ namespace CECrowPlugin.Style
 		BlockCommentEnd			= 0x0106,
 		Name					= 0x0200,
 		StyleKey				= 0x0201,//may be a class name or a style name.
-		MemberName				= 0x0202,
 		ConstantName			= 0x0203,
 		Punctuation				= 0x0400,
 		OpeningBrace 			= 0x0401,// '{'
@@ -28,9 +27,13 @@ namespace CECrowPlugin.Style
 		Comma		 			= 0x0403,// ','
 		EndOfExpression			= 0x0404,// ';'
 		EqualSign 				= 0x0801,
-		MemberValuePart				= 0x2000,
+		MemberValuePart			= 0x2000,
 		MemberValueOpen			= 0x2401,
 		MemberValueClose		= 0x2402,
 		ConstantRefOpen			= 0x2403,// '${'
+
+		Syntax					= 0x8000,
+		ConstantDefinition		= 0x8001,
+		StyleDefinition			= 0x8002,
 	}
 }

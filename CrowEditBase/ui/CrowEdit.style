@@ -176,6 +176,16 @@ StateBox {
 	Unchecked = "{Background=DarkRed}";
 	Focusable = "false";
 }
+StateBoxSmall {
+	Template= "#ui.SimpleStatus.template";
+	Checked = "{Background=Green}";
+	Unchecked = "{Background=DarkRed}";
+	Focusable = "false";
+	Background = "DarkRed";
+	Foreground = "${ControlForeground}";
+	Width = "Fit";
+	Height = "Fit";
+}
 
 LogViewerWidget {
 	Background = "0.01,0.01,0.01,1";

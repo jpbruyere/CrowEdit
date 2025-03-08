@@ -3,10 +3,12 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using CrowEditBase;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
@@ -15,7 +17,20 @@ namespace CERoslynPlugin
 	public class CSRootSyntax : SyntaxRootNode {
 		public CSRootSyntax (ReadOnlyTextBuffer source, Token[] tokens) : base (source, tokens) {	}
 	}
+	public class CSToken : SingleTokenSyntax {
+		SyntaxToken cstoken;
+		public CSToken(SyntaxToken token, Token tok) : base (tok) {
+			cstoken = token;
+		}
+		public override string ToString() => $"TOK:{cstoken.Kind()}";
+	}
 	public class CSSyntaxNode : MultiNodeSyntax {
+		Microsoft.CodeAnalysis.SyntaxNode node;
+		public CSSyntaxNode(Microsoft.CodeAnalysis.SyntaxNode node) {
+			this.node = node;
+		}
+		public override string ToString() => $"{node.Kind()}";
+
     }
 	
 	public class CSSyntaxAnalyser : SyntaxAnalyser {
@@ -50,13 +65,13 @@ namespace CERoslynPlugin
 		}
 		public override void Visit (Microsoft.CodeAnalysis.SyntaxNode node)
 		{
-			Location loc = node.GetLocation();
+			/*Location loc = node.GetLocation();
 			LinePosition start = loc.GetLineSpan().StartLinePosition;
 			LinePosition end = loc.GetLineSpan().EndLinePosition;
 
 			int indexBase = Root.FindTokenIndexIncludingPosition(node.Span.Start);
-			int lastTokIndex = Root.FindTokenIndexIncludingPosition(node.Span.End - 1);
-			currentNode = currentNode.AddChild(new CSSyntaxNode()) as MultiNodeSyntax;
+			int lastTokIndex = Root.FindTokenIndexIncludingPosition(node.Span.End - 1);*/
+			currentNode = currentNode.AddChild(new CSSyntaxNode(node)) as MultiNodeSyntax;
 			
 			base.Visit (node);
 
@@ -65,9 +80,13 @@ namespace CERoslynPlugin
 
         public override void VisitToken(SyntaxToken token)
         {
-			TextSpan fs = token.FullSpan;
-			Token tok = new Token(fs.Start,fs.Length,(TokenType)token.RawKind);
-			currentNode.AddChild(new SingleTokenSyntax(tok));
+			TextSpan fs = token.Span;
+			if (token.Span.Length == 0)
+				Debug.WriteLine($"Empty token: {token}");
+			else {
+				Token tok = new Token(fs.Start,fs.Length,(TokenType)token.RawKind);
+				currentNode.AddChild(new CSToken(token, tok));
+			}
             base.VisitToken(token);
         }
     }
