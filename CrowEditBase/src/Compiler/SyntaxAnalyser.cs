@@ -4,25 +4,25 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Crow.Text;
 
 namespace CrowEditBase
 {
 	public abstract class SyntaxAnalyser {
-		//protected abstract void Parse(SyntaxNode node);
-		protected ReadOnlyMemory<char> source;
+		protected SourceDocument document;
 		protected LineCollection lines;
 		protected SyntaxRootNode Root;
 		public IEnumerable<SyntaxException> Exceptions => Root?.GetAllExceptions();
 		public SyntaxAnalyser (SourceDocument document) {
-			this.source = document.ImmutableBufferCopy;
+			this.document = document;
 			this.lines = document.Lines;
 		}
-		public abstract SyntaxRootNode Process ();
+		public abstract Task<SyntaxRootNode> Process ();
 		
 		#region Token handling
 		protected Token curTok => tokIdx < 0 ? default : tokens[tokIdx];
-		protected ReadOnlySpan<char> curTokString => curTok.AsString(source.Span);
+		
 		protected ReadOnlySpan<Token> tokens => Root.Tokens;
 		protected bool EOF => tokIdx == tokens.Length;
 		protected bool tryRead (out Token tok) {

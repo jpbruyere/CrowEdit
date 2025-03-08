@@ -13,6 +13,7 @@ using CrowEditBase;
 using System.Linq;
 using System.Text;
 using Drawing2D;
+using System.Diagnostics;
 
 namespace CrowEdit
 {
@@ -177,6 +178,8 @@ namespace CrowEdit
 			} catch (Exception ex) {
 				MessageBox.ShowModal (this, MessageBox.Type.Alert, $"Unable to open {filePath}.\n{ex.Message}");
 				Log(LogType.Error, $"Unable to open {filePath}.\n{ex.Message}");
+				Debug.WriteLine(ex.Message);
+				Debug.WriteLine(ex.StackTrace);
 			}
 			return doc;
 		}

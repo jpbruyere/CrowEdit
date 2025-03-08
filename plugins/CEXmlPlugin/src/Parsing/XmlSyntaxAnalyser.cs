@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using System.Threading.Tasks;
 using CrowEditBase;
 
 namespace CrowEdit.Xml
@@ -14,11 +15,12 @@ namespace CrowEdit.Xml
 		public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
 			attrib.valueTok = tokIdx - attrib.TokenIndexBase;
 		}
-		public override SyntaxRootNode Process () {
+		public override async Task<SyntaxRootNode> Process () {
 			Tokenizer tokenizer = new XmlTokenizer();
+			ReadOnlyMemory<char> source = document.ImmutableBufferCopy;
 			Token[] tokens = tokenizer.Tokenize(source.Span);
-
 			currentNode = Root = new XMLRootSyntax (source, tokens);
+
 			currentLine = 0;
 			tokIdx = 0;
 

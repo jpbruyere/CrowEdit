@@ -413,6 +413,8 @@ namespace CrowEditBase
 			doc.EnterReadLock();
 			try {
 				int foldedLines = 0;
+				if (!doc.IsParsed)
+					return 0;
 				IEnumerator<SyntaxNode> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator();
 				bool notEndOfFolds = foldsEnum.MoveNext();
 				while (notEndOfFolds && foldsEnum.Current.StartLine < absoluteLine) {
@@ -438,6 +440,8 @@ namespace CrowEditBase
 			doc.EnterReadLock();
 			try {
 				int foldedLines = 0;
+				if (!doc.IsParsed)
+					return 0;
 				IEnumerator<SyntaxNode> nodeEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
 				if (!nodeEnum.MoveNext())
 					return 0;

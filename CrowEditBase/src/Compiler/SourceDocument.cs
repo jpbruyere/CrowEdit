@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using Drawing2D;
+using System.Security;
 
 namespace CrowEditBase
 {
@@ -26,7 +27,10 @@ namespace CrowEditBase
 
 			CMDRefreshSyntaxTree = new ActionCommand ("Reparse", parse, "#icons.refresh.svg", true);
         }
-        public SyntaxRootNode Root => root;
+        public SyntaxRootNode Root {
+			get => root;
+		}
+
 		public bool IsParsed => root != null && Tokens.Length > 0;
 		public ReadOnlySpan<Token> Tokens => root.Tokens;
 		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
@@ -82,13 +86,9 @@ namespace CrowEditBase
 		protected override void apply(TextChange change)
 		{
 			SyntaxNode editedNode = root?.FindNodeIncludingSpan (new TextSpan (change.Start, change.End));
-
 			base.apply(change);
-
-			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
-			root = syntaxAnalyser?.Process ();
-
-			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
+			parse ();
+			
 
 			//SyntaxNode changedNode = root.FindNodeIncludingSpan (TextSpan.FromStartAndLength (change.Start, change.ChangedText.Length));			
 			
@@ -140,9 +140,9 @@ namespace CrowEditBase
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public abstract IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
 
-		void parse () {
+		protected virtual async void parse () {
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
-			root = syntaxAnalyser?.Process ();
+			root = await syntaxAnalyser.Process ();
 
 			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
 			NotifyValueChanged ("SyntaxRootChildNodes", (object)null);

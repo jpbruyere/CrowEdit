@@ -33,11 +33,10 @@ namespace CERoslynPlugin
 			App.GetService<RoslynService> ()?.Start ();
 		}
 
-		CSharpSyntaxTree tree;
+		internal CSharpSyntaxTree tree;
 		public CSDocument (string fullPath, string editorPath)	: base (fullPath, editorPath) {
 
 			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default);
-			var root = tree.GetRoot();
 		}
 
 		#region SourceDocument abstract class implementation
@@ -93,7 +92,20 @@ namespace CERoslynPlugin
 				return Colors.DarkSlateBlue;
 			return Colors.Red;
 
-		}		
+		}
 
-	}
+        protected override void apply(TextChange change)
+        {
+			buffer.Update(change);
+			NotifyValueChanged ("IsDirty", IsDirty);
+			CMDSave.CanExecute = IsDirty;
+
+			parse();
+        }
+        protected override void parse()
+        {
+			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default);
+            base.parse();
+        }
+    }
 }

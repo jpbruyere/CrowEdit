@@ -82,8 +82,12 @@ namespace CERoslynPlugin
 						return "#icons.file_type_csharp.svg";
 					case ".svg":
 						return "#icons.file_type_svg.svg";
-					case ".crow":
 					case ".xml":
+						return "#icons.file_type_xml.svg";
+					case ".crow":
+					case ".template":
+					case ".itemp":
+					case ".iml":
 						return "#icons.file_type_xml.svg";
 					default:
 						return "#icons.blank-file.svg";

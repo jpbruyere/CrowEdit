@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using CrowEditBase;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -26,22 +27,20 @@ namespace CERoslynPlugin
         {
             throw new NotImplementedException();
         }*/
+		CSDocument csdoc;
+		public CSSyntaxAnalyser (CSDocument document) : base (document) {
+			csdoc = document;
+		}
 
-		public CSSyntaxAnalyser (CSDocument document) : base (document) {}
-
-		public override SyntaxRootNode Process () {
-			CSTokenizer tokenizer = new CSTokenizer();
-			Token[] tokens = tokenizer.Tokenize(source.Span);
-
-
-			
+		public override async Task<SyntaxRootNode> Process () {
+			CSTokenizer tokenizer = new CSTokenizer(csdoc.tree);
+			ReadOnlyMemory<char> source = document.ImmutableBufferCopy;
+			Token[] tokens = tokenizer.Tokenize();
 			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge(new CSRootSyntax (source, tokens));
-			bridge.Visit(tokenizer.syntaxTree.GetRoot());
+			
+			bridge.Visit(await tokenizer.syntaxTree.GetRootAsync());
 
 			Root = bridge.Root;
-
-			
-
 			return Root;
 		}
 	}

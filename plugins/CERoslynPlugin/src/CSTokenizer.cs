@@ -16,17 +16,19 @@ namespace CERoslynPlugin
 {
 	public class CSTokenizer : Tokenizer
 	{
-		protected List<Token> Toks;
 		public SyntaxTree syntaxTree;
+		public CSTokenizer(SyntaxTree syntaxTree) {
+			this.syntaxTree = syntaxTree;
+		}
 
-		public override Token[] Tokenize(ReadOnlySpan<char> source)
+		public override Token[] Tokenize(ReadOnlySpan<char> source = default)
 		{
 			/*foreach (var e in Enum.GetNames(typeof(SyntaxKind))) {
 				Console.WriteLine($"case SyntaxKind.{e}:");
 				Console.WriteLine($"\treturn CSTokenType.Unknown;");
 			}*/
 
-			syntaxTree = CSharpSyntaxTree.ParseText(source.ToString());
+//			syntaxTree = CSharpSyntaxTree.ParseText(source.ToString());
 			CsharpSyntaxWalkerTokenizer bridge = new CsharpSyntaxWalkerTokenizer();
 			bridge.Visit(syntaxTree.GetRoot());
 			Toks = bridge.Toks;

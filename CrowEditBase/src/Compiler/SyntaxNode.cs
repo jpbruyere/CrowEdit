@@ -9,7 +9,12 @@ using Crow;
 
 namespace CrowEditBase
 {
+	/*public class SingleTokenSyntax {
+		Token token;
+
+	}*/
 	public class SyntaxNode : CrowEditComponent {
+		#region CTOR
 		internal SyntaxNode () {}
 		public SyntaxNode (int startLine, int tokenBase, int? lastTokenIdx = null) {
 			StartLine = startLine;
@@ -17,12 +22,17 @@ namespace CrowEditBase
 			if (lastTokenIdx.HasValue)
 				lastTokenOfset = lastTokenIdx - tokenBase;
 		}
-		
-		bool _isExpanded;
+		#endregion
+
+		internal List<SyntaxNode> children = new List<SyntaxNode> ();
+
+
 		internal int? lastTokenOfset;
-		internal bool isFolded;
 		internal int lineCount;
 
+		#region  Folding and ?expand?
+		bool _isExpanded;
+		internal bool isFolded;
 
 		public bool isExpanded {
 			get => _isExpanded;
@@ -33,60 +43,15 @@ namespace CrowEditBase
 				NotifyValueChanged (_isExpanded);
 			}
 		}
+		public virtual bool IsFoldable => IsComplete && !(Parent != Root && Parent.StartLine == StartLine) && lineCount > 1;
 		public void ExpandToTheTop () {
 			isExpanded = true;
 			Parent?.ExpandToTheTop ();
 		}
-		public SyntaxNode Parent { get; private set; }
-		public int StartLine { get; private set; }
-		public virtual int LineCount => lineCount;
-		public virtual bool IsComplete => lastTokenOfset.HasValue;
-		public virtual bool IsFoldable => IsComplete && !(Parent != Root && Parent.StartLine == StartLine) && lineCount > 1;
-		public virtual SyntaxRootNode Root => Parent.Root;
 		public virtual void UnfoldToTheTop () {
 			isFolded = false;
 			Parent.UnfoldToTheTop ();
 		}
-		protected Token getTokenByIndex (int idx) => Root.GetTokenByIndex(idx);
-		internal List<SyntaxNode> children = new List<SyntaxNode> ();
-		List<SyntaxException> exceptions = new List<SyntaxException>();
-		public void AddException(SyntaxException e) => exceptions.Add(e);
-		public void ResetExceptions(SyntaxException e) => exceptions.Clear();
-		public IEnumerable<SyntaxException> Exceptions => exceptions;
-		public IEnumerable<SyntaxException> GetAllExceptions() {
-				foreach (SyntaxException e in exceptions)
-					yield return e;
-				foreach	(SyntaxNode n in Children) {
-					foreach (SyntaxException ce in n.GetAllExceptions())
-						yield return ce;
-				}
-		}
-
-		public IEnumerable<SyntaxNode> Children => children;
-		//public int IndexOf (SyntaxNode node) => children.IndexOf (node);
-		public bool HasChilds => children.Count > 0;
-		public SyntaxNode NextSibling {
-			get {
-				if (Parent != null) {
-					int idx  = Parent.children.IndexOf (this);
-					if (idx < Parent.children.Count - 1)
-						return Parent.children[idx + 1];
-				}
-				return null;
-			}
-		}
-		public SyntaxNode PreviousSibling {
-			get {
-				if (Parent != null) {
-					int idx  = Parent.children.IndexOf (this);
-					if (idx > 0)
-						return Parent.children[idx - 1];
-				}
-				return null;
-			}
-		}
-		public virtual SyntaxNode NextSiblingOrParentsNextSibling
-			=> NextSibling ?? Parent.NextSiblingOrParentsNextSibling;
 		public IEnumerable<SyntaxNode> VisibleFoldableNodes {
 			get {
 				if (IsFoldable) {
@@ -112,6 +77,62 @@ namespace CrowEditBase
 				return tmp;
 			}
 		}
+		#endregion
+
+
+		
+		public IEnumerable<SyntaxNode> Children => children;
+		public bool HasChilds => children.Count > 0;
+		public SyntaxNode Parent { get; private set; }
+		public virtual bool IsComplete => lastTokenOfset.HasValue;
+
+		public virtual SyntaxRootNode Root => Parent.Root;
+
+
+		public int StartLine { get; private set; }
+		public virtual int LineCount => lineCount;
+
+
+		List<SyntaxException> exceptions = new List<SyntaxException>();
+		public IEnumerable<SyntaxException> Exceptions => exceptions;
+		public void AddException(SyntaxException e) => exceptions.Add(e);
+		public void ResetExceptions(SyntaxException e) => exceptions.Clear();
+		public IEnumerable<SyntaxException> GetAllExceptions() {
+				foreach (SyntaxException e in exceptions)
+					yield return e;
+				foreach	(SyntaxNode n in Children) {
+					foreach (SyntaxException ce in n.GetAllExceptions())
+						yield return ce;
+				}
+		}
+
+
+		protected Token getTokenByIndex (int idx) => Root.GetTokenByIndex(idx);
+
+		
+		//public int IndexOf (SyntaxNode node) => children.IndexOf (node);
+		public SyntaxNode NextSibling {
+			get {
+				if (Parent != null) {
+					int idx  = Parent.children.IndexOf (this);
+					if (idx < Parent.children.Count - 1)
+						return Parent.children[idx + 1];
+				}
+				return null;
+			}
+		}
+		public SyntaxNode PreviousSibling {
+			get {
+				if (Parent != null) {
+					int idx  = Parent.children.IndexOf (this);
+					if (idx > 0)
+						return Parent.children[idx - 1];
+				}
+				return null;
+			}
+		}
+		public virtual SyntaxNode NextSiblingOrParentsNextSibling
+			=> NextSibling ?? Parent.NextSiblingOrParentsNextSibling;
 
 		public virtual int TokenIndexBase { get; private set; }
 		public virtual int TokenCount => lastTokenOfset.HasValue ? lastTokenOfset.Value + 1 : 0;
@@ -130,6 +151,8 @@ namespace CrowEditBase
 				return new TextSpan (startTok.Start, endTok.End);
 			}
 		}
+		public int SpanStart;
+
 		public SyntaxNode AddChild (SyntaxNode child) {
 			children.Add (child);
 			child.Parent = this;
