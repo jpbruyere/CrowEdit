@@ -13,18 +13,18 @@ namespace CrowEdit.Xml
 	public class XmlSyntaxAnalyser : SyntaxAnalyser {
         public XmlSyntaxAnalyser (XmlDocument document) : base (document) {}
 		public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
-			attrib.valueTok = tokIdx - attrib.TokenIndexBase;
+			//attrib.valueTok = tokIdx - attrib.TokenIndexBase;
 		}
 		public override async Task<SyntaxRootNode> Process () {
 			Tokenizer tokenizer = new XmlTokenizer();
-			ReadOnlyMemory<char> source = document.ImmutableBufferCopy;
-			Token[] tokens = tokenizer.Tokenize(source.Span);
-			currentNode = Root = new XMLRootSyntax (source, tokens);
+			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
+			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
+			currentNode = Root = new XMLRootSyntax (buff, tokens);
 
 			currentLine = 0;
 			tokIdx = 0;
 
-			while (tokIdx < tokens.Length) {
+			/*while (tokIdx < tokens.Length) {
 				if (curTok.Type == TokenType.LineBreak)
 					currentLine++;
 				else if (!curTok.Type.HasFlag (TokenType.Trivia)) {
@@ -89,24 +89,6 @@ namespace CrowEdit.Xml
 								addException ("Open/Close element name mismatch");
 							}
 							finishCurrentNode ();
-							/*else {
-								addException ("Open/Close element name mismatch");
-								finishCurrentNode ();//finish eltEndTag->curNode is parent elt
-								currentNode.RemoveChild(eltEndTag);
-								finishCurrentNode (-eltEndTag.TokenCount); //dont credit parent element with those tokens from the non matching end tag
-																		   //curNode should be parent element of previous element
-								while(currentNode is ElementSyntax esp) {
-									//eltEndTag is out of tree, so Name get threw exception
-									if (string.Equals(esp.StartTag.Name, eltEndTagName, StringComparison.Ordinal)) {
-										esp.EndTag = eltEndTag;
-										esp.AddChild (eltEndTag);
-										finishCurrentNode ();
-										break;
-									} else {
-										finishCurrentNode (-eltEndTag.TokenCount);
-									}
-								}
-							}*/
 						} else {
 							addException ("Unexpected Token");
 							finishCurrentNode (-1);
@@ -151,7 +133,7 @@ namespace CrowEdit.Xml
 					currentNode = currentNode.Parent;
 			}
 			//check why this is required..
-			setCurrentNodeEndLine (currentLine);
+			setCurrentNodeEndLine (currentLine);*/
 			return Root;
 		}
 	}

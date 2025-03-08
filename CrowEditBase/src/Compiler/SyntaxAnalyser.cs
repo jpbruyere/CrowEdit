@@ -11,12 +11,10 @@ namespace CrowEditBase
 {
 	public abstract class SyntaxAnalyser {
 		protected SourceDocument document;
-		protected LineCollection lines;
 		protected SyntaxRootNode Root;
-		public IEnumerable<SyntaxException> Exceptions => Root?.GetAllExceptions();
+		public IEnumerable<SyntaxException> Exceptions => null;// Root?.GetAllExceptions();
 		public SyntaxAnalyser (SourceDocument document) {
 			this.document = document;
-			this.lines = document.Lines;
 		}
 		public abstract Task<SyntaxRootNode> Process ();
 		
@@ -81,7 +79,7 @@ namespace CrowEditBase
 		/// </summary>
 		/// <param name="endToken">The final token of this node</param>
 		/// <param name="endLine">the endline number of this node</param>
-		protected void finishCurrentNode (int endTokenOffsetFromCurrentTokIdx = 0) {
+		/*protected void finishCurrentNode (int endTokenOffsetFromCurrentTokIdx = 0) {
 			int lastTokOffset = tokIdx - currentNode.TokenIndexBase + endTokenOffsetFromCurrentTokIdx;
 			currentNode.lastTokenOfset = lastTokOffset < 0 ? null : lastTokOffset;
 			if (endTokenOffsetFromCurrentTokIdx < 0) {
@@ -96,7 +94,7 @@ namespace CrowEditBase
 			currentNode = currentNode.Parent;
 		}
 		protected void setCurrentNodeEndLine (int endLine)
-			=> currentNode.EndLine = endLine;
+			=> currentNode.EndLine = endLine;*/
 		protected bool skipTrivia(bool skipLineBreaks = true) {
 			while (tryPeekFlag(out Token tok, TokenType.Trivia)) {
 				if (tok.Type == TokenType.LineBreak) {
@@ -109,8 +107,8 @@ namespace CrowEditBase
 			return !EOF;
 		}
 		protected void addException(string message) {
-			CharLocation loc = lines.GetLocation(curTok.Start);
-			currentNode.AddException(new SyntaxException(message, loc, curTok));
+			/*CharLocation loc = lines.GetLocation(curTok.Start);
+			currentNode.AddException(new SyntaxException(message, loc, curTok));*/
 		}
 
 

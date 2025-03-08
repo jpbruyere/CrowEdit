@@ -12,6 +12,14 @@ using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
+	public class ReadOnlyTextBuffer {
+		public readonly ReadOnlyMemory<char> Source;
+		public readonly LineCollection Lines;
+		public ReadOnlyTextBuffer(ReadOnlyMemory<char> source, LineCollection lines) {
+			Source = source;
+			Lines = lines;
+		}
+	}
 	public class TextDocument : Document {
 		public TextDocument (string fullPath, string editorPath = "default")
 			: base (fullPath, editorPath) {
@@ -20,8 +28,8 @@ namespace CrowEditBase
 
 		protected TextBuffer buffer;
 		public ReadOnlySpan<char> source => buffer.ReadOnlySpan;
-		public ReadOnlyMemory<char> ImmutableBufferCopy => buffer.ReadOnlyCopy;
-		internal LineCollection Lines => buffer.GetLineListCopy();
+
+		public ReadOnlyTextBuffer ImmutableBufferCopy => new ReadOnlyTextBuffer(buffer.ReadOnlyCopy, buffer.GetLineListCopy());
 		System.Text.Encoding encoding = System.Text.Encoding.UTF8;
 		public event EventHandler<TextChangeEventArgs> TextChanged;
 

@@ -25,9 +25,9 @@ namespace CrowEdit.Ebnf
         public override async Task<SyntaxRootNode> Process()
         {
 			Tokenizer tokenizer = new EbnfTokenizer();
-			ReadOnlyMemory<char> source = document.ImmutableBufferCopy;
-			Token[] tokens = tokenizer.Tokenize(source.Span);
-			currentNode = Root = new EbnfRootSyntax (source, tokens);
+			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
+			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
+			currentNode = Root = new EbnfRootSyntax (buff, tokens);
 
 			currentLine = 0;
 			tokIdx = 0;
@@ -78,10 +78,8 @@ namespace CrowEdit.Ebnf
 				}
 				
 				tokIdx++;
-			}*/
-				
-
-			setCurrentNodeEndLine (currentLine);
+			}
+			setCurrentNodeEndLine (currentLine);*/
 			return Root;
         }
 		

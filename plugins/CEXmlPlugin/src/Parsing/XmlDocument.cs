@@ -32,7 +32,7 @@ namespace CrowEdit.Xml
 		protected virtual IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string attribName, TextChange change) => null;
 		protected virtual IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) => null;
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
-			Token tok = GetTokenByIndex(currentTokenIndex);	
+			/*Token tok = GetTokenByIndex(currentTokenIndex);	
 			if (tok.Start != absoluteTextPos //middle of edited tok
 				&& currentTokenIndex >= CurrentNode?.Root.TokenCount - 1) //occurs when curTok is last tok of text
 			{
@@ -119,7 +119,7 @@ namespace CrowEdit.Xml
 					
 				}
 
-				/*if (tokType == XmlTokenType.AttributeName) {
+				*if (tokType == XmlTokenType.AttributeName) {
 					if (attrib.ValueToken.HasValue) {
 						change = new TextChange (tok.Start, tok.Length, selectedSugg);
 						newSelection = new TextSpan(
@@ -141,8 +141,8 @@ namespace CrowEdit.Xml
 					else if (tokType == XmlTokenType.AttributeValue)
 						change = new TextChange (tok.Start, tok.Length, selectedSugg);
 					newSelection = TextSpan.FromStartAndLength (change.End2 + offset);
-				}*/
-			}
+				}*
+			}*/
 
 			return null;
 		}

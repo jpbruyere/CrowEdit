@@ -18,23 +18,26 @@ namespace CrowEdit.Xml
 		BlockComment			= 0x0105,
 		BlockCommentEnd			= 0x0106,
 		Name					= 0x0200,
-		ElementName				= 0x0201,
-		AttributeName			= 0x0202,
-		PI_Target				= 0x0203,
+		ElementName				= 0x8201,
+		AttributeName			= 0x8202,
+		PI_Target				= 0x8203,
 		Punctuation				= 0x0400,
-		PI_Start				= 0x0401,// '<?'
-		PI_End					= 0x0402,// '?>'
-		ElementOpen 			= 0x0403,// '<'
-		EndElementOpen			= 0x0404,// '</'
-		EmptyElementClosing		= 0x0405,// '/>'
-		ClosingSign				= 0x0406,// '>'
-		DTDObjectOpen			= 0x04A0,// '<!'
+
+		PI_Start				= 0x8401,// '<?'
+		PI_End					= 0x8402,// '?>'
+		ElementOpen 			= 0x8403,// '<'
+		EndElementOpen			= 0x8404,// '</'
+		EmptyElementClosing		= 0x8405,// '/>'
+		ClosingSign				= 0x8406,// '>'
+		DTDObjectOpen			= 0x84A0,// '<!'
 		Operator 				= 0x0800,
 		EqualSign 				= 0x0801,
 		Keyword 				= 0x1000,
-		AttributeValue			= 0x2000,
-		AttributeValueOpen		= 0x2001,
-		AttributeValueClose		= 0x2002,
+		AttributeValue			= 0x8000,
+		AttributeValueOpen		= 0x8401,
+		AttributeValueClose		= 0x8402,
+
+
 		Content,
 	}
 }

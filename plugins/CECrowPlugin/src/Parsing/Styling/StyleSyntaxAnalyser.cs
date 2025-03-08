@@ -22,13 +22,13 @@ namespace CECrowPlugin.Style
 
 		public override async Task<SyntaxRootNode> Process () {
 			Tokenizer tokenizer = new StyleTokenizer();
-			ReadOnlyMemory<char> source = document.ImmutableBufferCopy;
-			Token[] tokens = tokenizer.Tokenize(source.Span);
-			currentNode = Root = new StyleRootSyntax (source, tokens);
+			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
+			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
+			currentNode = Root = new StyleRootSyntax (buff, tokens);
 
 			currentLine = 0;
 			tokIdx = 0;
-
+			/*
 			while (tokIdx < tokens.Length) {
 				if (!skipTrivia(true))
 					break;
@@ -64,7 +64,7 @@ namespace CECrowPlugin.Style
 				else
 					currentNode = currentNode.Parent;
 			}
-			setCurrentNodeEndLine (currentLine);
+			setCurrentNodeEndLine (currentLine);*/
 
 			return Root;
 		}

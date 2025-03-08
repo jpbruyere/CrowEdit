@@ -10,65 +10,41 @@ namespace CrowEdit.Xml
 {
 
 	public class XMLRootSyntax : SyntaxRootNode {
-		public XMLRootSyntax (ReadOnlyMemory<char> source, Token[] tokens) : base (source, tokens) { }
+		public XMLRootSyntax (ReadOnlyTextBuffer buff, Token[] tokens) : base (buff, tokens) { }
 	}
-	public class ProcessingInstructionSyntax : SyntaxNode {
-		public int? PIClose, name;
-		public override bool IsComplete => base.IsComplete & name.HasValue & PIClose.HasValue;
-		public ProcessingInstructionSyntax (int startLine, int tokenBase)
-			: base (startLine, tokenBase) {
-		}
+	public class ProcessingInstructionSyntax : MultiNodeSyntax {
+//		public override bool IsComplete => base.IsComplete & name.HasValue & PIClose.HasValue;
+		public ProcessingInstructionSyntax (){}
 	}
 
 	public abstract class ElementTagSyntax : SyntaxNode {
-		public int? name, close;
-		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
-		public string Name => name.HasValue ?
-				Root.GetTokenStringByIndex (TokenIndexBase + name.Value) : null;
-		protected ElementTagSyntax (int startLine, int tokenBase)
-			: base (startLine, tokenBase) {
-		}
+//		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
+		protected ElementTagSyntax () {	}
 	}
 	public class ElementStartTagSyntax : ElementTagSyntax {
-		public ElementStartTagSyntax (int startLine, int tokenBase)
-			: base (startLine, tokenBase) {
-		}
+		public ElementStartTagSyntax () {}
 	}
 	public class ElementEndTagSyntax : ElementTagSyntax {
-		public ElementEndTagSyntax (int startLine, int tokenBase)
-			: base (startLine, tokenBase) {
-		}
+		public ElementEndTagSyntax () {	}
 	}
 
-	public class EmptyElementSyntax : SyntaxNode {
-		public readonly ElementStartTagSyntax StartTag;
-		public EmptyElementSyntax (ElementStartTagSyntax startNode) : base (startNode.StartLine, startNode.TokenIndexBase, startNode.LastTokenIndex) {
-			StartTag = startNode;
-			AddChild (StartTag);
+	public class EmptyElementSyntax : MultiNodeSyntax {
+		public EmptyElementSyntax (ElementStartTagSyntax startNode) {
+			AddChild (startNode);
 		}
-        public override bool IsComplete => base.IsComplete && StartTag != null;
+        //public override bool IsComplete => base.IsComplete && StartTag != null;
     }
 
-	public class ElementSyntax : SyntaxNode {
-		public readonly ElementStartTagSyntax StartTag;
-		public ElementEndTagSyntax EndTag { get; set; }
+	public class ElementSyntax : MultiNodeSyntax {
 
-		public override bool IsComplete => base.IsComplete & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
+		//public override bool IsComplete => base.IsComplete & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
 
-		public ElementSyntax (ElementStartTagSyntax startTag)
-			: base (startTag.StartLine, startTag.TokenIndexBase) {
-			StartTag = startTag;
-			AddChild (StartTag);
+		public ElementSyntax (ElementStartTagSyntax startTag) {
+			AddChild (startTag);
 		}
 	}
 
-	public class AttributeSyntax : SyntaxNode {
-		public int? name, equal, valueOpen, valueClose, valueTok;
-		public string Name => name.HasValue ? Root.GetTokenStringByIndex (TokenIndexBase + name.Value) : null;
-		public string Value => valueTok.HasValue ? Root.GetTokenStringByIndex (TokenIndexBase + valueTok.Value) : null;
-		public Token? ValueToken => valueTok.HasValue ? Root.GetTokenByIndex (TokenIndexBase + valueTok.Value) : null;
-		public AttributeSyntax (int startLine, int tokenBase)
-			: base (startLine, tokenBase) {}
-		public override bool IsComplete => base.IsComplete & name.HasValue & equal.HasValue & valueTok.HasValue & valueOpen.HasValue & valueClose.HasValue;
+	public class AttributeSyntax : MultiNodeSyntax {			
+		//public override bool IsComplete => base.IsComplete & name.HasValue & equal.HasValue & valueTok.HasValue & valueOpen.HasValue & valueClose.HasValue;
 	}
 }

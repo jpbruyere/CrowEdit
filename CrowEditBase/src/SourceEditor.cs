@@ -170,8 +170,8 @@ namespace CrowEditBase
 					return;
 				currentLoc = value;
 				if (currentLoc.HasValue) {
-					SyntaxNode fold = getFoldContainingLine (currentLoc.Value.Line);
-					while (fold != null && fold.StartLine == currentLoc.Value.Line)
+					MultiNodeSyntax fold = getFoldContainingLine (currentLoc.Value.Line);
+					while (fold != null && fold.StartLocation.Line == currentLoc.Value.Line)
 						fold = fold.Parent;
 					fold?.UnfoldToTheTop();
 					updateCurrentTokAndNode();
@@ -208,7 +208,7 @@ namespace CrowEditBase
 			hideOverlay ();
 			if (mouseIsInMargin) {
 				if (e.Button == MouseButton.Left && mouseIsInFoldRect) {
-					SyntaxNode curNode = getFoldStartingAt (hoverLoc.Value.Line);
+					MultiNodeSyntax curNode = getFoldStartingAt (hoverLoc.Value.Line);
 					if (curNode != null) {
 						curNode.isFolded = !curNode.isFolded;
 						textMeasureIsUpToDate = false;
@@ -346,9 +346,9 @@ namespace CrowEditBase
 				}
 				if (Document is SourceDocument doc) {
 					switch (e.Key) {
-						case Key.F3:
+						/*case Key.F3:
 							doc.Root?.Dump();
-							break;
+							break;*/
 						case Key.Enter:
 						case Key.KeypadEnter:
 							//doc.updateCurrentTokAndNode (Selection.Start);
@@ -385,23 +385,23 @@ namespace CrowEditBase
 		}
 		#endregion
 
-		SyntaxNode getFoldStartingAt (int line) {
+		MultiNodeSyntax getFoldStartingAt (int line) {
 			if (!(Document is SourceDocument doc))
 				return null;
-			IEnumerable<SyntaxNode> folds = doc.Root.VisibleFoldableNodes;
+			IEnumerable<MultiNodeSyntax> folds = doc.Root.VisibleFoldableNodes;
 			if (folds == null)
 				return null;
-			return folds.FirstOrDefault (n => n.StartLine == line);
+			return folds.FirstOrDefault (n => n.StartLocation.Line == line);
 		}
-		SyntaxNode getFoldContainingLine (int line) {
+		MultiNodeSyntax getFoldContainingLine (int line) {
 			if (!(Document is SourceDocument doc))
 				return null;
 			doc.EnterReadLock();
 			try {
-				IEnumerable<SyntaxNode> folds = doc.Root.VisibleFoldableNodes;
+				IEnumerable<MultiNodeSyntax> folds = doc.Root.VisibleFoldableNodes;
 				if (folds == null)
 					return null;
-				return folds.LastOrDefault (n => n.StartLine <= line && n.EndLine >= line);
+				return folds.LastOrDefault (n => n.StartLocation.Line <= line && n.EndLocation.Line >= line);
 			} finally {
 				doc.ExitReadLock ();
 			}
@@ -415,16 +415,16 @@ namespace CrowEditBase
 				int foldedLines = 0;
 				if (!doc.IsParsed)
 					return 0;
-				IEnumerator<SyntaxNode> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator();
+				IEnumerator<MultiNodeSyntax> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator();
 				bool notEndOfFolds = foldsEnum.MoveNext();
-				while (notEndOfFolds && foldsEnum.Current.StartLine < absoluteLine) {
+				while (notEndOfFolds && foldsEnum.Current.StartLocation.Line < absoluteLine) {
 					if (foldsEnum.Current.isFolded) {
 						foldedLines += foldsEnum.Current.LineCount - 1;
 						SyntaxNode nextNode = foldsEnum.Current.NextSiblingOrParentsNextSibling;
 						if (nextNode == null)
 							break;
 						notEndOfFolds = foldsEnum.MoveNext();
-						while (notEndOfFolds && foldsEnum.Current.StartLine < nextNode.StartLine)
+						while (notEndOfFolds && foldsEnum.Current.StartLocation.Line < nextNode.StartLocation.Line)
 							notEndOfFolds = foldsEnum.MoveNext();
 					} else
 						notEndOfFolds = foldsEnum.MoveNext();
@@ -442,20 +442,20 @@ namespace CrowEditBase
 				int foldedLines = 0;
 				if (!doc.IsParsed)
 					return 0;
-				IEnumerator<SyntaxNode> nodeEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
+				IEnumerator<MultiNodeSyntax> nodeEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
 				if (!nodeEnum.MoveNext())
 					return 0;
 
 				int l = 0;
 				while (l < visualLine + foldedLines) {
-					if (nodeEnum.Current.StartLine == l) {
+					if (nodeEnum.Current.StartLocation.Line == l) {
 						if (nodeEnum.Current.isFolded) {
-							foldedLines += nodeEnum.Current.lineCount - 1;
+							foldedLines += nodeEnum.Current.LineCount - 1;
 							SyntaxNode nextNode = nodeEnum.Current.NextSiblingOrParentsNextSibling;
 							if (nextNode == null || !nodeEnum.MoveNext())
 								return foldedLines;
 
-							while (nodeEnum.Current.StartLine < nextNode.StartLine) {
+							while (nodeEnum.Current.StartLocation.Line < nextNode.StartLocation.Line) {
 								if (!nodeEnum.MoveNext())
 									return foldedLines;
 							}
@@ -651,10 +651,10 @@ namespace CrowEditBase
 				int linesToSkip = (int)Math.Floor(ScrollY / lineHeight);
 
 				
-				IEnumerator<SyntaxNode> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
+				IEnumerator<MultiNodeSyntax> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
 				bool notEndOfFolds = foldsEnum.MoveNext();
 
-				while (notEndOfFolds && foldsEnum.Current.StartLine < linesToSkip) {
+				while (notEndOfFolds && foldsEnum.Current.StartLocation.Line < linesToSkip) {
 					if (foldsEnum.Current.isFolded)
 						linesToSkip += foldsEnum.Current.LineCount-1;
 					notEndOfFolds = foldsEnum.MoveNext();
@@ -663,14 +663,14 @@ namespace CrowEditBase
 				int curLine = linesToSkip;
 				pixY = -(ScrollY % lineHeight);
 
-				IEnumerator<int> exceptionLines = doc.Root.GetAllExceptions()?.Select(e=>e.Location.Line).Order().GetEnumerator();
-				bool hasExceptions = exceptionLines.MoveNext();
+				/*IEnumerator<int> exceptionLines = doc.Root.GetAllExceptions()?.Select(e=>e.Location.Line).Order().GetEnumerator();
+				bool hasExceptions = exceptionLines.MoveNext();*/
 
 				while (curLine < doc.LinesCount && printedLines < Math.Min(visibleLines, doc.LinesCount)) {
 
-					while (hasExceptions && exceptionLines.Current < curLine) {
+					/*while (hasExceptions && exceptionLines.Current < curLine) {
 						hasExceptions = exceptionLines.MoveNext();
-					}
+					}*/
 										
 					int encodedChar = 0;
 					TextLine curTxtLine = doc.GetLine (curLine);
@@ -734,13 +734,13 @@ namespace CrowEditBase
 #endif
 					if (selectionNotEmpty && curLine >= selStart.Line && curLine <= selEnd.Line)
 						fillHighlight (gr, curLine, selStart, selEnd, lineRect, SelectionBackground);
-					if (hasExceptions && exceptionLines.Current == curLine) {
+					/*if (hasExceptions && exceptionLines.Current == curLine) {
 						gr.Operator = Operator.DestOver;
 						gr.SetSource (new Color(1.0,0,0.0,0.3));
 						gr.Rectangle (lineRect);
 						gr.Fill ();
 						gr.Operator = Operator.Over;						
-					}
+					}*/
 					
 					//Draw line numbering
 					if (printLineNumbers){
@@ -751,7 +751,7 @@ namespace CrowEditBase
 						if (tokPtr + 1 == doc.Tokens.Length && curLine < doc.LinesCount-1)
 							drawLineNumber (gr, curLine+1, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + lineHeight + fe.Ascent);
 					}
-					bool curFoldStart = notEndOfFolds && foldsEnum.Current.StartLine == curLine; 
+					bool curFoldStart = notEndOfFolds && foldsEnum.Current.StartLocation.Line == curLine; 
 					//draw fold
 					if (curFoldStart) {
 						Rectangle rFld = new Rectangle ((int)marginRect.Right - leftMarginGap - foldSize,
@@ -783,13 +783,13 @@ namespace CrowEditBase
 					pixY += lineHeight;
 					printedLines++;
 
-					if (curFoldStart && curLine == foldsEnum.Current.StartLine){
+					if (curFoldStart && curLine == foldsEnum.Current.StartLocation.Line){
 						if (foldsEnum.Current.isFolded)
 							curLine += foldsEnum.Current.LineCount;
 						else
 							curLine++;
 						notEndOfFolds = foldsEnum.MoveNext();
-						while (notEndOfFolds && foldsEnum.Current.StartLine < curLine) {
+						while (notEndOfFolds && foldsEnum.Current.StartLocation.Line < curLine) {
 							/*if (foldsEnum.Current.isFolded && curLine <= foldsEnum.Current.EndLine)
 								curLine += foldsEnum.Current.LineCount;*/
 							notEndOfFolds = foldsEnum.MoveNext();

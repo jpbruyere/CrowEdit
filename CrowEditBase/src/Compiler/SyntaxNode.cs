@@ -9,31 +9,89 @@ using Crow;
 
 namespace CrowEditBase
 {
-	/*public class SingleTokenSyntax {
+	public class SingleTokenSyntax : SyntaxNode {
 		Token token;
-
-	}*/
-	public class SyntaxNode : CrowEditComponent {
-		#region CTOR
-		internal SyntaxNode () {}
-		public SyntaxNode (int startLine, int tokenBase, int? lastTokenIdx = null) {
-			StartLine = startLine;
-			TokenIndexBase = tokenBase;
-			if (lastTokenIdx.HasValue)
-				lastTokenOfset = lastTokenIdx - tokenBase;
+        public override TokenType Type => token.Type;
+        public override int SpanStart => token.Start;
+		public override int SpanEnd => token.End;
+		public SingleTokenSyntax(Token tok) {
+			token = tok;
 		}
-		#endregion
-
+	}
+	public class MultiNodeSyntax : SyntaxNode {
 		internal List<SyntaxNode> children = new List<SyntaxNode> ();
+		public IEnumerable<SyntaxNode> Children => children;
+		public SyntaxNode AddChild (SyntaxNode child) {
+			children.Add (child);
+			child.Parent = this;
+			return child;
+		}
+		public void RemoveChild (SyntaxNode child) {
+			children.Remove (child);
+			child.Parent = null;
+		}
+		public IEnumerable<T> GetChilds<T> () => children.OfType<T>();
 
+		
+		public override bool HasChilds => children.Count > 0;
+        public override int SpanStart => HasChilds ? children[0].SpanStart : 0;
+		public override int SpanEnd => HasChilds ? children[children.Count - 1].SpanEnd : 0;
 
-		internal int? lastTokenOfset;
-		internal int lineCount;
+		internal bool isFolded;
+		public virtual bool IsFoldable => IsComplete && !(Parent != Root && Parent.StartLocation.Line == StartLocation.Line) && LineCount > 1;
+		public void ExpandToTheTop () {
+			isExpanded = true;
+			Parent?.ExpandToTheTop ();
+		}
+		public virtual void UnfoldToTheTop () {
+			isFolded = false;
+			Parent.UnfoldToTheTop ();
+		}
+		public IEnumerable<MultiNodeSyntax> VisibleFoldableNodes {
+			get {
+				if (IsFoldable) {
+					yield return this;
+				}
+				if (!isFolded) {
+					foreach	(MultiNodeSyntax n in Children.OfType<MultiNodeSyntax>()) {
+						foreach (MultiNodeSyntax folds in n.VisibleFoldableNodes)
+							yield return folds;
+					}
+				}
+			}
+		}
+		public virtual int FoldedLineCount {
+			get {
+				if (isFolded)
+					return LineCount;
+				int tmp = 0;
+				if (HasChilds) {
+					foreach (MultiNodeSyntax n in children.OfType<MultiNodeSyntax>().Where (c => c.IsFoldable))
+						tmp += n.FoldedLineCount;
+				}
+				return tmp;
+			}
+		}
+		public override SyntaxNode FindNodeIncludingSpan (TextSpan span) {
+			foreach (SyntaxNode node in children) {
+				if (node.Contains (span))
+					return node.FindNodeIncludingSpan (span);
+			}
+			return this;
+		}
+		public override SyntaxNode FindNodeIncludingPosition (int pos) {
+			foreach (SyntaxNode node in children) {
+				if (node.Contains (pos))
+					return node.FindNodeIncludingPosition (pos);
+			}
+			return this;
+		}		
+    }
+	public abstract class SyntaxNode : CrowEditComponent {
+
 
 		#region  Folding and ?expand?
 		bool _isExpanded;
-		internal bool isFolded;
-
 		public bool isExpanded {
 			get => _isExpanded;
 			set {
@@ -43,57 +101,25 @@ namespace CrowEditBase
 				NotifyValueChanged (_isExpanded);
 			}
 		}
-		public virtual bool IsFoldable => IsComplete && !(Parent != Root && Parent.StartLine == StartLine) && lineCount > 1;
-		public void ExpandToTheTop () {
-			isExpanded = true;
-			Parent?.ExpandToTheTop ();
-		}
-		public virtual void UnfoldToTheTop () {
-			isFolded = false;
-			Parent.UnfoldToTheTop ();
-		}
-		public IEnumerable<SyntaxNode> VisibleFoldableNodes {
-			get {
-				if (IsFoldable) {
-					yield return this;
-				}
-				if (!isFolded) {
-					foreach	(SyntaxNode n in Children) {
-						foreach (SyntaxNode folds in n.VisibleFoldableNodes)
-							yield return folds;
-					}
-				}
-			}
-		}
-		public virtual int FoldedLineCount {
-			get {
-				if (isFolded)
-					return lineCount;
-				int tmp = 0;
-				if (HasChilds) {
-					foreach (SyntaxNode n in children.Where (c => c.IsFoldable))
-						tmp += n.FoldedLineCount;
-				}
-				return tmp;
-			}
-		}
 		#endregion
 
+		public MultiNodeSyntax Parent { get; internal set; }
+		public virtual SyntaxRootNode Root => Parent.Root;
+		public virtual TokenType Type => TokenType.Unknown;
+		public virtual int SpanStart => 0;
+		public virtual int SpanEnd => 0;
 
 		
-		public IEnumerable<SyntaxNode> Children => children;
-		public bool HasChilds => children.Count > 0;
-		public SyntaxNode Parent { get; private set; }
-		public virtual bool IsComplete => lastTokenOfset.HasValue;
-
-		public virtual SyntaxRootNode Root => Parent.Root;
+		public virtual bool HasChilds => false;
+		public virtual bool IsComplete => false;
 
 
-		public int StartLine { get; private set; }
-		public virtual int LineCount => lineCount;
+
+		/*public int StartLine { get; private set; }
+		public virtual int LineCount => lineCount;*/
 
 
-		List<SyntaxException> exceptions = new List<SyntaxException>();
+		/*List<SyntaxException> exceptions = new List<SyntaxException>();
 		public IEnumerable<SyntaxException> Exceptions => exceptions;
 		public void AddException(SyntaxException e) => exceptions.Add(e);
 		public void ResetExceptions(SyntaxException e) => exceptions.Clear();
@@ -104,7 +130,7 @@ namespace CrowEditBase
 					foreach (SyntaxException ce in n.GetAllExceptions())
 						yield return ce;
 				}
-		}
+		}*/
 
 
 		protected Token getTokenByIndex (int idx) => Root.GetTokenByIndex(idx);
@@ -134,7 +160,7 @@ namespace CrowEditBase
 		public virtual SyntaxNode NextSiblingOrParentsNextSibling
 			=> NextSibling ?? Parent.NextSiblingOrParentsNextSibling;
 
-		public virtual int TokenIndexBase { get; private set; }
+		/*public virtual int TokenIndexBase { get; private set; }
 		public virtual int TokenCount => lastTokenOfset.HasValue ? lastTokenOfset.Value + 1 : 0;
 		public int? LastTokenIndex =>  lastTokenOfset.HasValue ? TokenIndexBase + lastTokenOfset.Value : null;
 
@@ -143,26 +169,12 @@ namespace CrowEditBase
 				lineCount = value - StartLine + 1;
 			}
 			get => StartLine + lineCount - 1;
-		}
-		public TextSpan Span {
-			get {
-				Token startTok = getTokenByIndex(TokenIndexBase);
-				Token endTok = LastTokenIndex.HasValue ? getTokenByIndex (LastTokenIndex.Value) : startTok;
-				return new TextSpan (startTok.Start, endTok.End);
-			}
-		}
-		public int SpanStart;
+		}*/
+		public TextSpan Span => new TextSpan (SpanStart, SpanEnd);
+		public CharLocation StartLocation => Root.GetLocation(SpanStart);
+		public CharLocation EndLocation => Root.GetLocation(SpanEnd);
+		public int LineCount => EndLocation.Line - StartLocation.Line + 1;
 
-		public SyntaxNode AddChild (SyntaxNode child) {
-			children.Add (child);
-			child.Parent = this;
-			return child;
-		}
-		public void RemoveChild (SyntaxNode child) {
-			children.Remove (child);
-			child.Parent = null;
-		}
-		public IEnumerable<T> GetChilds<T> () => children.OfType<T>();
 		/*
 		public void Replace (SyntaxNode newNode) {
 			Parent.replaceChild (this, newNode);
@@ -188,20 +200,14 @@ namespace CrowEditBase
 				curNode = curNode.Parent;
 			}
 		}*/
-		void offset (int tokenOffset, int lineOffset) {
+		/*void offset (int tokenOffset, int lineOffset) {
 			TokenIndexBase += tokenOffset;
 			StartLine += lineOffset;
 			foreach (SyntaxNode child in children) {
 				child.offset (tokenOffset, lineOffset);
 			}
-		}
-		public SyntaxNode FindNodeIncludingPosition (int pos) {
-			foreach (SyntaxNode node in children) {
-				if (node.Contains (pos))
-					return node.FindNodeIncludingPosition (pos);
-			}
-			return this;
-		}
+		}*/
+/*		
 		public T FindNodeIncludingPosition<T> (int pos) {
 			foreach (SyntaxNode node in children) {
 				if (node.Contains (pos))
@@ -209,21 +215,17 @@ namespace CrowEditBase
 			}
 
 			return this is T tt ? tt : default;
-		}
-		public SyntaxNode FindNodeIncludingSpan (TextSpan span) {
-			foreach (SyntaxNode node in children) {
-				if (node.Contains (span))
-					return node.FindNodeIncludingSpan (span);
-			}
-			return this;
-		}
+		}*/
+		public virtual SyntaxNode FindNodeIncludingPosition (int pos) => this;
+		public virtual SyntaxNode FindNodeIncludingSpan (TextSpan span) => this;
+		
 		public bool Contains (int pos) => Span.Contains (pos);
 		public bool Contains (TextSpan span) => Span.Contains (span);
-		public void Dump (int level = 0) {
+		/*public void Dump (int level = 0) {
 			Console.WriteLine ($"{new string('\t', level)}{this}");
 			foreach (SyntaxNode node in children)
 				node.Dump (level + 1);
-		}
+		}*/
 		//public override string ToString() => $"l:({StartLine,3},{LineCount,3}) tks:{TokenIndexBase},{TokenCount} {this.GetType().Name}";
 		public override string ToString() => $"{this.GetType().Name}";
 		public string AsText() {
@@ -234,7 +236,7 @@ namespace CrowEditBase
 
         public class CompareOnStartLine : IComparer<SyntaxNode>
         {
-            public int Compare(SyntaxNode x, SyntaxNode y) => x.StartLine - y.StartLine;
+            public int Compare(SyntaxNode x, SyntaxNode y) => x.StartLocation.Line - y.StartLocation.Line;
         }
     }
 }

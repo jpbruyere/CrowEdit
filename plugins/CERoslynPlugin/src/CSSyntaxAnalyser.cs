@@ -13,13 +13,9 @@ using Microsoft.CodeAnalysis.Text;
 namespace CERoslynPlugin
 {
 	public class CSRootSyntax : SyntaxRootNode {
-		public CSRootSyntax (ReadOnlyMemory<char> source, Token[] tokens) : base (source, tokens) {	}
+		public CSRootSyntax (ReadOnlyTextBuffer source, Token[] tokens) : base (source, tokens) {	}
 	}
-	public class CSSyntaxNode : CrowEditBase.SyntaxNode {
-
-		public CSSyntaxNode (int startLine, int tokenBase, int? lastTokenIdx = null)
-			: base (startLine, tokenBase, lastTokenIdx) {
-		}
+	public class CSSyntaxNode : MultiNodeSyntax {
     }
 	
 	public class CSSyntaxAnalyser : SyntaxAnalyser {
@@ -34,9 +30,9 @@ namespace CERoslynPlugin
 
 		public override async Task<SyntaxRootNode> Process () {
 			CSTokenizer tokenizer = new CSTokenizer(csdoc.tree);
-			ReadOnlyMemory<char> source = document.ImmutableBufferCopy;
+			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
 			Token[] tokens = tokenizer.Tokenize();
-			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge(new CSRootSyntax (source, tokens));
+			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge(new CSRootSyntax (buff, tokens));
 			
 			bridge.Visit(await tokenizer.syntaxTree.GetRootAsync());
 
@@ -47,7 +43,7 @@ namespace CERoslynPlugin
 	class CsharpSyntaxWalkerBridge : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxWalker
 	{
 		public CSRootSyntax Root;
-		CrowEditBase.SyntaxNode currentNode;
+		MultiNodeSyntax currentNode;
 		public CsharpSyntaxWalkerBridge (CSRootSyntax root) : base (SyntaxWalkerDepth.StructuredTrivia)
 		{
 			currentNode = Root = root;
@@ -60,11 +56,19 @@ namespace CERoslynPlugin
 
 			int indexBase = Root.FindTokenIndexIncludingPosition(node.Span.Start);
 			int lastTokIndex = Root.FindTokenIndexIncludingPosition(node.Span.End - 1);
-			currentNode = currentNode.AddChild(new CSSyntaxNode(loc.GetLineSpan().StartLinePosition.Line, indexBase, lastTokIndex));
+			currentNode = currentNode.AddChild(new CSSyntaxNode()) as MultiNodeSyntax;
 			
 			base.Visit (node);
-			currentNode.EndLine = end.Line;
+
 			currentNode = currentNode.Parent;
 		}
+
+        public override void VisitToken(SyntaxToken token)
+        {
+			TextSpan fs = token.FullSpan;
+			Token tok = new Token(fs.Start,fs.Length,(TokenType)token.RawKind);
+			currentNode.AddChild(new SingleTokenSyntax(tok));
+            base.VisitToken(token);
+        }
     }
 }
