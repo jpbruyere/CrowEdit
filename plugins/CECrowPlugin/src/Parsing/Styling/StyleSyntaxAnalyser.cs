@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using System.Threading;
 using System.Threading.Tasks;
 using CrowEdit.Xml;
 using CrowEditBase;
@@ -102,6 +103,9 @@ namespace CECrowPlugin.Style
 		MemberListSyntax processNode(MemberListSyntax memberList) {
 			memberList.AddChild(new SingleTokenSyntax(Read()));
 			while (skipTriviaAndComments(memberList)) {
+					if (cancel.IsCancellationRequested)
+						break;
+
 				if (Peek().Is(StyleTokenType.Name)) {
 					memberList.AddChild(processNode(new MemberSyntax(new MemberIdentifierSyntax(Read()))));
 					continue;
@@ -123,6 +127,8 @@ namespace CECrowPlugin.Style
 		ImlValueSyntax processNode(ImlValueSyntax iml) {
 			if (accept(iml, StyleTokenType.MemberValueOpen)) {
 				while (tryPeek(out Token tok)) {
+					if (cancel.IsCancellationRequested)
+						break;
 					if (tok.Is(StyleTokenType.ConstantRefOpen)) {
 						iml.AddChild(processNode(new ConstanteReferenceSyntax()));
 					} else if (tok.Is(StyleTokenType.MemberValueClose)) {
@@ -146,15 +152,18 @@ namespace CECrowPlugin.Style
 					accept(cst, StyleTokenType.ClosingBrace);
 			return cst;
 		}
-
-		public override async Task<SyntaxRootNode> Process () {
+		CancellationToken cancel;
+		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
 			Tokenizer tokenizer = new StyleTokenizer();
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
 			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
 			tokIdx = 0;
+			this.cancel = cancel;
 
 			Root = new StyleRootSyntax (buff, tokens);
 			while (!EOF) {
+				if (cancel.IsCancellationRequested)
+					break;
 				if (!skipTriviaAndComments(Root))
 					break;
 				if (!Peek().Is(StyleTokenType.Name)) {

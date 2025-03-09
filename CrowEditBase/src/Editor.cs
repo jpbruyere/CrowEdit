@@ -105,7 +105,7 @@ namespace CrowEditBase
 				CMDCopy.CanExecute = CMDCut.CanExecute = !SelectionIsEmpty;
 			}
 		}
-		public int CurrentColumn {
+		public int CurrentColumn {			
 			get => currentLoc.HasValue ? currentLoc.Value.Column < 0 ? 0 : currentLoc.Value.Column : 0;
 			set {
 				if (CurrentColumn == value)
@@ -483,6 +483,8 @@ namespace CrowEditBase
 		}
 		protected int getLineIndexFromMousePosition (Point mouseLocalPos) =>
 			(int)Math.Min (Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ lineHeight)), visualLineCount - 1);
+		protected int getLineIndexFromMousePositionUnchecked (Point mouseLocalPos) =>
+			(int)Math.Max (0, Math.Floor ((mouseLocalPos.Y + ScrollY)/ lineHeight));
 		protected int getVisualLineIndex (Point mouseLocalPos) =>
 			(int)Math.Min (Math.Max (0, Math.Floor (mouseLocalPos.Y / lineHeight)), visibleLines - 1);
 		protected virtual int visualCurrentLine => CurrentLoc.HasValue ? CurrentLoc.Value.Line : 0;

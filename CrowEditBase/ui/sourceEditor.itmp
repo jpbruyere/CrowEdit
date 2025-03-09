@@ -31,6 +31,10 @@
 				<Label Text="{../../tb.ScrollLine}" Margin="3"/>
 				<Label Text="HoverLine:" Foreground="Grey"/>
 				<Label Text="{../../tb.HoverLine}" Margin="3"/>
+				<Label Text="hoverVisualLine:" Foreground="Grey"/>
+				<Label Text="{../../tb.hoverVisualLine}" Margin="3"/>
+				<Label Text="hoverLine:" Foreground="Grey"/>
+				<Label Text="{../../tb.hoverLine}" Margin="3"/>
 				<Label Text="Line:" Foreground="Grey"/>
 				<Label Text="{../../tb.CurrentLine}" Margin="3"/>
 				<Label Text="Col:" Foreground="Grey"/>

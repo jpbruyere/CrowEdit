@@ -10,6 +10,8 @@ using System.Collections;
 using System.Collections.Generic;
 using Drawing2D;
 using System.Security;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CrowEditBase
 {
@@ -141,18 +143,31 @@ namespace CrowEditBase
 		//protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public abstract IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
-
+		CancellationTokenSource cancelSource;
+		Task backgroundCompilationTask;
 		protected virtual async void parse () {
-			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
-			root = await syntaxAnalyser.Process ();
+			if (backgroundCompilationTask != null && !backgroundCompilationTask.IsCompleted) {
+				cancelSource.Cancel();
+				await backgroundCompilationTask;
+			}
 
-			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
-			NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
-			NotifyValueChanged ("SyntaxRootChildNodes", SyntaxRootChildNodes);
+			cancelSource = new CancellationTokenSource();
+			backgroundCompilationTask = Task.Run(()=>parseAssync(cancelSource.Token));
 			
 			//CurrentNode?.ExpandToTheTop();
 			
 			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
+		}
+
+		async void parseAssync(CancellationToken cancel) {
+			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
+			root = await syntaxAnalyser.Process (cancel);
+			if (cancel.IsCancellationRequested)
+				return;
+
+			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
+			NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
+			NotifyValueChanged ("SyntaxRootChildNodes", SyntaxRootChildNodes);
 		}
 
 		public SyntaxException CurrentException {

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Crow.Text;
 
@@ -16,7 +17,7 @@ namespace CrowEditBase
 		public SyntaxAnalyser (SourceDocument document) {
 			this.document = document;
 		}
-		public abstract Task<SyntaxRootNode> Process ();
+		public abstract Task<SyntaxRootNode> Process (CancellationToken cancel = default);
 		
 		#region Token handling
 		protected Token curTok => tokIdx < 0 ? default : tokens[tokIdx];

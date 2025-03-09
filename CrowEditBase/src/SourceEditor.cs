@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Unicode;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CrowEditBase
 {
@@ -27,7 +28,7 @@ namespace CrowEditBase
 		}
         int currentTokenIndex = -1;
 		SyntaxNode currentNode;
-#if DEBUG_NODE
+/*#if DEBUG_NODE
 		SyntaxNode _hoverNode;
 		SyntaxNode hoverNode {
 			get =>_hoverNode;
@@ -38,7 +39,7 @@ namespace CrowEditBase
 				RegisterForRedraw ();
 			}
 		}
-#endif
+#endif*/
 		public SyntaxNode CurrentNode {
 			get => currentNode;
 			set {
@@ -211,6 +212,8 @@ namespace CrowEditBase
 			}
 		}
 		
+		//Task<int> taskFirstVisibleLineIndex;
+
 		#region Mouse & Keyboard overrides
 		public override void onMouseDown (object sender, MouseButtonEventArgs e) {
 			hideOverlay ();
@@ -240,12 +243,41 @@ namespace CrowEditBase
 				mouseIsInMargin = mouseIsInFoldRect = false;
 				IFace.MouseCursor = MouseCursor.ibeam;
 			}
+			
+			int hoverVisualLine = getLineIndexFromMousePositionUnchecked (mLoc);
+			int hoverLine = getAbsoluteLineFromVisualLine (hoverVisualLine);
 
-			updateHoverLocation (mLoc);
+			/***************************/
+				/*hoverLoc = new CharLocation (hoverLine, -1, mLoc.X + ScrollX - leftMargin);
+				using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+					gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+					gr.SetFontSize (Font.Size);
+					updateLocation (gr, ref hoverLoc);
+				}*/
+			/***************************/
+
+			NotifyValueChanged("MouseY", mLoc.Y + ScrollY);
+			NotifyValueChanged("hoverVisualLine", hoverVisualLine);
+			NotifyValueChanged("hoverLine", hoverLine);
+
+			
+			if (mouseIsInMargin) {
+				if (hoverLoc.HasValue)
+					hoverLoc = new CharLocation (hoverLine, hoverLoc.Value.Column, hoverLoc.Value.VisualCharXPosition);
+				else
+					hoverLoc = new CharLocation (hoverLine, 0, 0);
+			} else {
+				hoverLoc = new CharLocation (hoverLine, -1, mLoc.X + ScrollX - leftMargin);
+				using (IContext gr = IFace.Backend.CreateContext (IFace.MainSurface)) {
+					gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
+					gr.SetFontSize (Font.Size);
+					updateLocation (gr, ref hoverLoc);
+				}
+			}
 
 			if (mouseIsInMargin) {
 				Rectangle rFold = new Rectangle (leftMargin - foldMargin - leftMarginRightGap,
-					(int)(lineHeight * getVisualLine(hoverLoc.Value.Line) + lineHeight / 2.0 - foldSize / 2.0) - ScrollY, foldSize, foldSize);
+					(int)(lineHeight * hoverVisualLine + lineHeight / 2.0 - foldSize / 2.0) - ScrollY, foldSize, foldSize);
 				rFold.Inflate(2);
 				mouseIsInFoldRect = rFold.ContainsOrIsEqual (mLoc);
 				RegisterForRedraw();
@@ -261,12 +293,9 @@ namespace CrowEditBase
 			}
 		}
 		protected override void updateHoverLocation (Point mouseLocalPos) {
-			int hoverVisualLine = getLineIndexFromMousePosition (mouseLocalPos);
-			int hoverLine = hoverVisualLine + countFoldedLinesUntil (hoverVisualLine);
-			NotifyValueChanged("MouseY", mouseLocalPos.Y + ScrollY);
-			NotifyValueChanged("ScrollY", ScrollY);
-			NotifyValueChanged("VisibleLines", visibleLines);
-			NotifyValueChanged("HoverLine", hoverLine);
+			int hoverVisualLine = getLineIndexFromMousePositionUnchecked (mouseLocalPos);
+			int hoverLine = getAbsoluteLineFromVisualLine (hoverVisualLine);
+			
 			if (mouseIsInMargin) {
 				if (hoverLoc.HasValue)
 					hoverLoc = new CharLocation (hoverLine, hoverLoc.Value.Column, hoverLoc.Value.VisualCharXPosition);
@@ -280,11 +309,11 @@ namespace CrowEditBase
 				gr.SetFontSize (Font.Size);
 				updateLocation (gr, ref hoverLoc);
 			}
-#if DEBUG_NODES
+/*#if DEBUG_NODES
 			if (Document is SourceDocument doc) {
 				hoverNode = doc.FindNodeIncludingPosition (lines.GetAbsolutePosition (hoverLoc.Value));
 			}
-#endif
+#endif*/
 		}
 		public override void onKeyDown(object sender, KeyEventArgs e)
 		{
@@ -415,7 +444,7 @@ namespace CrowEditBase
 			}
 		}
 
-		int getVisualLine (int absoluteLine) {
+		int getVisualLineFromAboluteLine (int absoluteLine) {
 			if (!(Document is SourceDocument doc))
 				return absoluteLine;
 			doc.EnterReadLock();
@@ -442,47 +471,32 @@ namespace CrowEditBase
 				doc.ExitReadLock ();
 			}
 		}
-		int countFoldedLinesUntil (int visualLine) {
+		int getAbsoluteLineFromVisualLine (int visualLine) {
 			if (!(Document is SourceDocument doc))
 				return 0;
 			doc.EnterReadLock();
 			try {
-				int foldedLines = 0;
 				if (!doc.IsParsed)
 					return 0;
-				IEnumerator<MultiNodeSyntax> nodeEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
-				if (!nodeEnum.MoveNext())
-					return 0;
 
-				int l = 0;
-				while (l < visualLine + foldedLines) {
-					if (nodeEnum.Current.StartLocation.Line == l) {
-						if (nodeEnum.Current.isFolded) {
-							foldedLines += nodeEnum.Current.LineCount - 1;
-							SyntaxNode nextNode = nodeEnum.Current.NextSiblingOrParentsNextSibling;
-							if (nextNode == null || !nodeEnum.MoveNext())
-								return foldedLines;
+				int linesToSkip = visualLine;
+				IEnumerator<MultiNodeSyntax> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
+				bool notEndOfFolds = foldsEnum.MoveNext();
 
-							while (nodeEnum.Current.StartLocation.Line < nextNode.StartLocation.Line) {
-								if (!nodeEnum.MoveNext())
-									return foldedLines;
-							}
-
-						} else if (!nodeEnum.MoveNext())
-							return foldedLines;
-					}
-					l ++;
+				while (notEndOfFolds && foldsEnum.Current.StartLocation.Line < linesToSkip) {
+					if (foldsEnum.Current.isFolded)
+						linesToSkip += foldsEnum.Current.LineCount-1;
+					notEndOfFolds = foldsEnum.MoveNext();
 				}
-				//Console.WriteLine ($"visualLine: {visualLine} foldedLines: {foldedLines}");
-				return foldedLines;
+				return linesToSkip;					
 			} finally {
 				doc.ExitReadLock ();
 			}
 		}
 
 		protected override int getAbsoluteLineIndexFromVisualLineMove (int startLine, int visualLineDiff) {
-			int newVl = Math.Min (Math.Max (0, getVisualLine (startLine) + visualLineDiff), visualLineCount - 1);
-			return newVl + countFoldedLinesUntil (newVl);
+			int newVl = Math.Min (Math.Max (0, getVisualLineFromAboluteLine (startLine) + visualLineDiff), visualLineCount - 1);
+			return getAbsoluteLineFromVisualLine (newVl);
 		}
 
 		protected override int visualLineCount
@@ -490,10 +504,11 @@ namespace CrowEditBase
 			get {
 				if (!(Document is SourceDocument doc))
 					return base.visualLineCount;
-				return Document.LinesCount - countFoldedLinesUntil (Document.LinesCount);
+				
+				return Document.LinesCount - doc.Root.FoldedLineCount;
 			}
 		}
-		protected override int visualCurrentLine => CurrentLoc.HasValue ? getVisualLine (CurrentLoc.Value.Line) : 0;
+		protected override int visualCurrentLine => CurrentLoc.HasValue ? getVisualLineFromAboluteLine (CurrentLoc.Value.Line) : 0;
 		protected override void updateMaxScrolls (LayoutingType layout) {
 			updateMargin();
 			Rectangle cb = ClientRectangle;

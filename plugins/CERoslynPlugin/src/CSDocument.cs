@@ -19,6 +19,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using static CrowEditBase.CrowEditBase;
+using System.Threading;
 
 
 namespace CERoslynPlugin
@@ -108,8 +109,8 @@ namespace CERoslynPlugin
 			parse();
         }
         protected override void parse()
-        {
-			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default);
+        {	
+			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default, "", null);
             base.parse();
         }
     }

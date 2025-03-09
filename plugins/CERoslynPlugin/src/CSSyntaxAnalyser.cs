@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Crow.Text;
 using CrowEditBase;
@@ -54,30 +55,36 @@ namespace CERoslynPlugin
 			csdoc = document;
 		}
 
-		public override async Task<SyntaxRootNode> Process () {
+		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
-			
+			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge(new CSRootSyntax (buff), cancel);
+			CSharpSyntaxNode csroot = await csdoc.tree.GetRootAsync(cancel);
 
-			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge(new CSRootSyntax (buff));
-			
-			bridge.Visit(await csdoc.tree.GetRootAsync());
+			if (cancel.IsCancellationRequested)
+				return null;
+
+			bridge.Visit(csroot);
 			bridge.Root.SetTokens (bridge.Toks.ToArray());
 			Root = bridge.Root;
 			return Root;
 		}
 	}
-	class CsharpSyntaxWalkerBridge : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxWalker
+	class CsharpSyntaxWalkerBridge : CSharpSyntaxWalker
 	{
 		public CSRootSyntax Root;
 		public List<Token> Toks;
 		MultiNodeSyntax currentNode;
-		public CsharpSyntaxWalkerBridge (CSRootSyntax root) : base (SyntaxWalkerDepth.StructuredTrivia)
+		CancellationToken cancel;
+		public CsharpSyntaxWalkerBridge (CSRootSyntax root, CancellationToken cancel = default) : base (SyntaxWalkerDepth.StructuredTrivia)
 		{
+			this.cancel = cancel;
 			currentNode = Root = root;
 			Toks = new List<Token>(100);
 		}
 		public override void Visit (Microsoft.CodeAnalysis.SyntaxNode node)
 		{
+			if (cancel.IsCancellationRequested)
+				return;
 			currentNode = currentNode.AddChild(new CSSyntaxNode(node)) as MultiNodeSyntax;
 			
 			base.Visit (node);
@@ -93,6 +100,9 @@ namespace CERoslynPlugin
 
 		public override void VisitToken (SyntaxToken token)
 		{
+			if (cancel.IsCancellationRequested)
+				return;
+
 			VisitLeadingTrivia (token);
 
 			Microsoft.CodeAnalysis.Text.TextSpan fs = token.Span;
@@ -113,6 +123,9 @@ namespace CERoslynPlugin
 		
         public override void VisitTrivia (SyntaxTrivia trivia)
 		{
+			if (cancel.IsCancellationRequested)
+				return;
+
 			SyntaxKind kind = trivia.Kind ();
 			Microsoft.CodeAnalysis.Text.TextSpan span = trivia.Span;
 			if (kind == SyntaxKind.EndOfLineTrivia) {
@@ -142,6 +155,8 @@ namespace CERoslynPlugin
 			startOfTok = 0;
 
 			while(!reader.EndOfSpan) {
+				if (cancel.IsCancellationRequested)
+					return;
 				switch (reader.Peek) {
 					case '\x85':
 					case '\x2028':

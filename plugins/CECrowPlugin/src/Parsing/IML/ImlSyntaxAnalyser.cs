@@ -7,6 +7,7 @@ using System.Linq;
 using CrowEditBase;
 using CrowEdit.Xml;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace CECrowPlugin
 {
@@ -14,7 +15,7 @@ namespace CECrowPlugin
 		public ImlSyntaxAnalyser (ImlDocument document) : base (document) {}
 
 
-		public override async Task<SyntaxRootNode> Process () {
+		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
 
 			return await base.Process();
 

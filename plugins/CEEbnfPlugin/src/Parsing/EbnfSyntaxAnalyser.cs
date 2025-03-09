@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using CrowEditBase;
 
@@ -22,7 +23,7 @@ namespace CrowEdit.Ebnf
 		//NCName | StringLiteral | CharCode | CharClass | '(' Choice ')'
 		// StringLiteral ::= '"' [^"]* '"' | "'" [^']* "'"	
 		
-        public override async Task<SyntaxRootNode> Process()
+        public override async Task<SyntaxRootNode> Process(CancellationToken cancel = default)
         {
 			Tokenizer tokenizer = new EbnfTokenizer();
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;

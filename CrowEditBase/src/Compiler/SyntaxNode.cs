@@ -102,6 +102,7 @@ namespace CrowEditBase
 				}
 			}
 		}
+		
 		public virtual int FoldedLineCount {
 			get {
 				if (isFolded)
