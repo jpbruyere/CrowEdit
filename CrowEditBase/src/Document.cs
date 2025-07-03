@@ -13,11 +13,17 @@ using static CrowEditBase.CrowEditBase;
 namespace CrowEditBase
 {
 	public abstract class Document : CrowEditComponent {
+		#region CTOR
 		public Document (string fullPath, string editorPath) {
 			initCommands ();
 			EditorPath = editorPath;
 			FullPath = fullPath;
 		}
+		#endregion
+
+		DateTime accessTime;
+		string fullPath;
+
 		/// <summary>
 		/// Editor used to open the document, can't be changed once opened
 		/// </summary>
@@ -34,12 +40,7 @@ namespace CrowEditBase
 		public void EnterWriteLock () => documentRWLock.EnterWriteLock ();
 		public void ExitWriteLock () => documentRWLock.ExitWriteLock ();
 
-		public abstract bool TryGetState<T> (object client, out T state);
-		public abstract void RegisterClient (object client, bool initialState = false);
-		public abstract void UnregisterClient (object client);
 
-		DateTime accessTime;
-		string fullPath;
 
 		public string FullPath {
 			get => fullPath;
@@ -60,25 +61,9 @@ namespace CrowEditBase
 		public string Extension => System.IO.Path.GetExtension (FullPath);
 		public bool ExternalyModified => File.Exists (FullPath) ?
 			(DateTime.Compare (accessTime, System.IO.File.GetLastWriteTime (FullPath)) < 0) : false;
-		public void OnQueryClose (object sender, EventArgs e){
-			CloseEvent.Raise (this, null);
-		}
-		protected abstract void saveFileDialog_OkClicked (object sender, EventArgs e);
-		public void SaveAs () {
-			App.LoadIMLFragment (
-			@"<FileDialog Width='60%' Height='50%' Caption='Save File' CurrentDirectory='{FileDirectory}'
-				SelectedFile='{FileName}' OkClicked='saveFileDialog_OkClicked'/>"
-			).DataSource = this;
-		}
-		public void Save () {
-			if (File.Exists (FullPath))
-				writeToDisk ();
-			else
-				SaveAs ();
-		}
 
+		#region commands
 		public Command CMDUndo, CMDRedo, CMDSave, CMDSaveAs;
-
 		Command CMDClose, CMDCloseOther;
 		public CommandGroup TabCommands => new CommandGroup (
 			CMDClose, CMDCloseOther
@@ -92,11 +77,19 @@ namespace CrowEditBase
 			CMDClose = new ActionCommand ("Close", () => App.CloseDocument (this), "#icons.sign-out.svg");
 			CMDCloseOther = new ActionCommand ("Close Others", () => App.CloseOthers (this), "#icons.inbox.svg");
 		}
+		#endregion
+
+		public abstract bool TryGetState<T> (object client, out T state);
+		public abstract void RegisterClient (object client, bool initialState = false);
+		public abstract void UnregisterClient (object client);
+		protected abstract void saveFileDialog_OkClicked (object sender, EventArgs e);
 		protected abstract void undo();
 		protected abstract void redo();
 		protected abstract void writeToDisk ();
 		protected abstract void readFromDisk ();
 		protected abstract void initNewFile ();
+		public abstract bool IsDirty { get; }
+
 		protected virtual void reloadFromFile () {
 			documentRWLock.EnterWriteLock ();
 			try {
@@ -108,7 +101,21 @@ namespace CrowEditBase
 				documentRWLock.ExitWriteLock ();
 			}
 		}
-		public abstract bool IsDirty { get; }
+		public void OnQueryClose (object sender, EventArgs e){
+			CloseEvent.Raise (this, null);
+		}
+		public void SaveAs () {
+			App.LoadIMLFragment (
+			@"<FileDialog Width='60%' Height='50%' Caption='Save File' CurrentDirectory='{FileDirectory}'
+				SelectedFile='{FileName}' OkClicked='saveFileDialog_OkClicked'/>"
+			).DataSource = this;
+		}
+		public void Save () {
+			if (File.Exists (FullPath))
+				writeToDisk ();
+			else
+				SaveAs ();
+		}
 
 		public override string ToString() => FullPath;
 

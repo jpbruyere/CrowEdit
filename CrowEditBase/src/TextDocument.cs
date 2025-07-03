@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2021-2025  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -21,21 +21,28 @@ namespace CrowEditBase
 		}
 	}
 	public class TextDocument : Document {
+		#region CTOR
 		public TextDocument (string fullPath, string editorPath = "default")
 			: base (fullPath, editorPath) {
 			reloadFromFile ();
 		}
+		#endregion
 
 		protected TextBuffer buffer;
-		public ReadOnlySpan<char> source => buffer.ReadOnlySpan;
-
-		public ReadOnlyTextBuffer ImmutableBufferCopy => new ReadOnlyTextBuffer(buffer.ReadOnlyCopy, buffer.GetLineListCopy());
+		protected Stack<TextChange> undoStack = new Stack<TextChange> ();
+		protected Stack<TextChange> redoStack = new Stack<TextChange> ();
 		System.Text.Encoding encoding = System.Text.Encoding.UTF8;
+		Dictionary<object, List<TextChange>> registeredClients =
+			new Dictionary<object, List<TextChange>>();	// dictionnary of object per document client, when not null, client must reload content of document.
+		protected bool disableTextChangedEvent = false;
+
 		public event EventHandler<TextChangeEventArgs> TextChanged;
 
+		public ReadOnlySpan<char> source => buffer.ReadOnlySpan;
+		public ReadOnlyTextBuffer ImmutableBufferCopy => new ReadOnlyTextBuffer(buffer.ReadOnlyCopy, buffer.GetLineListCopy());
+
+		#region Document interface implementation
 		public override bool IsDirty => buffer.IsDirty;
-				/// dictionnary of object per document client, when not null, client must reload content of document.
-		Dictionary<object, List<TextChange>> registeredClients = new Dictionary<object, List<TextChange>>();
 		public override bool TryGetState<T>(object client, out T state) {
 			state = default;
 			if (documentRWLock.TryEnterReadLock (10)) {
@@ -62,23 +69,6 @@ namespace CrowEditBase
 			registeredClients.Remove (client);
 			ExitWriteLock();
 		}
-		protected void notifyClients (TextChange tc, object triggeringClient = null) {
-			object[] clients = registeredClients.Keys.ToArray ();
-			for (int i = 0; i < clients.Length; i++) {
-				if (clients[i] != triggeringClient)
-					notifyClient (clients[i], tc);
-			}
-		}
-		protected void notifyClient (object client, TextChange tc) {
-			if (registeredClients[client] == null)
-				registeredClients[client] = new List<TextChange> ();
-			registeredClients[client].Add (tc);
-		}
-
-		public virtual void SetLocation(CharLocation loc) {
-			notifyClients(new TextChange(GetAbsolutePosition(loc),0));
-		}
-
 		protected override void writeToDisk () {
 			using (Stream s = new FileStream(FullPath, FileMode.Create)) {
 				using (StreamWriter sw = new StreamWriter (s, encoding))
@@ -113,8 +103,6 @@ namespace CrowEditBase
 				documentRWLock.ExitWriteLock ();
 			}
 		}
-		protected Stack<TextChange> undoStack = new Stack<TextChange> ();
-		protected Stack<TextChange> redoStack = new Stack<TextChange> ();
 		protected override void saveFileDialog_OkClicked (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
@@ -166,19 +154,25 @@ namespace CrowEditBase
 			}
 
 		}
+		#endregion
+		
 		protected void resetUndoRedo () {
 			undoStack.Clear ();
 			redoStack.Clear ();
 			CMDUndo.CanExecute = false;
 			CMDRedo.CanExecute = false;
 		}
-		protected bool disableTextChangedEvent = false;
-		protected virtual void apply (TextChange change) {
-
-			buffer.Update(change);
-
-			NotifyValueChanged ("IsDirty", IsDirty);
-			CMDSave.CanExecute = IsDirty;			
+		protected void notifyClients (TextChange tc, object triggeringClient = null) {
+			object[] clients = registeredClients.Keys.ToArray ();
+			for (int i = 0; i < clients.Length; i++) {
+				if (clients[i] != triggeringClient)
+					notifyClient (clients[i], tc);
+			}
+		}
+		protected void notifyClient (object client, TextChange tc) {
+			if (registeredClients[client] == null)
+				registeredClients[client] = new List<TextChange> ();
+			registeredClients[client].Add (tc);
 		}
 		protected void applyTextChange (TextChange change, object triggeringEditor = null) {
 			documentRWLock.EnterWriteLock ();
@@ -301,6 +295,16 @@ namespace CrowEditBase
 			}
 		}
 
+		protected virtual void apply (TextChange change) {
+
+			buffer.Update(change);
+
+			NotifyValueChanged ("IsDirty", IsDirty);
+			CMDSave.CanExecute = IsDirty;			
+		}
+		public virtual void SetLocation(CharLocation loc) {
+			notifyClients(new TextChange(GetAbsolutePosition(loc),0));
+		}
 		public virtual CharLocation GetWordStart (CharLocation loc) {
 			documentRWLock.EnterReadLock ();
 			try {

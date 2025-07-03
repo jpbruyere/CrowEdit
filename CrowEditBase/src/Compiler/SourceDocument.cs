@@ -16,35 +16,49 @@ using System.Threading.Tasks;
 namespace CrowEditBase
 {
 	public abstract class SourceDocument : TextDocument {
+		#region CTOR
 		public SourceDocument (string fullPath, string editorPath = "#ui.sourceEditor.itmp")
 			: base (fullPath, editorPath) {
 		}
+		#endregion
+
 		protected SyntaxRootNode root;
+		CancellationTokenSource cancelSource;
+		Task backgroundCompilationTask;
 
+        public SyntaxRootNode Root {
+			get => root;
+		}
+		public bool IsParsed => root != null && Tokens.Length > 0;
+		public ReadOnlySpan<Token> Tokens => root.Tokens;
+		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
+		public SyntaxException CurrentException {
+			get => CrowEditBase.App.CurrentException;
+			set {
+				CrowEditBase.App.CurrentException = value;
+				SetLocation(value.Location);
+			} 
+		}
+		
+		#region commands
 		public Command CMDRefreshSyntaxTree;
-
         protected override void initCommands()
         {
             base.initCommands();
 
 			CMDRefreshSyntaxTree = new ActionCommand ("Reparse", parse, "#icons.refresh.svg", true);
         }
-        public SyntaxRootNode Root {
-			get => root;
-		}
+		#endregion
 
-		public bool IsParsed => root != null && Tokens.Length > 0;
-		public ReadOnlySpan<Token> Tokens => root.Tokens;
-		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
-
+		#region token & node searching
+		public Token GetTokenByIndex(int tokIdx) => IsParsed && tokIdx >= 0 ?
+						Tokens[Math.Min(Tokens.Length - 1, tokIdx)] : default;
 		public Token FindTokenIncludingPosition (int pos) {
 			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
 			int idx = Tokens.BinarySearch(new  Token (pos));
 			return idx == 0 ? Tokens[0] : idx < 0 ? Tokens[~idx - 1] : Tokens[idx];
 		}
-		public Token GetTokenByIndex(int tokIdx) => IsParsed && tokIdx >= 0 ?
-						Tokens[Math.Min(Tokens.Length - 1, tokIdx)] : default;
 		public int FindTokenIndexIncludingPosition (int pos) {
 			if (!IsParsed || pos == 0 || Tokens.Length == 0)
 				return default;
@@ -55,6 +69,7 @@ namespace CrowEditBase
 		/// if outermost is true, return oldest ancestor exept root node, useful for folding.
 		/// </summary>
 		public SyntaxNode FindNodeIncludingPosition (int pos, bool outerMost = false) {
+
 			if (root == null)
 				return null;
 			if (!root.Contains (pos))
@@ -66,21 +81,9 @@ namespace CrowEditBase
 			}
 			return sn;
 		}
-		/*public T FindNodeIncludingPosition<T> (int pos) {
-			if (root == null)
-				return default;
-			if (!root.Contains (pos))
-				return default;
-			return root.FindNodeIncludingPosition<T> (pos);
-		}
-		public SyntaxNode FindNodeIncludingSpan (TextSpan span) {
-			if (root == null)
-				return null;
-			if (!root.Contains (span))
-				return null;
-			return root.FindNodeIncludingSpan (span);
-		}*/
+		#endregion
 		
+		#region TextDocument implementation
 		protected override void reloadFromFile () {
 			base.reloadFromFile ();
 			parse ();
@@ -124,7 +127,7 @@ namespace CrowEditBase
 
 			//Console.WriteLine ($"CurrentToken: idx({currentTokenIndex}) {currentToken} {RootNode.Root.GetTokenStringByIndex(currentTokenIndex)}");
 		}
-
+		#endregion
 
 		public virtual Color GetColorForToken (Token token)
 		{
@@ -143,8 +146,6 @@ namespace CrowEditBase
 		//protected abstract Tokenizer CreateTokenizer ();
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public abstract IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
-		CancellationTokenSource cancelSource;
-		Task backgroundCompilationTask;
 		protected virtual async void parse () {
 			if (backgroundCompilationTask != null && !backgroundCompilationTask.IsCompleted) {
 				cancelSource.Cancel();
@@ -170,13 +171,6 @@ namespace CrowEditBase
 			NotifyValueChanged ("SyntaxRootChildNodes", SyntaxRootChildNodes);
 		}
 
-		public SyntaxException CurrentException {
-			get => CrowEditBase.App.CurrentException;
-			set {
-				CrowEditBase.App.CurrentException = value;
-				SetLocation(value.Location);
-			} 
-		}
 
 	}
 }

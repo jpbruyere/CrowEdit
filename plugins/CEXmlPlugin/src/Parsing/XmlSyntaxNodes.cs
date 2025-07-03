@@ -61,7 +61,4 @@ namespace CrowEdit.Xml
 			AddChild (new SingleTokenSyntax(name));
 		}
 	}
-	/*public class AttributeNameSyntax : SingleTokenSyntax {
-		public AttributeNameSyntax(Token name) : base(name) {}
-	}*/	
 }

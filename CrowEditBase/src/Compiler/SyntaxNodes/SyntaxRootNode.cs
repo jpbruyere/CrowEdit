@@ -7,20 +7,22 @@ using Crow.Text;
 namespace CrowEditBase
 {
 	public abstract class SyntaxRootNode : MultiNodeSyntax {
+		#region CTOR
 		public SyntaxRootNode (ReadOnlyTextBuffer buffer, Token[] tokens) {
 			this.buffer = buffer;
 			this.tokens = tokens;
 		}
+		#endregion
+
 		protected readonly ReadOnlyTextBuffer buffer;
 		protected Token[] tokens;
+		public ReadOnlySpan<Token> Tokens => tokens;
+		
 		public override SyntaxRootNode Root => this;
-
-
 		public override bool IsFoldable => false;
 		public override void UnfoldToTheTop() {}
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;
 
-		public ReadOnlySpan<Token> Tokens => tokens;
 
 
 		public string GetTokenStringByIndex (int idx) => tokens != null ?

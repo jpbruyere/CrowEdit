@@ -4,83 +4,31 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Crow.Text;
 using CrowEditBase;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 
 namespace CERoslynPlugin
 {
-	public class CSRootSyntax : SyntaxRootNode {
-		public CSRootSyntax (ReadOnlyTextBuffer source) : base (source, null) {	}
-		internal void SetTokens(Token[] tokens) {
-			this.tokens = tokens;
-		}
-	}
-	public class CSToken : SingleTokenSyntax {
-		SyntaxToken cstoken;
-		public CSToken(SyntaxToken token, Token tok) : base (tok) {
-			cstoken = token;
-		}
-		public override string ToString() => $"TOK: {cstoken.Kind()}";
-	}
-	public class CSTrivia : SingleTokenSyntax {
-		SyntaxTrivia cstrivia;
-		public CSTrivia(SyntaxTrivia token, Token tok) : base (tok) {
-			cstrivia = token;
-		}
-		public override string ToString() => $"Trivia: {cstrivia.Kind()}";
-	}	
-	public class CSSyntaxNode : MultiNodeSyntax {
-		Microsoft.CodeAnalysis.SyntaxNode node;
-		public CSSyntaxNode(Microsoft.CodeAnalysis.SyntaxNode node) {
-			this.node = node;
-		}
-		public override string ToString() => $"{node.Kind()}";
-
-    }
-	
-	public class CSSyntaxAnalyser : SyntaxAnalyser {
-        /*protected override void Parse(SyntaxNode node)
-        {
-            throw new NotImplementedException();
-        }*/
-		CSDocument csdoc;
-		public CSSyntaxAnalyser (CSDocument document) : base (document) {
-			csdoc = document;
-		}
-
-		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
-			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
-			CsharpSyntaxWalkerBridge bridge = new CsharpSyntaxWalkerBridge(new CSRootSyntax (buff), cancel);
-			CSharpSyntaxNode csroot = await csdoc.tree.GetRootAsync(cancel);
-
-			if (cancel.IsCancellationRequested)
-				return null;
-
-			bridge.Visit(csroot);
-			bridge.Root.SetTokens (bridge.Toks.ToArray());
-			Root = bridge.Root;
-			return Root;
-		}
-	}
 	class CsharpSyntaxWalkerBridge : CSharpSyntaxWalker
 	{
-		public CSRootSyntax Root;
-		public List<Token> Toks;
-		MultiNodeSyntax currentNode;
-		CancellationToken cancel;
+		#region CTOR
 		public CsharpSyntaxWalkerBridge (CSRootSyntax root, CancellationToken cancel = default) : base (SyntaxWalkerDepth.StructuredTrivia)
 		{
 			this.cancel = cancel;
 			currentNode = Root = root;
 			Toks = new List<Token>(100);
 		}
+		#endregion
+
+		public CSRootSyntax Root;
+		public List<Token> Toks;
+		MultiNodeSyntax currentNode;
+		int startOfTok;
+		CancellationToken cancel;
+
 		public override void Visit (Microsoft.CodeAnalysis.SyntaxNode node)
 		{
 			if (cancel.IsCancellationRequested)
@@ -91,13 +39,6 @@ namespace CERoslynPlugin
 
 			currentNode = currentNode.Parent;
 		}
-
-        /*public override void VisitToken(SyntaxToken token)
-        {
-			
-            base.VisitToken(token);
-        }*/
-
 		public override void VisitToken (SyntaxToken token)
 		{
 			if (cancel.IsCancellationRequested)
@@ -120,7 +61,6 @@ namespace CERoslynPlugin
 
 			VisitTrailingTrivia (token);
 		}
-		
         public override void VisitTrivia (SyntaxTrivia trivia)
 		{
 			if (cancel.IsCancellationRequested)
@@ -140,7 +80,7 @@ namespace CERoslynPlugin
 				Toks.Add (new Token(span.Start, span.Length, (TokenType)trivia.RawKind));
 			}
 		}
-		int startOfTok;
+		
 		void addTok (ref SpanCharReader reader, int offset, Enum tokType) {
 			if (reader.CurrentPosition == startOfTok)
 				return;
