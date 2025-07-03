@@ -13,15 +13,6 @@ using System.Linq;
 
 namespace CrowEdit.Xml
 {
-	public static class Extensions {
-		public static XmlTokenType GetTokenType (this Token tok) {
-			return (XmlTokenType)tok.Type;
-		}
-		public static void SetTokenType (this Token tok, XmlTokenType type) {
-			tok.Type = (TokenType)type;
-		}
-		public static bool Is(this Token tok, XmlTokenType type) => (XmlTokenType)tok.Type == type; 
-	}
 	public class XmlDocument : SourceDocument {
 
 		public XmlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {	}

@@ -19,7 +19,7 @@ namespace CECrowPlugin.Style
 		public static void SetTokenType (this Token tok, StyleTokenType type) {
 			tok.Type = (TokenType)type;
 		}
-		public static bool Is(this Token tok, StyleTokenType type) => (StyleTokenType)tok.Type == type; 		
+		public static bool Is(this Token tok, StyleTokenType type) => (StyleTokenType)tok.Type == type;
 	}
 	public class StyleSyntaxAnalyser : SyntaxAnalyser {
 		public StyleSyntaxAnalyser (StyleDocument document) : base (document) {}
@@ -28,7 +28,6 @@ namespace CECrowPlugin.Style
 			while (tryPeekFlag(out Token token, TokenType.Trivia)) {
 				switch(token.GetTokenType()) {
 					case (StyleTokenType)TokenType.LineBreak:
-						currentLine++;
 						Read();
 						break;
 					case StyleTokenType.LineCommentStart:
@@ -48,7 +47,6 @@ namespace CECrowPlugin.Style
 							}
 							if (tok.Type == TokenType.LineBreak) {
 								Read();
-								currentLine++;
 							} else {
 								bc.AddChild(new SingleTokenSyntax(Read()));
 							}
@@ -152,7 +150,7 @@ namespace CECrowPlugin.Style
 					accept(cst, StyleTokenType.ClosingBrace);
 			return cst;
 		}
-		CancellationToken cancel;
+		
 		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
 			Tokenizer tokenizer = new StyleTokenizer();
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
@@ -167,7 +165,7 @@ namespace CECrowPlugin.Style
 				if (!skipTriviaAndComments(Root))
 					break;
 				if (!Peek().Is(StyleTokenType.Name)) {
-					Root.AddChild(new UnexpectedTokenSyntax(Read()));	
+					Root.AddChild(new UnexpectedTokenSyntax(Read()));
 					continue;
 				}
 				Token name = Read();

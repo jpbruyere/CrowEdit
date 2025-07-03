@@ -78,6 +78,16 @@ namespace CrowEditBase
         public override bool HasChilds => children.Count > 0;
         public override int SpanStart => HasChilds ? children[0].SpanStart : 0;
 		public override int SpanEnd => HasChilds ? children[children.Count - 1].SpanEnd : 0;
+		/*public override int SpanEnd {//to be removed, used for debugging
+			get {
+				if (HasChilds) {
+					
+					if (children[children.Count - 1] == this)
+						System.Diagnostics.Debugger.Break();
+					return children[children.Count - 1].SpanEnd;
+				} else return 0;				
+			}
+		} */
 
 		internal bool isFolded;
 		public virtual bool IsFoldable => IsComplete && !(Parent != Root && Parent.StartLocation.Line == StartLocation.Line) && LineCount > 1;

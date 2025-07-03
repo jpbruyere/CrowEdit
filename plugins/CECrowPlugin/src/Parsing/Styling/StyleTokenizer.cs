@@ -93,6 +93,8 @@ namespace CECrowPlugin.Style {
 							} else
 								reader.Read ();
 						}
+					} else {
+						addTok (ref reader, StyleTokenType.Unknown);
 					}
 					break;
 				case ',':
@@ -119,13 +121,13 @@ namespace CECrowPlugin.Style {
 					reader.Advance ();
 					addTok (ref reader, StyleTokenType.MemberValueOpen);
 
-					while (!reader.EndOfSpan) {
+					while (!reader.Eol()) {
 						if (reader.TryPeek ("${")) {
 							addTok (ref reader, StyleTokenType.MemberValuePart);
 							reader.Advance (2);
 							addTok (ref reader, StyleTokenType.ConstantRefOpen);
 
-							while (!reader.EndOfSpan) {
+							while (!reader.Eol()) {
 								if (reader.TryPeek ('}')) {
 									addTok (ref reader, StyleTokenType.ConstantName);
 									reader.Read ();

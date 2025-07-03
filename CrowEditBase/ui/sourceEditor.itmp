@@ -39,6 +39,8 @@
 				<Label Text="{../../tb.CurrentLine}" Margin="3"/>
 				<Label Text="Col:" Foreground="Grey"/>
 				<Label Text="{../../tb.TabulatedColumn}" Margin="3"/>
+				<Label Text="Abs:" Foreground="Grey"/>
+				<Label Text="{../../tb.AbsoluteCharLoc}" Margin="3"/>
 			</HorizontalStack>
 	</VerticalStack>
 </ListItem>

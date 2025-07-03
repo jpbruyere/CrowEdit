@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021-2021  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2021-2025  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
@@ -11,20 +11,154 @@ using CrowEditBase;
 
 namespace CrowEdit.Xml
 {
+	public static class Extensions {
+		public static XmlTokenType GetTokenType (this Token tok) {
+			return (XmlTokenType)tok.Type;
+		}
+		public static void SetTokenType (this Token tok, XmlTokenType type) {
+			tok.Type = (TokenType)type;
+		}
+		public static bool Is(this Token tok, XmlTokenType type) => (XmlTokenType)tok.Type == type;
+	}	
 	public class XmlSyntaxAnalyser : SyntaxAnalyser {
         public XmlSyntaxAnalyser (XmlDocument document) : base (document) {}
+		bool skipTriviaAndComments(MultiNodeSyntax currentNode, bool skipLineBreaks = true) {
+			while (tryPeekFlag(out Token token, TokenType.Trivia)) {
+				switch(token.GetTokenType()) {
+					case (XmlTokenType)TokenType.LineBreak:
+						if (!skipLineBreaks)
+							return true;
+						Read();
+						break;
+					case XmlTokenType.BlockCommentStart:
+						MultiNodeSyntax bc = new CommentTriviaSyntax(true);
+						bc.AddChild(new SingleTokenSyntax(Read()));
+						while(tryPeek(out Token tok)) {
+							if (tok.Type == TokenType.BlockCommentEnd)	{
+								bc.AddChild(new SingleTokenSyntax(Read()));
+								break;
+							}
+							if (tok.Type == TokenType.LineBreak) {
+								if (!skipLineBreaks)
+									return true;
+								Read();
+							} else {
+								bc.AddChild(new SingleTokenSyntax(Read()));
+							}
+						}
+						currentNode.AddChild(bc);
+						break;
+					default:
+						Read();
+						break;
+				}
+			}
+
+			return !EOF;
+		}
+		bool accept(MultiNodeSyntax node, Enum tokenType) {
+			if (EOF)
+				return false;
+			if (Peek().Type == (TokenType)tokenType) {
+				node.AddChild(new SingleTokenSyntax(Read()));
+				return true;
+			}
+			return false;
+		}		
 		public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
 			//attrib.valueTok = tokIdx - attrib.TokenIndexBase;
+		}
+		AttributeSyntax processNode(AttributeSyntax attrib) {
+			if (accept(attrib, XmlTokenType.EqualSign))
+				if (accept(attrib, XmlTokenType.AttributeValueOpen))
+					if(accept(attrib, XmlTokenType.AttributeValue))
+						accept(attrib, XmlTokenType.AttributeValueClose);
+			return attrib;
+		}
+		ElementEndTagSyntax processNode(ElementEndTagSyntax et) { 
+			if (accept(et, XmlTokenType.ElementName))
+				accept(et, XmlTokenType.ClosingSign);
+			return et;
+		}
+		ProcessingInstructionSyntax processNode(ProcessingInstructionSyntax pi) {
+			if (Peek().Is(XmlTokenType.PI_Target)) {
+				pi.AddChild(new PITargetSyntax(Read()));
+				while (skipTriviaAndComments(pi, false)) {
+					if (Peek().Is(XmlTokenType.PI_End)) {
+						pi.AddChild(new SingleTokenSyntax(Read()));
+						break;
+					}
+					if (Peek().Is(XmlTokenType.AttributeName))
+						pi.AddChild(processNode(new AttributeSyntax(Read())));
+					else
+						pi.AddChild(new UnexpectedTokenSyntax(Read()));
+				}
+			}
+			return pi;
+		}
+
+		void processElementNode(MultiNodeSyntax node) {
+			ElementStartTagSyntax start = new ElementStartTagSyntax(Read());
+			if (accept (start, XmlTokenType.ElementName)) {
+				while (skipTriviaAndComments(node)) {
+					if (accept (start, XmlTokenType.EmptyElementClosing)) {
+						node.AddChild(new EmptyElementSyntax(start));
+						break;
+					}
+					if (accept (start, XmlTokenType.ClosingSign)) {
+						node.AddChild(processElement(new ElementSyntax(start)));
+						break;
+					}					
+					if (Peek().Is(XmlTokenType.AttributeName))
+						start.AddChild(processNode(new AttributeSyntax(Read())));
+					else
+						start.AddChild(new UnexpectedTokenSyntax(Read()));
+				}
+			} else {
+				start.AddChild(new UnexpectedTokenSyntax(Read()));
+				node.AddChild(new ElementSyntax(start));
+			}
+		}
+		ElementSyntax processElement(ElementSyntax elt) {
+			while (!EOF) {
+				if (cancel.IsCancellationRequested)
+					break;
+				if (!skipTriviaAndComments(elt))
+					break;
+				if (Peek().Is(XmlTokenType.ElementOpen)) {
+					processElementNode(elt);
+				} else if (Peek().Is(XmlTokenType.EndElementOpen)) {
+					elt.AddChild(processNode(new ElementEndTagSyntax(Read())));
+					break;
+				} else if (Peek().Is(XmlTokenType.PI_Start)) {
+					elt.AddChild(processNode(new ProcessingInstructionSyntax(Read())));
+				} else {
+					elt.AddChild(new UnexpectedTokenSyntax(Read()));
+				}
+			}			
+			return elt;
 		}
 		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
 			Tokenizer tokenizer = new XmlTokenizer();
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
 			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
-			Root = new XMLRootSyntax (buff, tokens);
-
-			currentLine = 0;
 			tokIdx = 0;
-
+			this.cancel = cancel;//?
+			
+			Root = new XMLRootSyntax (buff, tokens);
+			while (!EOF) {
+				if (cancel.IsCancellationRequested)
+					break;
+				if (!skipTriviaAndComments(Root))
+					break;
+				if (Peek().Is(XmlTokenType.ElementOpen)) {
+					processElementNode(Root);
+				} else if (Peek().Is(XmlTokenType.PI_Start)) {
+					Root.AddChild(processNode(new ProcessingInstructionSyntax(Read())));
+				} else {
+					Root.AddChild(new UnexpectedTokenSyntax(Read()));
+				}				
+			}
 			/*while (tokIdx < tokens.Length) {
 				if (curTok.Type == TokenType.LineBreak)
 					currentLine++;

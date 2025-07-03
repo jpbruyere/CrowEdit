@@ -10,14 +10,6 @@ using Drawing2D;
 
 namespace CrowEdit.Ebnf
 {
-	public static class Extensions {
-		public static EbnfTokenType GetTokenType (this Token tok) {
-			return (EbnfTokenType)tok.Type;
-		}
-		public static void SetTokenType (this Token tok, EbnfTokenType type) {
-			tok.Type = (TokenType)type;
-		}
-	}
 	public class EbnfDocument : SourceDocument {
 
 		public EbnfDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
@@ -37,7 +29,7 @@ namespace CrowEdit.Ebnf
 			EbnfTokenType xmlTokType = (EbnfTokenType)tokType;
 			if (xmlTokType == EbnfTokenType.OpenBracket || xmlTokType == EbnfTokenType.ClosingBracket)
 				return Colors.RebeccaPurple;
-			if (xmlTokType == EbnfTokenType.StringDelimiter)
+			if (xmlTokType == EbnfTokenType.DoubleQuote)
 				return Colors.Teal;
 			if (xmlTokType == EbnfTokenType.StringLiteral)
 				return Colors.Teal;

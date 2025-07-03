@@ -72,13 +72,13 @@ namespace CrowEdit.Ebnf
 						addTok (ref reader, EbnfTokenType.BlockCommentStart);
 						while (!reader.EndOfSpan) {
 							if (reader.Eol()) {
-								addTok (ref reader, EbnfTokenType.BlockComment);
+								addTok (ref reader, EbnfTokenType.BlockCommentPart);
 								reader.ReadEol();
 								addTok (ref reader, EbnfTokenType.LineBreak);
 								continue;
 							}
 							if (reader.TryPeek ("*/")) {
-								addTok (ref reader, EbnfTokenType.BlockComment);
+								addTok (ref reader, EbnfTokenType.BlockCommentPart);
 								reader.Advance (2);
 								addTok (ref reader, EbnfTokenType.BlockCommentEnd);
 								break;
@@ -92,7 +92,7 @@ namespace CrowEdit.Ebnf
 				case '"':
 				case '\'':
 					char q = reader.Read();
-					addTok (ref reader, EbnfTokenType.StringDelimiter);
+					addTok (ref reader, EbnfTokenType.DoubleQuote);
 					while (!reader.EndOfSpan) {
 						if (reader.Eol()) {
 							addTok (ref reader, EbnfTokenType.StringLiteral);
@@ -100,7 +100,7 @@ namespace CrowEdit.Ebnf
 						} else if (reader.Peek == q) {
 							addTok (ref reader, EbnfTokenType.StringLiteral);
 							reader.Advance ();
-							addTok (ref reader, EbnfTokenType.StringDelimiter);
+							addTok (ref reader, EbnfTokenType.DoubleQuote);
 							break;
 						}
 						reader.Advance();
@@ -110,7 +110,7 @@ namespace CrowEdit.Ebnf
 					reader.Advance();
 					if (!reader.TryRead (":="))
 						throw new EbnfParserException ("malform symbol declaration, expecting '::='.");
-					addTok (ref reader, EbnfTokenType.SymbolAffectation);
+					addTok (ref reader, EbnfTokenType.DefiningSymbol);
 					break;
 				case '<':
 					reader.Advance();
@@ -120,11 +120,11 @@ namespace CrowEdit.Ebnf
 					break;
 				case '(':
 					reader.Advance();
-					addTok (ref reader, EbnfTokenType.OpenRoundBracket);
+					addTok (ref reader, EbnfTokenType.OpenBrace);
 					break;
 				case ')':
 					reader.Advance();
-					addTok (ref reader, EbnfTokenType.ClosingRoundBracket);
+					addTok (ref reader, EbnfTokenType.ClosingBrace);
 					break;
 				case '|':
 					reader.Advance();

@@ -11,28 +11,119 @@ using CrowEditBase;
 namespace CrowEdit.Ebnf
 {
 
+	public static class Extensions {
+		public static EbnfTokenType GetTokenType (this Token tok) {
+			return (EbnfTokenType)tok.Type;
+		}
+		public static void SetTokenType (this Token tok, EbnfTokenType type) {
+			tok.Type = (TokenType)type;
+		}
+		public static bool Is(this Token tok, EbnfTokenType type) => (EbnfTokenType)tok.Type == type;
+	}
+
 	public class EbnfSyntaxAnalyser : SyntaxAnalyser {
 		public EbnfSyntaxAnalyser  (EbnfDocument document) : base (document) {}
 		
-		
-		// ::= NCName '::=' Expression
+
+		bool skipTriviaAndComments(MultiNodeSyntax currentNode) {
+			while (tryPeekFlag(out Token token, TokenType.Trivia)) {
+				switch(token.GetTokenType()) {
+					case (EbnfTokenType)TokenType.LineBreak:
+						Read();
+						break;
+					/*case EbnfTokenType.LineCommentStart:
+						MultiNodeSyntax cmt = new CommentTriviaSyntax(false);
+						cmt.AddChild(new SingleTokenSyntax(Read()));
+						if (tryPeek(TokenType.LineComment))
+							cmt.AddChild(new SingleTokenSyntax(Read()));
+						currentNode.AddChild(cmt);
+						break;*/
+					case EbnfTokenType.BlockCommentStart:
+						MultiNodeSyntax bc = new CommentTriviaSyntax(true);
+						bc.AddChild(new SingleTokenSyntax(Read()));
+						while(tryPeek(out Token tok)) {
+							if (tok.Type == TokenType.BlockCommentEnd)	{
+								bc.AddChild(new SingleTokenSyntax(Read()));
+								break;
+							}
+							if (tok.Type == TokenType.LineBreak)
+								Read();
+							else
+								bc.AddChild(new SingleTokenSyntax(Read()));
+						}
+						currentNode.AddChild(bc);
+						break;
+					default:
+						Read();
+						break;
+				}
+			}
+			return !EOF;
+		}
+		bool accept(MultiNodeSyntax node, Enum tokenType) {
+			if (EOF)
+				return false;
+			if (Peek().Type == (TokenType)tokenType) {
+				node.AddChild(new SingleTokenSyntax(Read()));
+				return true;
+			}
+			return false;
+		}
+		// Production ::= NCName '::=' Expression
+		ProductionSyntax processNode(ProductionSyntax prod) {
+			if (accept(prod, EbnfTokenType.SymbolName))
+				if (skipTriviaAndComments(prod))
+					if (accept(prod, EbnfTokenType.DefiningSymbol))
+						prod.AddChild(processNode(new ExpressionSyntax()));
+			return prod;
+		}
+		// Expression ::= ( Choice | Link )
+		ExpressionSyntax processNode(ExpressionSyntax exp) {
+			skipTriviaAndComments(exp);
+			while(!EOF) {
+				if (cancel.IsCancellationRequested)
+					break;
+				
+			}
+
+			if (accept(exp, EbnfTokenType.SymbolName))
+				if (skipTriviaAndComments(exp))
+					if (accept(exp, EbnfTokenType.DefiningSymbol))
+						exp.AddChild(processNode(new ExpressionSyntax()));
+			return exp;
+		}
 		// Link ::= '[' URL ']'
 		// Choice ::= SequenceOrDifference ( '|' SequenceOrDifference )*
+
 		// SequenceOrDifference ::= Item ( '-' Item | Item* )?
 		// Item ::= Primary ( '?' | '*' | '+' )?
-		//NCName | StringLiteral | CharCode | CharClass | '(' Choice ')'
+
+		// Primary  ::= NCName | StringLiteral | CharCode | CharClass | '(' Choice ')'
 		// StringLiteral ::= '"' [^"]* '"' | "'" [^']* "'"	
 		
         public override async Task<SyntaxRootNode> Process(CancellationToken cancel = default)
         {
 			Tokenizer tokenizer = new EbnfTokenizer();
 			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
-			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
+			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);			
+
+			tokIdx = 0;
+			this.cancel = cancel;
+
 			Root = new EbnfRootSyntax (buff, tokens);
 
-			currentLine = 0;
-			tokIdx = 0;
-			
+
+			/*while (!EOF) {
+				if (cancel.IsCancellationRequested)
+					break;
+				if (!skipTriviaAndComments(Root))
+					break;
+				if (!Peek().Is(EbnfTokenType.SymbolName)) {
+					Root.AddChild(new UnexpectedTokenSyntax(Read()));
+					continue;
+				}
+				Root.AddChild(processNode(new ProductionSyntax()));
+			}	*/		
 			/*while(tokIdx < tokens.Length) {
 				skipTrivia();
 				
@@ -90,9 +181,9 @@ namespace CrowEdit.Ebnf
 
 		
 		bool EndOfExpression =>
-			EOF || tokIdx > tokens.Length - 2 || tokens[tokIdx + 1].GetTokenType() == EbnfTokenType.SymbolAffectation;
+			EOF || tokIdx > tokens.Length - 2 || tokens[tokIdx + 1].GetTokenType() == EbnfTokenType.DefiningSymbol;
 		bool resolvStackPeekIsOpenBracket =>
-			resolveStack.TryPeek (out object elt) && elt is Token tok && tok.GetTokenType() == EbnfTokenType.OpenRoundBracket;
+			resolveStack.TryPeek (out object elt) && elt is Token tok && tok.GetTokenType() == EbnfTokenType.OpenBrace;
 		bool resolvStackPeekIsSequenceOperator =>
 			resolveStack.TryPeek (out object elt) && elt is Expression;
 
@@ -135,7 +226,7 @@ namespace CrowEdit.Ebnf
 			if (resolveStack.TryPeek (out object obj)) {
 				if (obj is Token tok) {
 
-					if (tok.GetTokenType() == EbnfTokenType.OpenRoundBracket)
+					if (tok.GetTokenType() == EbnfTokenType.OpenBrace)
 						return rightOp;
 					
 					resolveStack.Pop ();
@@ -200,7 +291,7 @@ namespace CrowEdit.Ebnf
 							resolveStack.Push (resolve (leftOp));
 						else
 							resolveStack.Push (leftOp);
-					} else if (tok.GetTokenType() == EbnfTokenType.OpenRoundBracket)
+					} else if (tok.GetTokenType() == EbnfTokenType.OpenBrace)
 						resolveStack.Push (leftOp);
 				} else //so theres an expression on the stack, the operator is sequenceOp (whitespace) with precedence = 3
 					resolveStack.Push (resolve (leftOp));
@@ -237,18 +328,18 @@ namespace CrowEdit.Ebnf
 					if (Peek.GetTokenType() != EbnfTokenType.SymbolName)
 						throw new EbnfParserException ($"expecing symbol name, having {Peek.GetTokenType()}, {Peek.AsString (source2)}");
 					curSymbol = new SymbolDecl (Read ().AsString (source2));
-					if (!tryRead (out tok, EbnfTokenType.SymbolAffectation))
+					if (!tryRead (out tok, EbnfTokenType.DefiningSymbol))
 						throw new EbnfParserException ($"expecing '::='");
 					resolveStack = new Stack<object> (16);
-				} else if (Peek.GetTokenType() == EbnfTokenType.OpenRoundBracket) {
+				} else if (Peek.GetTokenType() == EbnfTokenType.OpenBrace) {
 					tok = Read ();
 					resolveStack.Push (tok);
-				} else if (Peek.GetTokenType() == EbnfTokenType.ClosingRoundBracket) {
+				} else if (Peek.GetTokenType() == EbnfTokenType.ClosingBrace) {
 					tok = Read ();
 					Expression rightOp = resolve ();
 					while (!resolvStackPeekIsOpenBracket) 
 						rightOp = resolve (rightOp);
-					if (resolveStack.TryPop (out object obj) && obj is Token tk && tk.GetTokenType() == EbnfTokenType.OpenRoundBracket)
+					if (resolveStack.TryPop (out object obj) && obj is Token tk && tk.GetTokenType() == EbnfTokenType.OpenBrace)
 						checkCardinalityAndPushNewExpression (rightOp);
 					else
 						throw new EbnfParserException ($"expecing open bracket.");
@@ -302,7 +393,7 @@ namespace CrowEdit.Ebnf
 								throw new EbnfParserException ($"malformed character range match");
 						}
 					}
-					if (tok.GetTokenType() == EbnfTokenType.StringDelimiter) {
+					if (tok.GetTokenType() == EbnfTokenType.DoubleQuote) {
 						if (tryRead (out tok, EbnfTokenType.StringMatch)) {
 							te = new StringMatch (tok.AsString (source2));
 							if (!tryRead (out tok, EbnfTokenType.StringLiteral))
@@ -324,7 +415,7 @@ namespace CrowEdit.Ebnf
 					checkCardinalityAndPushNewExpression (new SymbolMatch (tok.AsString (source2)));
 				} else if (Peek.GetTokenType().HasFlag (EbnfTokenType.Operator)) {
 					Token newOp = Read ();					
-					if (newOp.GetTokenType() == EbnfTokenType.SymbolAffectation || newOp.GetTokenType() == EbnfTokenType.CardinalityOp)
+					if (newOp.GetTokenType() == EbnfTokenType.DefiningSymbol || newOp.GetTokenType() == EbnfTokenType.CardinalityOp)
 						System.Diagnostics.Debugger.Break ();
 					
 					if (resolveStackTryPeek<Expression> (out Expression exp)) {
@@ -336,7 +427,7 @@ namespace CrowEdit.Ebnf
 										resolveStack.Push (resolve (exp));
 									else
 										resolveStack.Push (exp);
-								} else if (tok.GetTokenType() == EbnfTokenType.OpenRoundBracket)
+								} else if (tok.GetTokenType() == EbnfTokenType.OpenBrace)
 									resolveStack.Push (exp);
 							} else if (3 <= operatorPrecedance (newOp)) { //so theres an expression on the stack, the operator is sequenceOp (whitespace) with precedence = 3
 								resolveStack.Push (resolve (exp));

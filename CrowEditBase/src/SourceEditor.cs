@@ -58,14 +58,53 @@ namespace CrowEditBase
 			}
 		}
 		
-		public Token CurrentToken => sourceDocument != null && sourceDocument.IsParsed ?
-			sourceDocument.GetTokenByIndex(currentTokenIndex) : default;
+		bool parsingOk => sourceDocument != null && sourceDocument.IsParsed;
 
+		public Token CurrentToken => parsingOk ? sourceDocument.GetTokenByIndex(currentTokenIndex) : default;
 #if DEBUG
-		public string CurrentTokenString => sourceDocument != null && sourceDocument.IsParsed ? 
-			CurrentToken.AsString(Document.source) : null;
-		public string CurrentTokenType => sourceDocument != null && CurrentToken != null && sourceDocument.IsParsed ? 
-			sourceDocument.GetTokenTypeString(CurrentToken.Type) : default;
+		public string CurrentTokenString {
+			get {
+				try
+				{
+					return parsingOk ? CurrentToken.AsString(Document.source) : null;					
+				}
+				catch (System.Exception e)
+				{
+					Console.WriteLine($"{CurrentToken}:{e}");
+				}
+				return null;
+			}
+			 
+		}
+		public string CurrentTokenType {
+			get {
+				try
+				{
+					return parsingOk && CurrentToken != null ? 
+						sourceDocument.GetTokenTypeString(CurrentToken.Type) : default;
+				}
+				catch (System.Exception e)
+				{
+					Console.WriteLine($"{CurrentToken}:{e}");
+				}
+				return default;
+			}
+			 
+		}		
+		public int AbsoluteCharLoc {
+			get {
+				try
+				{
+					return currentLoc.HasValue ?
+						Document.GetAbsolutePosition(currentLoc.Value) : 0;
+				}
+				catch (System.Exception e)
+				{
+					Console.WriteLine (e);
+				}
+				return 0;
+			}
+		}
 #endif
 
 		#region suggestions and autocomplete
@@ -178,7 +217,7 @@ namespace CrowEditBase
 				if (currentLoc == value)
 					return;
 				currentLoc = value;
-				if (currentLoc.HasValue) {
+				if (currentLoc.HasValue && Document is SourceDocument doc && doc.IsParsed) {
 					MultiNodeSyntax fold = getFoldContainingLine (currentLoc.Value.Line);
 					while (fold != null && fold.StartLocation.Line == currentLoc.Value.Line)
 						fold = fold.Parent;
@@ -217,22 +256,27 @@ namespace CrowEditBase
 		#region Mouse & Keyboard overrides
 		public override void onMouseDown (object sender, MouseButtonEventArgs e) {
 			hideOverlay ();
-			if (mouseIsInMargin) {
-				if (e.Button == MouseButton.Left && mouseIsInFoldRect) {
-					MultiNodeSyntax curNode = getFoldStartingAt (hoverLoc.Value.Line);
-					if (curNode != null) {
-						curNode.isFolded = !curNode.isFolded;
-						textMeasureIsUpToDate = false;
-						RegisterForRedraw();
+			if (parsingOk) {
+				if (mouseIsInMargin) {
+					if (e.Button == MouseButton.Left && mouseIsInFoldRect) {
+						MultiNodeSyntax curNode = getFoldStartingAt (hoverLoc.Value.Line);
+						if (curNode != null) {
+							curNode.isFolded = !curNode.isFolded;
+							textMeasureIsUpToDate = false;
+							RegisterForRedraw();
+						}
 					}
+
+					e.Handled = true;
 				}
-
-				e.Handled = true;
 			}
-
 			base.onMouseDown (sender, e);
 		}
 		protected override void mouseMove (MouseEventArgs e) {
+			if (!parsingOk) {
+				base.mouseMove(e);
+				return;
+			}
 			Point mLoc = ScreenPointToLocal (e.Position);
 			if (mLoc.X < leftMargin - leftMarginRightGap) {
 				mouseIsInMargin = true;
@@ -243,8 +287,9 @@ namespace CrowEditBase
 				mouseIsInMargin = mouseIsInFoldRect = false;
 				IFace.MouseCursor = MouseCursor.ibeam;
 			}
-			
-			int hoverVisualLine = getLineIndexFromMousePositionUnchecked (mLoc);
+
+			//int hoverVisualLine = getLineIndexFromMousePositionUnchecked (mLoc);
+			int hoverVisualLine = getLineIndexFromMousePosition (mLoc);
 			int hoverLine = getAbsoluteLineFromVisualLine (hoverVisualLine);
 
 			/***************************/
@@ -498,16 +543,7 @@ namespace CrowEditBase
 			int newVl = Math.Min (Math.Max (0, getVisualLineFromAboluteLine (startLine) + visualLineDiff), visualLineCount - 1);
 			return getAbsoluteLineFromVisualLine (newVl);
 		}
-
-		protected override int visualLineCount
-		{
-			get {
-				if (!(Document is SourceDocument doc))
-					return base.visualLineCount;
-				
-				return Document.LinesCount - doc.Root.FoldedLineCount;
-			}
-		}
+		protected override int visualLineCount => parsingOk ? Document.LinesCount - sourceDocument.Root.FoldedLineCount : base.visualLineCount;
 		protected override int visualCurrentLine => CurrentLoc.HasValue ? getVisualLineFromAboluteLine (CurrentLoc.Value.Line) : 0;
 		protected override void updateMaxScrolls (LayoutingType layout) {
 			updateMargin();
@@ -557,12 +593,12 @@ namespace CrowEditBase
 
 		}
 		protected override void drawContent (IContext gr) {
-			if (!(Document is SourceDocument doc)) {
+			if (!parsingOk) {
 				base.drawContent (gr);
 				return;
 			}
 
-			doc.EnterReadLock ();
+			sourceDocument.EnterReadLock ();
 			try {
 				double lineHeight = fe.Ascent + fe.Descent;
 				updateMargin ();
@@ -576,11 +612,6 @@ namespace CrowEditBase
 				gr.SetSource (marginBG);
 				gr.Rectangle (marginRect);
 				gr.Fill();
-				
-				if (!doc.IsParsed) {
-					base.drawContent (gr);
-					return;
-				}
 
 				gr.Translate (-ScrollX, 0);
 
@@ -665,7 +696,8 @@ namespace CrowEditBase
 				bool showWhiteSpaces = App.ShowWhiteSpace;
 				string tabString = showWhiteSpaces ?
 					$"{new string(' ', (App.TabulationSize - 2) / 2)} \u2192{new string(' ', (App.TabulationSize - 2) / 2)}" : default;
-				ReadOnlySpan<char> sourceBytes = doc.source;
+
+				ReadOnlySpan<char> sourceBytes = sourceDocument.source;
 				Span<byte> bytes = stackalloc byte[128];
 				TextExtents extents;
 				ReadOnlySpan<char> buff = sourceBytes;
@@ -674,7 +706,7 @@ namespace CrowEditBase
 				int linesToSkip = (int)Math.Floor(ScrollY / lineHeight);
 
 				
-				IEnumerator<MultiNodeSyntax> foldsEnum = doc.Root.VisibleFoldableNodes.GetEnumerator ();
+				IEnumerator<MultiNodeSyntax> foldsEnum = sourceDocument.Root.VisibleFoldableNodes.GetEnumerator ();
 				bool notEndOfFolds = foldsEnum.MoveNext();
 
 				while (notEndOfFolds && foldsEnum.Current.StartLocation.Line < linesToSkip) {
@@ -689,16 +721,16 @@ namespace CrowEditBase
 				/*IEnumerator<int> exceptionLines = doc.Root.GetAllExceptions()?.Select(e=>e.Location.Line).Order().GetEnumerator();
 				bool hasExceptions = exceptionLines.MoveNext();*/
 
-				while (curLine < doc.LinesCount && printedLines < Math.Min(visibleLines, doc.LinesCount)) {
+				while (curLine < sourceDocument.LinesCount && printedLines < Math.Min(visibleLines, sourceDocument.LinesCount)) {
 
 					/*while (hasExceptions && exceptionLines.Current < curLine) {
 						hasExceptions = exceptionLines.MoveNext();
 					}*/
 										
 					int encodedChar = 0;
-					TextLine curTxtLine = doc.GetLine (curLine);
-					int tokPtr = doc.FindTokenIndexIncludingPosition(curTxtLine.Start);
-					Token tok = doc.Tokens[tokPtr];
+					TextLine curTxtLine = sourceDocument.GetLine (curLine);
+					int tokPtr = sourceDocument.FindTokenIndexIncludingPosition(curTxtLine.Start);
+					Token tok = sourceDocument.Tokens[tokPtr];
 
 					while (tok.Start < (showWhiteSpaces ? curTxtLine.EndIncludingLineBreak : curTxtLine.End)) {
 						if (showWhiteSpaces && tok.Type.HasFlag(TokenType.WhiteSpace)) {
@@ -714,7 +746,7 @@ namespace CrowEditBase
 							gr.ShowText (buff);*/
 						} else
 							buff = sourceBytes.Slice (tok.Start, tok.Length);
-						gr.SetSource (doc.GetColorForToken (tok));
+						gr.SetSource (sourceDocument.GetColorForToken (tok));
 
 						int size = buff.Length * 4 + 1;
 						if (bytes.Length < size)
@@ -734,16 +766,16 @@ namespace CrowEditBase
 								Rectangle r = new RectangleD(pixX, pixY, extents.Width, lineHeight);
 								r.Inflate(1);
 								gr.Rectangle(r);
-								gr.SetSource(doc.GetColorForToken (tok).AdjustAlpha(0.5));
+								gr.SetSource(sourceDocument.GetColorForToken (tok).AdjustAlpha(0.5));
 								gr.Stroke();
 							}
 
 							pixX += extents.XAdvance;
 						}
 
-						if (++tokPtr >= doc.Tokens.Length)
+						if (++tokPtr >= sourceDocument.Tokens.Length)
 							break;
-						tok = doc.Tokens[tokPtr];
+						tok = sourceDocument.Tokens[tokPtr];
 					}
 
 					RectangleD lineRect = new RectangleD (cb.X, pixY, pixX - cb.X, lineHeight);
@@ -771,7 +803,7 @@ namespace CrowEditBase
 						gr.SetSource (marginFG);
 
 						drawLineNumber (gr, curLine, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + fe.Ascent);
-						if (tokPtr + 1 == doc.Tokens.Length && curLine < doc.LinesCount-1)
+						if (tokPtr + 1 == sourceDocument.Tokens.Length && curLine < sourceDocument.LinesCount-1)
 							drawLineNumber (gr, curLine+1, marginRect.X + leftMarginGap + lineNumWidth, marginRect.Y + lineHeight + fe.Ascent);
 					}
 					bool curFoldStart = notEndOfFolds && foldsEnum.Current.StartLocation.Line == curLine; 
@@ -798,9 +830,9 @@ namespace CrowEditBase
 						gr.Stroke ();
 					}
 
-					if (++tokPtr >= doc.Tokens.Length)
+					if (++tokPtr >= sourceDocument.Tokens.Length)
 						break;
-					tok = doc.Tokens[tokPtr];
+					tok = sourceDocument.Tokens[tokPtr];
 
 					pixX = cb.Left;
 					pixY += lineHeight;
@@ -825,7 +857,7 @@ namespace CrowEditBase
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
 			} finally {
-				doc.ExitReadLock ();
+				sourceDocument.ExitReadLock ();
 			}
 			gr.Translate (ScrollX, 0);
 		}
@@ -880,6 +912,8 @@ namespace CrowEditBase
 #if DEBUG
 				NotifyValueChanged("CurrentTokenString",CurrentTokenString);
 				NotifyValueChanged("CurrentTokenType",CurrentTokenType);
+				NotifyValueChanged("AbsoluteCharLoc",AbsoluteCharLoc);
+				
 #endif
 			
 				

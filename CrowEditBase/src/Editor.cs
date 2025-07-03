@@ -814,7 +814,6 @@ namespace CrowEditBase
 		#region Keyboard handling
 		public override void onKeyPress (object sender, KeyPressEventArgs e) {
 			base.onKeyPress (sender, e);
-
 			if (!e.Handled) {
 				TextSpan selection = Selection;
 				update (new TextChange (selection.Start, selection.Length, e.KeyChar.ToString ()));

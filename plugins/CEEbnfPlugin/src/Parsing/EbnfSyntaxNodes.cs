@@ -16,23 +16,23 @@ namespace CrowEdit.Ebnf
 	public class EbnfSyntaxNode : SyntaxNode {
 	}
 
-	public class ProductionSyntax : SyntaxNode {
+	public class ProductionSyntax : MultiNodeSyntax {
     }	
-	public class ExpressionSyntax : SyntaxNode {
+	public class ExpressionSyntax : MultiNodeSyntax {
 	}
 	public class LinkSyntax : ExpressionSyntax {
 	}
-	public class ChoiceSyntax : ExpressionSyntax {
+	public class ChoiceSyntax : MultiNodeSyntax {
 	}
 	// (Item ( '-' Item | Item* ))?
-	public class SequenceOrDifferenceSyntax : SyntaxNode {
+	public class SequenceOrDifferenceSyntax : MultiNodeSyntax {
 	}
 	// Item ::=  Primary ( '?' | '*' | '+' )?   */
-	public class ItemSyntax : SyntaxNode {
+	public class ItemSyntax : MultiNodeSyntax {
 	}
 	/* NCName | StringLiteral | CharCode | CharClass | '(' Choice ')'    */
-	public class PrimarySyntax : SyntaxNode {
-	}
+	public class PrimarySyntax : SyntaxNode {}
+	
 	// StringLiteral ::= '"' [^"]* '"' | "'" [^']* "'"	
 	public class StringLiteralSyntax : SyntaxNode {
 	}

@@ -13,6 +13,7 @@ namespace CrowEditBase
 	public abstract class SyntaxAnalyser {
 		protected SourceDocument document;
 		protected SyntaxRootNode Root;
+		protected CancellationToken cancel;
 		public IEnumerable<SyntaxException> Exceptions => null;// Root?.GetAllExceptions();
 		public SyntaxAnalyser (SourceDocument document) {
 			this.document = document;
@@ -74,7 +75,7 @@ namespace CrowEditBase
 		#endregion
 
 		#region parsing context
-		protected int currentLine = 0, tokIdx = 0;
+		protected int tokIdx = 0;
 		//protected MultiNodeSyntax currentNode;
 		#endregion
 
@@ -104,7 +105,6 @@ namespace CrowEditBase
 				if (tok.Type == TokenType.LineBreak) {
 					if (!skipLineBreaks)
 						return true;
-					currentLine++;
 				}
 				tokIdx++;
 			}
@@ -115,7 +115,6 @@ namespace CrowEditBase
 				if (tok.Type == TokenType.LineBreak) {
 					if (!skipLineBreaks)
 						return true;
-					currentLine++;
 				}
 				tokIdx++;
 			}

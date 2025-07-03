@@ -16,24 +16,27 @@ namespace CrowEdit.Ebnf
 		EndOfFile				= 0x4103,
 		LineComment				= 0x0103,
 		BlockCommentStart		= 0x0104,
-		BlockComment			= 0x0105,
+		BlockCommentPart		= 0x0105,
 		BlockCommentEnd			= 0x0106,
+
 		Name					= 0x0200,
 		SymbolName				= 0x0201,
 
 		Punctuation				= 0x0400,
-		OpenRoundBracket		= 0x0401,
-		ClosingRoundBracket		= 0x0402,
+		OpenBrace				= 0x0401,// '('
+		ClosingBrace			= 0x0402,// ')'
 		OpenBracket 			= 0x0403,// '['
 		ClosingBracket			= 0x0404,// ']'
-		StringDelimiter			= 0x0405,
+		DoubleQuote				= 0x0405,
+		SingleQuote				= 0x0405,
+
 		StringLiteral			= 0x0406,
 		CharMatchNegation		= 0x0407,// '^'
 		CharMatchRangeOperator	= 0x0C01,// '-'
 		//CharMatch				= 0x0C01,// '-'
 
 		Operator 				= 0x0800,
-		SymbolAffectation 		= 0x0801,
+		DefiningSymbol	 		= 0x0801,
 		ChoiceOp		 		= 0x0802,
 		ExclusionOp		 		= 0x0803,
 		SequenceOp		 		= 0x0804, //never parsed (it's only a white space) but use in syntaxAnalyser

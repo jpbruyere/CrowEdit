@@ -14,18 +14,30 @@ namespace CrowEdit.Xml
 	}
 	public class ProcessingInstructionSyntax : MultiNodeSyntax {
 //		public override bool IsComplete => base.IsComplete & name.HasValue & PIClose.HasValue;
-		public ProcessingInstructionSyntax (){}
+		public ProcessingInstructionSyntax (Token openTok){
+			AddChild(new SingleTokenSyntax(openTok));
+		}
+	}
+	public class PITargetSyntax : SingleTokenSyntax {
+//		public override bool IsComplete => base.IsComplete & name.HasValue & PIClose.HasValue;
+		public PITargetSyntax (Token target) : base(target) { }
 	}
 
-	public abstract class ElementTagSyntax : SyntaxNode {
+
+	public abstract class ElementTagSyntax : MultiNodeSyntax {
 //		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
-		protected ElementTagSyntax () {	}
+		protected ElementTagSyntax (Token openTok) {
+			AddChild(new SingleTokenSyntax(openTok));
+		}
 	}
+	/*public class ElementNameSyntax : SingleTokenSyntax {
+		public ElementNameSyntax(Token name) : base(name) {}
+	}*/
 	public class ElementStartTagSyntax : ElementTagSyntax {
-		public ElementStartTagSyntax () {}
+		public ElementStartTagSyntax (Token openTok) : base(openTok) {}
 	}
 	public class ElementEndTagSyntax : ElementTagSyntax {
-		public ElementEndTagSyntax () {	}
+		public ElementEndTagSyntax (Token openTok) : base(openTok) {}
 	}
 
 	public class EmptyElementSyntax : MultiNodeSyntax {
@@ -37,14 +49,19 @@ namespace CrowEdit.Xml
 
 	public class ElementSyntax : MultiNodeSyntax {
 
-		//public override bool IsComplete => base.IsComplete & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
+		public override bool IsComplete => base.IsComplete;// & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
 
-		public ElementSyntax (ElementStartTagSyntax startTag) {
-			AddChild (startTag);
+		public ElementSyntax (ElementStartTagSyntax startNode) {
+			AddChild (startNode);
 		}
 	}
-
 	public class AttributeSyntax : MultiNodeSyntax {			
 		//public override bool IsComplete => base.IsComplete & name.HasValue & equal.HasValue & valueTok.HasValue & valueOpen.HasValue & valueClose.HasValue;
+		public AttributeSyntax(Token name) {
+			AddChild (new SingleTokenSyntax(name));
+		}
 	}
+	/*public class AttributeNameSyntax : SingleTokenSyntax {
+		public AttributeNameSyntax(Token name) : base(name) {}
+	}*/	
 }
