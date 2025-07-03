@@ -144,7 +144,6 @@ namespace CrowEditBase
 		}
 		public virtual string GetTokenTypeString (TokenType tokenType) => tokenType.ToString();
 		//protected abstract Tokenizer CreateTokenizer ();
-		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public abstract IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
 		protected virtual async void parse () {
 			if (backgroundCompilationTask != null && !backgroundCompilationTask.IsCompleted) {
@@ -159,6 +158,7 @@ namespace CrowEditBase
 			
 			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
 		}
+		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 
 		async void parseAssync(CancellationToken cancel) {
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();

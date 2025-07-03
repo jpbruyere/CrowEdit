@@ -3,21 +3,22 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Crow.Text;
 
 namespace CrowEditBase
 {
 	public abstract class SyntaxAnalyser {
-		protected SourceDocument document;
+		#region CTOR
+		public SyntaxAnalyser (ReadOnlyTextBuffer source) {
+			this.source = source;
+		}
+		#endregion
+
+		protected ReadOnlyTextBuffer source;
 		protected SyntaxRootNode Root;
 		protected CancellationToken cancel;
 		public IEnumerable<SyntaxException> Exceptions => null;// Root?.GetAllExceptions();
-		public SyntaxAnalyser (SourceDocument document) {
-			this.document = document;
-		}
 		public abstract Task<SyntaxRootNode> Process (CancellationToken cancel = default);
 		
 		#region Token handling

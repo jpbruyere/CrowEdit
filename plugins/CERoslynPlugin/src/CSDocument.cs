@@ -34,14 +34,10 @@ namespace CERoslynPlugin
 			App.GetService<RoslynService> ()?.Start ();
 		}
 
-		internal CSharpSyntaxTree tree;
-		public CSDocument (string fullPath, string editorPath)	: base (fullPath, editorPath) {
-
-			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default);
-		}
+		public CSDocument (string fullPath, string editorPath)	: base (fullPath, editorPath) {	}
 
 		#region SourceDocument abstract class implementation
-		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new CSSyntaxAnalyser (this);
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new CSSyntaxAnalyser (ImmutableBufferCopy);
 
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc)
 		{
@@ -51,24 +47,6 @@ namespace CERoslynPlugin
 		}
 		#endregion
 
-		/*public override Color GetColorForToken (TokenType tokType) {
-			uint rawkind = (uint)tokType;
-			uint tokCat = rawkind & 0xFF;
-			CSTokenType cat = (CSTokenType)tokCat;
-
-			SyntaxKind k = (SyntaxKind)tokType;
-
-			//Console.WriteLine($"{k,50} {(((uint)tokType) ).ToString("B16") } {cat}");
-			
-			switch (cat) {
-				case CSTokenType.Trivia:
-					return Colors.Grey;
-				case CSTokenType.Keyword:
-					return Colors.DarkSlateBlue;
-				default:
-					return Colors.Black;
-			}
-		}*/
 		public override string GetTokenTypeString (TokenType tokenType) => ((SyntaxKind)tokenType).ToString();
 		public override Color GetColorForToken(Token token)
 		{
@@ -107,11 +85,6 @@ namespace CERoslynPlugin
 			CMDSave.CanExecute = IsDirty;
 
 			parse();
-        }
-        protected override void parse()
-        {	
-			tree = (CSharpSyntaxTree)CSharpSyntaxTree.ParseText (source.ToString(), CSharpParseOptions.Default, "", null);
-            base.parse();
         }
     }
 }

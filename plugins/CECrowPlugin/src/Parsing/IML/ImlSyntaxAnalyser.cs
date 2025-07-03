@@ -12,7 +12,7 @@ using System.Threading;
 namespace CECrowPlugin
 {
 	public class ImlSyntaxAnalyser : XmlSyntaxAnalyser {
-		public ImlSyntaxAnalyser (ImlDocument document) : base (document) {}
+		public ImlSyntaxAnalyser (ReadOnlyTextBuffer document) : base (document) {}
 
 
 		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {

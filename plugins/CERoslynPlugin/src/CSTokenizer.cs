@@ -124,7 +124,7 @@ namespace CERoslynPlugin
 		}
 		CSTokenType convertTokenType(SyntaxKind kind) {
 			return (CSTokenType)kind;
-			switch (kind) {
+			/*switch (kind) {
 				case SyntaxKind.None:
 					return CSTokenType.Unknown;
 				case SyntaxKind.List:
@@ -1117,7 +1117,7 @@ namespace CERoslynPlugin
 					return CSTokenType.Unknown;
 				default:
 					return CSTokenType.Unknown;
-			}
+			}*/
 		}
 	}
 }

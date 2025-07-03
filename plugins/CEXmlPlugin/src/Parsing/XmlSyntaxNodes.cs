@@ -42,7 +42,8 @@ namespace CrowEdit.Xml
 
 	public class EmptyElementSyntax : MultiNodeSyntax {
 		public EmptyElementSyntax (ElementStartTagSyntax startNode) {
-			AddChild (startNode);
+			foreach (var child in startNode.Children)
+				AddChild(child);
 		}
         //public override bool IsComplete => base.IsComplete && StartTag != null;
     }

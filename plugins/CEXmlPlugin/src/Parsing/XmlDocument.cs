@@ -16,7 +16,7 @@ namespace CrowEdit.Xml
 	public class XmlDocument : SourceDocument {
 
 		public XmlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {	}
-		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (this);
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (ImmutableBufferCopy);
 		public override string GetTokenTypeString (TokenType tokenType) => ((XmlTokenType)tokenType).ToString();
 
 		protected virtual IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change) => null;

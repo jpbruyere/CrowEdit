@@ -22,7 +22,7 @@ namespace CECrowPlugin.Style
 			}*/
 		}
 
-		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new StyleSyntaxAnalyser (this);
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new StyleSyntaxAnalyser (ImmutableBufferCopy);
 
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
 			Token currentToken = GetTokenByIndex(currentTokenIndex);

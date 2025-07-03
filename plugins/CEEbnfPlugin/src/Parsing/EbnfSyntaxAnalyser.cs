@@ -22,7 +22,7 @@ namespace CrowEdit.Ebnf
 	}
 
 	public class EbnfSyntaxAnalyser : SyntaxAnalyser {
-		public EbnfSyntaxAnalyser  (EbnfDocument document) : base (document) {}
+		public EbnfSyntaxAnalyser  (ReadOnlyTextBuffer document) : base (document) {}
 		
 
 		bool skipTriviaAndComments(MultiNodeSyntax currentNode) {
@@ -104,13 +104,12 @@ namespace CrowEdit.Ebnf
         public override async Task<SyntaxRootNode> Process(CancellationToken cancel = default)
         {
 			Tokenizer tokenizer = new EbnfTokenizer();
-			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
-			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);			
+			Token[] tokens = tokenizer.Tokenize(source.Source.Span);			
 
 			tokIdx = 0;
 			this.cancel = cancel;
 
-			Root = new EbnfRootSyntax (buff, tokens);
+			Root = new EbnfRootSyntax (source, tokens);
 
 
 			/*while (!EOF) {

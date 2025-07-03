@@ -15,7 +15,7 @@ namespace CrowEdit.Ebnf
 		public EbnfDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
 
 		}
-		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new EbnfSyntaxAnalyser (this);
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new EbnfSyntaxAnalyser (ImmutableBufferCopy);
 		public override string GetTokenTypeString (TokenType tokenType) => ((EbnfTokenType)tokenType).ToString();
 
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {

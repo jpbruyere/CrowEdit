@@ -22,7 +22,7 @@ namespace CECrowPlugin.Style
 		public static bool Is(this Token tok, StyleTokenType type) => (StyleTokenType)tok.Type == type;
 	}
 	public class StyleSyntaxAnalyser : SyntaxAnalyser {
-		public StyleSyntaxAnalyser (StyleDocument document) : base (document) {}
+		public StyleSyntaxAnalyser (ReadOnlyTextBuffer document) : base (document) {}
 
 		bool skipTriviaAndComments(MultiNodeSyntax currentNode) {
 			while (tryPeekFlag(out Token token, TokenType.Trivia)) {
@@ -153,12 +153,11 @@ namespace CECrowPlugin.Style
 		
 		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
 			Tokenizer tokenizer = new StyleTokenizer();
-			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
-			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
+			Token[] tokens = tokenizer.Tokenize(source.Source.Span);
 			tokIdx = 0;
 			this.cancel = cancel;
 
-			Root = new StyleRootSyntax (buff, tokens);
+			Root = new StyleRootSyntax (source, tokens);
 			while (!EOF) {
 				if (cancel.IsCancellationRequested)
 					break;

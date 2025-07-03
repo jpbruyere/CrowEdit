@@ -28,7 +28,7 @@ namespace CECrowPlugin
 				if (msbp.IsCrowProject)
 			}*/
 		}
-		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (this);
+		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (ImmutableBufferCopy);
 		public override string GetTokenTypeString (TokenType tokenType) => ((ImlTokenType)tokenType).ToString();
 
 

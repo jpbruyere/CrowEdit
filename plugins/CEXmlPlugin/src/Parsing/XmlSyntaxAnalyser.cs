@@ -21,7 +21,7 @@ namespace CrowEdit.Xml
 		public static bool Is(this Token tok, XmlTokenType type) => (XmlTokenType)tok.Type == type;
 	}	
 	public class XmlSyntaxAnalyser : SyntaxAnalyser {
-        public XmlSyntaxAnalyser (XmlDocument document) : base (document) {}
+        public XmlSyntaxAnalyser (ReadOnlyTextBuffer document) : base (document) {}
 		bool skipTriviaAndComments(MultiNodeSyntax currentNode, bool skipLineBreaks = true) {
 			while (tryPeekFlag(out Token token, TokenType.Trivia)) {
 				switch(token.GetTokenType()) {
@@ -96,7 +96,25 @@ namespace CrowEdit.Xml
 			}
 			return pi;
 		}
-
+		ElementSyntax processElement(ElementSyntax elt) {
+			while (!EOF) {
+				if (cancel.IsCancellationRequested)
+					break;
+				if (!skipTriviaAndComments(elt))
+					break;
+				if (Peek().Is(XmlTokenType.ElementOpen)) {
+					processElementNode(elt);
+				} else if (Peek().Is(XmlTokenType.EndElementOpen)) {
+					elt.AddChild(processNode(new ElementEndTagSyntax(Read())));
+					break;
+				} else if (Peek().Is(XmlTokenType.PI_Start)) {
+					elt.AddChild(processNode(new ProcessingInstructionSyntax(Read())));
+				} else {
+					elt.AddChild(new UnexpectedTokenSyntax(Read()));
+				}
+			}			
+			return elt;
+		}
 		void processElementNode(MultiNodeSyntax node) {
 			ElementStartTagSyntax start = new ElementStartTagSyntax(Read());
 			if (accept (start, XmlTokenType.ElementName)) {
@@ -118,34 +136,14 @@ namespace CrowEdit.Xml
 				start.AddChild(new UnexpectedTokenSyntax(Read()));
 				node.AddChild(new ElementSyntax(start));
 			}
-		}
-		ElementSyntax processElement(ElementSyntax elt) {
-			while (!EOF) {
-				if (cancel.IsCancellationRequested)
-					break;
-				if (!skipTriviaAndComments(elt))
-					break;
-				if (Peek().Is(XmlTokenType.ElementOpen)) {
-					processElementNode(elt);
-				} else if (Peek().Is(XmlTokenType.EndElementOpen)) {
-					elt.AddChild(processNode(new ElementEndTagSyntax(Read())));
-					break;
-				} else if (Peek().Is(XmlTokenType.PI_Start)) {
-					elt.AddChild(processNode(new ProcessingInstructionSyntax(Read())));
-				} else {
-					elt.AddChild(new UnexpectedTokenSyntax(Read()));
-				}
-			}			
-			return elt;
-		}
+		}		
 		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
 			Tokenizer tokenizer = new XmlTokenizer();
-			ReadOnlyTextBuffer buff = document.ImmutableBufferCopy;
-			Token[] tokens = tokenizer.Tokenize(buff.Source.Span);
+			Token[] tokens = tokenizer.Tokenize(source.Source.Span);
 			tokIdx = 0;
 			this.cancel = cancel;//?
 			
-			Root = new XMLRootSyntax (buff, tokens);
+			Root = new XMLRootSyntax (source, tokens);
 			while (!EOF) {
 				if (cancel.IsCancellationRequested)
 					break;
