@@ -117,14 +117,15 @@ namespace CrowEdit.Xml
 		}
 		void processElementNode(MultiNodeSyntax node) {
 			ElementStartTagSyntax start = new ElementStartTagSyntax(Read());
+			MultiNodeSyntax elt = null;
 			if (accept (start, XmlTokenType.ElementName)) {
 				while (skipTriviaAndComments(node)) {
 					if (accept (start, XmlTokenType.EmptyElementClosing)) {
-						node.AddChild(new EmptyElementSyntax(start));
+						elt = new EmptyElementSyntax(start);
 						break;
 					}
 					if (accept (start, XmlTokenType.ClosingSign)) {
-						node.AddChild(processElement(new ElementSyntax(start)));
+						elt = processElement(new ElementSyntax(start));
 						break;
 					}					
 					if (Peek().Is(XmlTokenType.AttributeName))
@@ -133,17 +134,26 @@ namespace CrowEdit.Xml
 						start.AddChild(new UnexpectedTokenSyntax(Read()));
 				}
 			} else {
-				start.AddChild(new UnexpectedTokenSyntax(Read()));
-				node.AddChild(new ElementSyntax(start));
+				if (!EOF)
+					start.AddChild(new UnexpectedTokenSyntax(Read()));
+				elt = new ElementSyntax(start);
 			}
-		}		
-		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
+			if (elt == null)
+				elt = new ElementSyntax(start);
+			node.AddChild(elt);
+		}
+		protected virtual Token[] tokenize() {
 			Tokenizer tokenizer = new XmlTokenizer();
-			Token[] tokens = tokenizer.Tokenize(source.Source.Span);
+			return tokenizer.Tokenize(source.Source.Span);
+		}
+
+		public override async Task<SyntaxRootNode> Process (CancellationToken cancel = default) {
+			Token[] tokens = tokenize();
 			tokIdx = 0;
 			this.cancel = cancel;//?
 			
 			Root = new XMLRootSyntax (source, tokens);
+			
 			while (!EOF) {
 				if (cancel.IsCancellationRequested)
 					break;

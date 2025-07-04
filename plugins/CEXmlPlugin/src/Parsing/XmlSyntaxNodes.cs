@@ -26,35 +26,45 @@ namespace CrowEdit.Xml
 
 	public abstract class ElementTagSyntax : MultiNodeSyntax {
 //		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
+		protected ElementTagSyntax (){}
 		protected ElementTagSyntax (Token openTok) {
 			AddChild(new SingleTokenSyntax(openTok));
 		}
+        public override bool IsComplete => ChildSequenceIs();
+		public string Name => Children.ElementAtOrDefault(1) is SingleTokenSyntax sts &&
+							  sts.token.GetTokenType() == XmlTokenType.ElementName ? sts.AsText(): "";
+		public abstract bool HasClosingToken { get; }
 	}
 	/*public class ElementNameSyntax : SingleTokenSyntax {
 		public ElementNameSyntax(Token name) : base(name) {}
 	}*/
 	public class ElementStartTagSyntax : ElementTagSyntax {
 		public ElementStartTagSyntax (Token openTok) : base(openTok) {}
+		public override bool HasClosingToken => Children.LastOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.ClosingSign;
+
 	}
 	public class ElementEndTagSyntax : ElementTagSyntax {
 		public ElementEndTagSyntax (Token openTok) : base(openTok) {}
+        public override bool HasClosingToken => Children.LastOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.ClosingSign;
 	}
 
-	public class EmptyElementSyntax : MultiNodeSyntax {
+	public class EmptyElementSyntax : ElementTagSyntax {
 		public EmptyElementSyntax (ElementStartTagSyntax startNode) {
 			foreach (var child in startNode.Children)
 				AddChild(child);
 		}
+		public override bool HasClosingToken => Children.LastOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.EmptyElementClosing;
         //public override bool IsComplete => base.IsComplete && StartTag != null;
     }
 
 	public class ElementSyntax : MultiNodeSyntax {
-
-		public override bool IsComplete => base.IsComplete;// & StartTag.IsComplete & (EndTag != null && EndTag.IsComplete);
-
+		public override bool IsComplete => StartTag != null && EndTag != null && StartTag.IsComplete && EndTag.IsComplete && StartTag.Name == EndTag.Name;
 		public ElementSyntax (ElementStartTagSyntax startNode) {
 			AddChild (startNode);
 		}
+
+		public ElementStartTagSyntax StartTag => Children.ElementAtOrDefault(0) as ElementStartTagSyntax;
+		public ElementEndTagSyntax EndTag => Children.LastOrDefault() as ElementEndTagSyntax;
 	}
 	public class AttributeSyntax : MultiNodeSyntax {			
 		//public override bool IsComplete => base.IsComplete & name.HasValue & equal.HasValue & valueTok.HasValue & valueOpen.HasValue & valueClose.HasValue;

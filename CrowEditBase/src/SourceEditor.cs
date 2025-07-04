@@ -127,13 +127,18 @@ namespace CrowEditBase
 		protected void tryGetSuggestions () {
 			if (currentLoc.HasValue && Document is SourceDocument srcDoc && srcDoc.IsParsed) {
 				int pos = srcDoc.GetAbsolutePosition(CurrentLoc.Value);
-				var tmp = srcDoc.GetSuggestions (pos, currentTokenIndex, currentNode, CurrentLoc.Value);
-				if (tmp?.Count == 1 && tmp[0].TryCast(out Suggestion sug) && sug.Change.HasNoEffect(srcDoc.source))
-					Suggestions = null;
-				else
-					Suggestions = tmp;
-			} else
-				Suggestions = null;
+				if (pos > 0) {
+					SyntaxNode node = srcDoc.FindNodeIncludingPosition(pos-1);
+					if (node != null) {
+						var tmp = srcDoc.GetSuggestions (pos,
+									srcDoc.FindTokenIndexIncludingPosition(pos -1), node, CurrentLoc.Value);
+						if (!(tmp?.Count == 1 && tmp[0].TryCast(out Suggestion sug) && sug.Change.HasNoEffect(srcDoc.source)))
+							Suggestions = tmp;
+						return;
+					}
+				}
+			}
+			Suggestions = null;
 		}
 		void showOverlay () {
 			lock (IFace.UpdateMutex) {
@@ -426,7 +431,7 @@ namespace CrowEditBase
 
 					return;
 				}
-				if (Document is SourceDocument doc) {
+				if (Document is SourceDocument doc && doc.IsParsed) {
 					switch (e.Key) {
 						/*case Key.F3:
 							doc.Root?.Dump();
@@ -593,26 +598,28 @@ namespace CrowEditBase
 
 		}
 		protected override void drawContent (IContext gr) {
+			sourceDocument.EnterReadLock ();
+
+			double lineHeight = fe.Ascent + fe.Descent;
+			updateMargin ();
+
+			bool printLineNumbers = App.PrintLineNumbers;
+			Color marginBG = App.MarginBackground;
+			Color marginFG = Colors.Ivory;
+			Rectangle cb = ClientRectangle;
+			RectangleD marginRect = new RectangleD (cb.X, cb.Y, leftMargin - leftMarginRightGap, cb.Height);
+
+			gr.SetSource (marginBG);
+			gr.Rectangle (marginRect);
+			gr.Fill();			
+
 			if (!parsingOk) {
 				base.drawContent (gr);
+				sourceDocument.ExitReadLock ();
 				return;
 			}
 
-			sourceDocument.EnterReadLock ();
 			try {
-				double lineHeight = fe.Ascent + fe.Descent;
-				updateMargin ();
-
-				bool printLineNumbers = App.PrintLineNumbers;
-				Color marginBG = App.MarginBackground;
-				Color marginFG = Colors.Ivory;
-				Rectangle cb = ClientRectangle;
-				RectangleD marginRect = new RectangleD (cb.X, cb.Y, leftMargin - leftMarginRightGap, cb.Height);
-
-				gr.SetSource (marginBG);
-				gr.Rectangle (marginRect);
-				gr.Fill();
-
 				gr.Translate (-ScrollX, 0);
 
 				double lineNumWidth = gr.TextExtents (Document.LinesCount.ToString()).Width;
@@ -901,7 +908,7 @@ namespace CrowEditBase
 			RegisterForGraphicUpdate();
 		}
 		void updateCurrentTokAndNode() {
-			if (currentLoc.HasValue && Document is SourceDocument srcdoc) {
+			if (currentLoc.HasValue && Document is SourceDocument srcdoc && srcdoc.Tokens.Length > 0) {
 				int pos = srcdoc.GetAbsolutePosition(currentLoc.Value);
 				currentTokenIndex = srcdoc.FindTokenIndexIncludingPosition(pos);
 				Token tok = srcdoc.GetTokenByIndex(currentTokenIndex);

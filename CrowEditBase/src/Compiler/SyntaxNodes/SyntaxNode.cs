@@ -2,6 +2,7 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System.Collections.Generic;
+using System.ComponentModel;
 using Crow.Text;
 
 namespace CrowEditBase
@@ -79,91 +80,12 @@ namespace CrowEditBase
 		public string AsText() {
 			return Span.Length < 0 ? "" : Root.GetText(Span).ToString();
 		}
-		public bool IsSimilar (SyntaxNode other) => this.GetType() == other?.GetType();
+		public virtual bool IsSimilar (object other) => this.GetType() == other?.GetType();
 
         public class CompareOnStartLine : IComparer<SyntaxNode>
         {
             public int Compare(SyntaxNode x, SyntaxNode y) => x.StartLocation.Line - y.StartLocation.Line;
         }
 		public override string ToString() => $"{this.GetType().Name}";
-
-		#region to clean
-		/*public int StartLine { get; private set; }
-		public virtual int LineCount => lineCount;*/
-
-		/*List<SyntaxException> exceptions = new List<SyntaxException>();
-		public IEnumerable<SyntaxException> Exceptions => exceptions;
-		public void AddException(SyntaxException e) => exceptions.Add(e);
-		public void ResetExceptions(SyntaxException e) => exceptions.Clear();
-		public IEnumerable<SyntaxException> GetAllExceptions() {
-				foreach (SyntaxException e in exceptions)
-					yield return e;
-				foreach	(SyntaxNode n in Children) {
-					foreach (SyntaxException ce in n.GetAllExceptions())
-						yield return ce;
-				}
-		}*/
-	
-		//public int IndexOf (SyntaxNode node) => children.IndexOf (node);
-
-		/*public virtual int TokenIndexBase { get; private set; }
-		public virtual int TokenCount => lastTokenOfset.HasValue ? lastTokenOfset.Value + 1 : 0;
-		public int? LastTokenIndex =>  lastTokenOfset.HasValue ? TokenIndexBase + lastTokenOfset.Value : null;
-
-		public int EndLine {
-			set {
-				lineCount = value - StartLine + 1;
-			}
-			get => StartLine + lineCount - 1;
-		}*/
-
-		/*
-		public void Replace (SyntaxNode newNode) {
-			Parent.replaceChild (this, newNode);
-		}
-		void replaceChild (SyntaxNode oldNode, SyntaxNode newNode) {
-			int idx = children.IndexOf (oldNode);
-			children[idx] = newNode;
-			newNode.Parent = this;
-			int tokIdxDiff = newNode.TokenCount - oldNode.TokenCount;
-			int lineDiff = newNode.EndLine - oldNode.EndLine;
-			if (tokIdxDiff == 0 && lineDiff == 0)
-				return;
-
-			SyntaxNode curNode = this;
-			while (curNode != null) {
-				curNode.lineCount += lineDiff;
-				curNode.TokenCount += tokIdxDiff;
-				if (curNode is SyntaxRootNode)
-					break;
-				while (++idx < curNode.children.Count)
-					curNode.children[idx].offset (tokIdxDiff, lineDiff);
-				idx = curNode.Parent.children.IndexOf (curNode);
-				curNode = curNode.Parent;
-			}
-		}*/
-		/*void offset (int tokenOffset, int lineOffset) {
-			TokenIndexBase += tokenOffset;
-			StartLine += lineOffset;
-			foreach (SyntaxNode child in children) {
-				child.offset (tokenOffset, lineOffset);
-			}
-		}*/
-/*		
-		public T FindNodeIncludingPosition<T> (int pos) {
-			foreach (SyntaxNode node in children) {
-				if (node.Contains (pos))
-					return node.FindNodeIncludingPosition<T> (pos);
-			}
-
-			return this is T tt ? tt : default;
-		}*/
-		/*public void Dump (int level = 0) {
-			Console.WriteLine ($"{new string('\t', level)}{this}");
-			foreach (SyntaxNode node in children)
-				node.Dump (level + 1);
-		}*/
-		//public override string ToString() => $"l:({StartLine,3},{LineCount,3}) tks:{TokenIndexBase},{TokenCount} {this.GetType().Name}";
-		#endregion
     }
 }

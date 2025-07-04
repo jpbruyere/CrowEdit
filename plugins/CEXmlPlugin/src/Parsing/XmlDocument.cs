@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2021  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2025  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System;
 using Crow;
 using System.Linq;
+using System.Diagnostics;
 
 namespace CrowEdit.Xml
 {
@@ -23,7 +24,40 @@ namespace CrowEdit.Xml
 		protected virtual IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string attribName, TextChange change) => null;
 		protected virtual IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) => null;
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
-			/*Token tok = GetTokenByIndex(currentTokenIndex);	
+			Console.WriteLine($"absPos:{absoluteTextPos} tokIdx:{currentTokenIndex} node:{CurrentNode} charLoc:{loc}");
+			Token tok = GetTokenByIndex(currentTokenIndex);
+			XmlTokenType tokType = tok.GetTokenType();
+			if (CurrentNode is SingleTokenSyntax sts) {
+				XmlTokenType tk = sts.token.GetTokenType();
+				if (CurrentNode.Parent is ElementTagSyntax ets) {
+					if (ets is ElementEndTagSyntax eets) {
+						if (eets.Parent is ElementSyntax es) {
+							string name = es.StartTag?.Name;
+							if (!string.IsNullOrEmpty(name)){
+								Suggestion sug = new Suggestion(name);
+								if (tk == XmlTokenType.ElementName && name.StartsWith(sts.AsText(), StringComparison.OrdinalIgnoreCase))
+									sug.Change = new TextChange (tok.Start, tok.Length, sug.Caption);
+								else if (tk == XmlTokenType.EndElementOpen)
+									sug.Change = new TextChange (tok.End, 0, sug.Caption);
+								else
+									return null;
+								if (!eets.HasClosingToken)
+									sug.Change.ChangedText += ">";
+								return new List<Suggestion>([sug]);
+							} 
+						}
+					} else {
+						string txtEnd = ets.HasClosingToken ? "" : ">";
+						if (tk == XmlTokenType.ElementOpen) {
+							return getElementNameSuggestions("", new TextChange(tok.End, 0, txtEnd)).ToList();
+						}
+						if (tk == XmlTokenType.ElementName) {
+							return getElementNameSuggestions(sts.AsText(), new TextChange(tok.Start, tok.Length, txtEnd)).ToList();
+						}
+					}
+				} 
+			}
+			/*	
 			if (tok.Start != absoluteTextPos //middle of edited tok
 				&& currentTokenIndex >= CurrentNode?.Root.TokenCount - 1) //occurs when curTok is last tok of text
 			{

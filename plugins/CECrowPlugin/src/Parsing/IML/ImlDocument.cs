@@ -5,6 +5,7 @@
 using System;
 using System.Linq;
 using Crow.Text;
+using System.Collections;
 using System.Collections.Generic;
 using Crow;
 using IML = Crow.IML;
@@ -18,9 +19,16 @@ using System.Diagnostics;
 
 namespace CECrowPlugin
 {
+	public static class Extensions {
+		public static ImlTokenType GetTokenType (this Token tok) {
+			return (ImlTokenType)tok.Type;
+		}
+		public static void SetTokenType (this Token tok, ImlTokenType type) {
+			tok.Type = (TokenType)type;
+		}
+		public static bool Is(this Token tok, ImlTokenType type) => (ImlTokenType)tok.Type == type;
+	}		
 	public class ImlDocument : XmlDocument {
-
-
 		public ImlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
 			App.GetService<CrowService> ()?.Start ();
 
@@ -28,6 +36,7 @@ namespace CECrowPlugin
 				if (msbp.IsCrowProject)
 			}*/
 		}
+
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (ImmutableBufferCopy);
 		public override string GetTokenTypeString (TokenType tokenType) => ((ImlTokenType)tokenType).ToString();
 
@@ -46,8 +55,8 @@ namespace CECrowPlugin
 			if (widgetType == null)
 				return null;
 
-			IEnumerable<Type> widgetTypes = widgetType.Assembly.GetExportedTypes ().Where(t=>
-				widgetType.IsAssignableFrom (t) && !t.IsAbstract);
+			IEnumerable<Type> widgetTypes = widgetType.Assembly.GetExportedTypes ().Where(
+				t=>!t.IsAbstract &&	widgetType.IsAssignableFrom (t));
 			int curNameLength = 0;
 			if (!string.IsNullOrEmpty(curName)) {
 				widgetTypes = widgetTypes.Where(t=>t.Name.StartsWith(curName, StringComparison.OrdinalIgnoreCase));
@@ -114,13 +123,21 @@ namespace CECrowPlugin
 			}
 			return null;
 		}
-        /*public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+        public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
+			Token tok = GetTokenByIndex(currentTokenIndex);
+			Console.Write($"{absoluteTextPos}({tok.Span}){tok.GetTokenType()}");
+			if (currentTokenIndex > 0)
+				Console.Write($" prev:{GetTokenByIndex(currentTokenIndex-1).GetTokenType()}");			
+			if (currentTokenIndex < Tokens.Length - 1)
+				Console.Write($" next:{GetTokenByIndex(currentTokenIndex+1).GetTokenType()}");	
+			Console.WriteLine($" node:{CurrentNode} ({loc})");
+			
 			IList sugs = base.GetSuggestions (absoluteTextPos, currentTokenIndex, CurrentNode, loc);
 			if (sugs != null)
 				return sugs;
-
+/*
 			
-			Token tok = GetTokenByIndex(currentTokenIndex);
+			
 
 			if (tok.GetTokenType() == XmlTokenType.ElementOpen)
 				return new List<string> (allWidgetNames);
@@ -188,9 +205,9 @@ namespace CECrowPlugin
 				//else if (tok.Type == TokenType.ElementName)
 				//	Suggestions = getAllCrowTypeMembers (eltStartTag.NameToken.Value.AsString (Source)).ToList ();
 			} else {
-			}
+			}*/
 			return null;
-		}*/
+		}
 
 		public override Color GetColorForToken(Token token)
 		{

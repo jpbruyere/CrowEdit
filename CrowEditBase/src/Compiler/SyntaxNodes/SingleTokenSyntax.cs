@@ -11,13 +11,20 @@ namespace CrowEditBase
 		}
 		#endregion
 
-		protected Token token;
+		public readonly Token token;
 
 		#region SyntaxNode implementation
         public override TokenType Type => token.Type;
         public override int SpanStart => token.Start;
 		public override int SpanEnd => token.End;
         public override bool IsComplete => token.Type != TokenType.Unknown && token.Length > 0;
-		#endregion
-	}
+        public override bool IsSimilar(object other)
+        {
+            return other is SingleTokenSyntax sts ?
+				sts.Type == Type : other is TokenType tt ? Type == tt : false;
+
+        }
+        #endregion
+
+    }
 }
