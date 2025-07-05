@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2021-2025  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+using Drawing2D;
+
 namespace CrowEditBase
 {
 	public class SingleTokenSyntax : SyntaxNode {
@@ -21,10 +23,10 @@ namespace CrowEditBase
         public override bool IsSimilar(object other)
         {
             return other is SingleTokenSyntax sts ?
-				sts.Type == Type : other is TokenType tt ? Type == tt : false;
-
+				sts.Type == Type : (int)other == (int)Type;
         }
         #endregion
 
+        public static implicit operator TokenType (SingleTokenSyntax sts) => sts == null ? TokenType.Unknown : sts.Type;
     }
 }

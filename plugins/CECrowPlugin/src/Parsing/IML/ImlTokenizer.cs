@@ -139,6 +139,8 @@ namespace CECrowPlugin
 				}
 				reader.Read ();
 			}
+			if (reader.EndOfSpan)//occurs when no closing quote
+				addTok(ref reader, XmlTokenType.AttributeValue);
 		}
 
 	}

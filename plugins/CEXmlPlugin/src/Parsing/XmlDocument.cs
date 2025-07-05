@@ -11,6 +11,8 @@ using System;
 using Crow;
 using System.Linq;
 using System.Diagnostics;
+using System.Xml;
+using System.Text;
 
 namespace CrowEdit.Xml
 {
@@ -20,22 +22,25 @@ namespace CrowEdit.Xml
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new XmlSyntaxAnalyser (ImmutableBufferCopy);
 		public override string GetTokenTypeString (TokenType tokenType) => ((XmlTokenType)tokenType).ToString();
 
-		protected virtual IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change) => null;
-		protected virtual IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string attribName, TextChange change) => null;
-		protected virtual IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) => null;
+		protected virtual IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change, int finalPositionOffset = 0) => null;
+		protected virtual IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string attribName, TextChange change, int finalPositionOffset = 0) => null;
+		protected virtual IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change, int finalPositionOffset = 0) => null;
 		public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
-			Console.WriteLine($"absPos:{absoluteTextPos} tokIdx:{currentTokenIndex} node:{CurrentNode} charLoc:{loc}");
 			Token tok = GetTokenByIndex(currentTokenIndex);
+			Token nextTok = currentTokenIndex < Tokens.Length - 1 ? GetTokenByIndex(currentTokenIndex + 1) : null; 
+			//Console.WriteLine($"absPos:{absoluteTextPos} {tok.GetTokenType()} tokIdx:{currentTokenIndex} node:{CurrentNode} parent:{CurrentNode?.Parent} charLoc:{loc}");
 			XmlTokenType tokType = tok.GetTokenType();
 			if (CurrentNode is SingleTokenSyntax sts) {
 				XmlTokenType tk = sts.token.GetTokenType();
+
 				if (CurrentNode.Parent is ElementTagSyntax ets) {
 					if (ets is ElementEndTagSyntax eets) {
 						if (eets.Parent is ElementSyntax es) {
 							string name = es.StartTag?.Name;
-							if (!string.IsNullOrEmpty(name)){
+							string eltName = sts.AsText();
+							if (!string.IsNullOrEmpty(name) && !string.Equals(name, eltName)){
 								Suggestion sug = new Suggestion(name);
-								if (tk == XmlTokenType.ElementName && name.StartsWith(sts.AsText(), StringComparison.OrdinalIgnoreCase))
+								if (tk == XmlTokenType.ElementName && name.StartsWith(eltName, StringComparison.OrdinalIgnoreCase))
 									sug.Change = new TextChange (tok.Start, tok.Length, sug.Caption);
 								else if (tk == XmlTokenType.EndElementOpen)
 									sug.Change = new TextChange (tok.End, 0, sug.Caption);
@@ -46,209 +51,65 @@ namespace CrowEdit.Xml
 								return new List<Suggestion>([sug]);
 							} 
 						}
-					} else {
-						string txtEnd = ets.HasClosingToken ? "" : ">";
+					} else {//startTag or empty element
+						StringBuilder txtEnd = new StringBuilder(10);
+						int offset = 0;
+						if (nextTok?.GetTokenType() != XmlTokenType.WhiteSpace)
+							txtEnd.Append(" ");
+						if (!ets.HasClosingToken) {
+							txtEnd.Append(">");
+							offset = -1;
+						}
+						List<Suggestion> sugs;
 						if (tk == XmlTokenType.ElementOpen) {
-							return getElementNameSuggestions("", new TextChange(tok.End, 0, txtEnd)).ToList();
-						}
-						if (tk == XmlTokenType.ElementName) {
-							return getElementNameSuggestions(sts.AsText(), new TextChange(tok.Start, tok.Length, txtEnd)).ToList();
-						}
-					}
-				} 
-			}
-			/*	
-			if (tok.Start != absoluteTextPos //middle of edited tok
-				&& currentTokenIndex >= CurrentNode?.Root.TokenCount - 1) //occurs when curTok is last tok of text
-			{
-				return null;
-			}
-			Token prevTok = GetTokenByIndex(currentTokenIndex-1);
-
-			if (CurrentNode is ElementEndTagSyntax eltEndTag) {
-				//sug = corresponding eltName
-				if (!tok.Is(XmlTokenType.ElementName) &&
-						eltEndTag.Parent is ElementSyntax elt &&
-						elt.StartTag?.Name != null) {
-
-					Suggestion sug = new Suggestion(elt.StartTag.Name);
-					string curEndName = null;
-					if (prevTok.Is(XmlTokenType.ElementName) && !elt.StartTag.Name.Equals(curEndName, StringComparison.Ordinal)) {
-						curEndName = root.GetTokenString(prevTok);
-						sug.Change = new TextChange (prevTok.Start, prevTok.Length, sug.Caption);
-					} else if (prevTok.Is(XmlTokenType.EndElementOpen)) {
-						curEndName = "";
-						sug.Change = new TextChange (prevTok.End, 0, sug.Caption);
-					} else 
-						return null;
-
-					//if (!tok.Is(XmlTokenType.ClosingSign))
-					if (!eltEndTag.close.HasValue)
-						sug.Change.ChangedText += ">";
-
-					if (elt.StartTag.Name.StartsWith (curEndName, StringComparison.OrdinalIgnoreCase))
-						return new List<Suggestion> ([sug]);
-				}
-			} else if (CurrentNode is ElementStartTagSyntax eltStartTag) {
-				if (!tok.Is(XmlTokenType.ElementName)) {
-					TextChange change = default;
-					
-					if (prevTok.Is(XmlTokenType.ElementName))
-						change = new TextChange (prevTok.Start, prevTok.Length);
-					else if (prevTok.Is(XmlTokenType.ElementOpen))
-						change = new TextChange (prevTok.End, 0);
-					else if (eltStartTag.name.HasValue) {
-						string attribName = "";
-						if (prevTok.Type.HasFlag(TokenType.Trivia) ||
-							(tok.Type.HasFlag(TokenType.Trivia) && GetTokenByIndex(currentTokenIndex+1).Type.HasFlag(TokenType.Trivia)))//attribute
-							change = new TextChange(tok.Start, 0);
-						else if (prevTok.Is(XmlTokenType.AttributeName)) {
-							change = new TextChange(prevTok.Start, prevTok.Length);
-							attribName = prevTok.AsString(source);
-						} else
+							sugs = getElementNameSuggestions("", new TextChange(tok.End, 0, txtEnd.ToString()), offset).ToList();
+						}else if (tk == XmlTokenType.ElementName) {
+							sugs = getElementNameSuggestions(sts.AsText(), new TextChange(tok.Start, tok.Length, txtEnd.ToString()), offset).ToList();
+						} else {
 							return null;
-						if (!tok.Is(XmlTokenType.EqualSign))
-							change.ChangedText += "=\"\"";
-						return getAttributeNameSuggestions(eltStartTag.Name, attribName, change).ToList();
-					} else
-						return null;
-
-					//if (!tok.Is(XmlTokenType.ClosingSign))
-					if (!eltStartTag.close.HasValue)
-						change.ChangedText = ">";
-					
-					return getElementNameSuggestions(eltStartTag.Name, change).ToList();
-
-				}
-			} else if (CurrentNode is AttributeSyntax attrib &&
-						attrib.Parent is ElementStartTagSyntax eltStart &&
-						eltStart.name.HasValue) {
-
-				if (prevTok.Is(XmlTokenType.AttributeName)) {
-					TextChange change = new TextChange(prevTok.Start, prevTok.Length);
-					if (!tok.Is(XmlTokenType.EqualSign))
-						change.ChangedText += "=\"\"";
-					return getAttributeNameSuggestions(eltStart.Name, attrib.Name, change).ToList();					
-				} else if (attrib.name.HasValue) {
-					if (prevTok.Is(XmlTokenType.AttributeValueOpen)) {
-						return getAttributeValueSuggestions(eltStart.Name, attrib.Name, "",
-							tok.Is(XmlTokenType.AttributeValueClose) ?
-								new TextChange(prevTok.End, 0)
-								: new TextChange(prevTok.End, 0, "\""))?.ToList();
-					} else if (prevTok.Is(XmlTokenType.AttributeValue) && attrib.valueTok.HasValue) {
-						return getAttributeValueSuggestions(eltStart.Name, attrib.Name, attrib.Value,
-							tok.Is(XmlTokenType.AttributeValueClose) ?
-								new TextChange(prevTok.Start, prevTok.Length)
-								: new TextChange(tok.Start, tok.Length, "\""))?.ToList();
+						}
+						if (sugs.Count == 1 && sugs[0].Caption == sts.AsText())
+							return null;
+						return sugs;
 					}
+				} else if (CurrentNode.Parent is AttributeSyntax atts) {
 					
-				}
-
-				*if (tokType == XmlTokenType.AttributeName) {
-					if (attrib.ValueToken.HasValue) {
-						change = new TextChange (tok.Start, tok.Length, selectedSugg);
-						newSelection = new TextSpan(
-							attrib.ValueToken.Value.Start + change.CharDiff + 1,
-							attrib.ValueToken.Value.End + change.CharDiff - 1
-						);
+					if (tokType == XmlTokenType.WhiteSpace) {
+						Console.WriteLine($"*** {tk}");
+						//return getAttributeNameSuggestions(atts.Name, "", new TextChange(tok.End, 0)).ToList();
 					} else {
-						change = new TextChange (tok.Start, tok.Length, selectedSugg + "=\"\"");
-						newSelection = TextSpan.FromStartAndLength (tok.Start + selectedSugg.Length + 2);
-					}
-				} else {
-					int offset = 1;
-					if (!attrib.valueClose.HasValue) {
-						selectedSugg += root.GetTokenStringByIndex(attrib.valueClose.Value);
-						offset = 0;
-					}
-					if (tokType == XmlTokenType.AttributeValueOpen)
-						change = new TextChange (tok.End, 0, selectedSugg);
-					else if (tokType == XmlTokenType.AttributeValue)
-						change = new TextChange (tok.Start, tok.Length, selectedSugg);
-					newSelection = TextSpan.FromStartAndLength (change.End2 + offset);
-				}*
-			}*/
+						if (atts.Parent is ElementTagSyntax et) {
+							if (tokType == XmlTokenType.AttributeName) {
+								string txtEnd = sts.NextSiblingIs(XmlTokenType.EqualSign) ? "" : "=\"\"";
+								List<Suggestion> sugs = getAttributeNameSuggestions(et.Name, atts.Name, new TextChange(tok.Start, tok.Length, txtEnd), txtEnd.Length > 0 ? -1 : 0).ToList();
+								if (sugs.Count == 0 || (sugs.Count == 1 && sugs[0].Caption == sts.AsText()))
+									return null;
 
+								return sugs;
+							} else if (atts.HasName) {
+								if(tokType == XmlTokenType.AttributeValueOpen) {
+									return getAttributeValueSuggestions(et.Name, atts.Name, "", new TextChange(tok.End, 0))?.ToList();
+								} else if (tokType == XmlTokenType.AttributeValue) {
+									return getAttributeValueSuggestions(et.Name, atts.Name, CurrentNode.AsText(), new TextChange(tok.Start, tok.Length))?.ToList();
+								}
+							}
+						} else {
+							System.Diagnostics.Debugger.Break();
+						}
+					}
+				}
+			} else if (CurrentNode is ElementTagSyntax ts) {
+				string txtEnd = nextTok?.GetTokenType() == XmlTokenType.EqualSign ? "" : "=\"\"";
+				return getAttributeNameSuggestions(ts.Name, "", new TextChange(tok.End, 0, txtEnd), txtEnd.Length > 0 ? -1 : 0).ToList();
+			}
 			return null;
 		}
-		/*
-		public override bool TryCompleteToken (Suggestion suggestion) {
-			newSelection = null;
-			change = default;
-
-			string selectedSugg = suggestion?.ToString ();
-
-			if (selectedSugg == null)
-				return false;
-
-			XmlTokenType tokType = tok.GetTokenType();
-
-			if (tokType.HasFlag(XmlTokenType.WhiteSpace)) {
-				
-				if (typeof(ElementTagSyntax).IsAssignableFrom(node?.GetType())) {
-					ElementTagSyntax ets = node as ElementTagSyntax;
-					if (ets.name.HasValue) {
-						change = new TextChange (tok.End, 0, selectedSugg + "=\"\"");
-						newSelection = TextSpan.FromStartAndLength(change.End2 - 1);
-					} else
-						change = new TextChange (tok.End, 0, selectedSugg + " ");
-				} else {
-					change = new TextChange (tok.End, 0, selectedSugg);
-				}
-			} else if (tokType == XmlTokenType.EndElementOpen) {
-				change = new TextChange (tok.End, 0, selectedSugg + ">");
-			} else if (tokType == XmlTokenType.ElementName) {
-				if (node is ElementEndTagSyntax)
-					change = new TextChange (tok.Start, tok.Length, selectedSugg + ">");
-				else {
-					change = new TextChange (tok.Start, tok.Length, selectedSugg + ">");
-					newSelection = TextSpan.FromStartAndLength (change.End2 - 1);
-				}
-			} else if (node is AttributeSyntax attrib) {
-				
-			} else if (tokType == XmlTokenType.ElementOpen) {
-				change = new TextChange (tok.End, 0, selectedSugg + " ");
-			} else
-				change =  new TextChange (tok.Start, tok.Length, selectedSugg);
-
-			return true;
-
-
-			if (tok.GetTokenType() == XmlTokenType.ElementOpen ||
-				tok.GetTokenType() == XmlTokenType.WhiteSpace ||
-				tok.GetTokenType() == XmlTokenType.AttributeValueOpen) {
-				change = new TextChange (tok.End, 0, selectedSugg);
-				return true;
-			}
-			if (tok.GetTokenType() == XmlTokenType.AttributeName && CurrentNode is AttributeSyntax attrib) {
-				if (attrib.ValueToken.HasValue) {
-					change = new TextChange (tok.Start, tok.Length, selectedSugg);
-					newSelection = new TextSpan(
-						attrib.ValueToken.Value.Start + change.CharDiff + 1,
-						attrib.ValueToken.Value.End + change.CharDiff - 1
-					);
-				} else {
-					change = new TextChange (tok.Start, tok.Length, selectedSugg + "=\"\"");
-					newSelection = TextSpan.FromStartAndLength (tok.Start + selectedSugg.Length + 2);
-				}
-				return true;
-			}
-
-			change = new TextChange (tok.Start, tok.Length, selectedSugg);
-			return true;
-		}*/
 
 		public override Color GetColorForToken(Token token)
 		{
 			TokenType tokType = token.Type;
 			XmlTokenType xmlTokType = (XmlTokenType)tokType;
-			if (xmlTokType.HasFlag (XmlTokenType.Punctuation))
-				return Colors.DarkGrey;
-			if (tokType.HasFlag (TokenType.WhiteSpace))
-				return Colors.Silver;			
-			if (xmlTokType.HasFlag (XmlTokenType.Trivia))
-				return Colors.DimGrey;
-			else if (xmlTokType == XmlTokenType.ElementName)
+			if (xmlTokType == XmlTokenType.ElementName)
 				return Colors.Green;
 			if (xmlTokType == XmlTokenType.AttributeName)
 				return Colors.Blue;
@@ -258,9 +119,8 @@ namespace CrowEdit.Xml
 				return Colors.Black;
 			if (xmlTokType == XmlTokenType.PI_Target)
 				return Colors.DarkSlateBlue;
-			return Colors.Red;
+			return base.GetColorForToken(token);
 
 		}
-		//protected bool previousTokHasFlag(XmlTokenType flag) => previousToken.HasValue && previousToken.Value.Type.HasFlag(flag);
 	}
 }

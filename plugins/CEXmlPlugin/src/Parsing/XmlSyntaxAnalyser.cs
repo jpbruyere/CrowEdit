@@ -19,6 +19,8 @@ namespace CrowEdit.Xml
 			tok.Type = (TokenType)type;
 		}
 		public static bool Is(this Token tok, XmlTokenType type) => (XmlTokenType)tok.Type == type;
+		public static bool NextSiblingIs(this SyntaxNode sts, XmlTokenType tt) => sts.NextSiblingIs((TokenType)tt);
+		public static bool PreviousSiblingIs(this SyntaxNode sts, XmlTokenType tt) => sts.PreviousSiblingIs((TokenType)tt);
 	}	
 	public class XmlSyntaxAnalyser : SyntaxAnalyser {
         public XmlSyntaxAnalyser (ReadOnlyTextBuffer document) : base (document) {}
@@ -32,10 +34,10 @@ namespace CrowEdit.Xml
 						break;
 					case XmlTokenType.BlockCommentStart:
 						MultiNodeSyntax bc = new CommentTriviaSyntax(true);
-						bc.AddChild(new SingleTokenSyntax(Read()));
+						bc.AddChild(new XMLSingleTokenSyntax(Read()));
 						while(tryPeek(out Token tok)) {
 							if (tok.Type == TokenType.BlockCommentEnd)	{
-								bc.AddChild(new SingleTokenSyntax(Read()));
+								bc.AddChild(new XMLSingleTokenSyntax(Read()));
 								break;
 							}
 							if (tok.Type == TokenType.LineBreak) {
@@ -43,7 +45,7 @@ namespace CrowEdit.Xml
 									return true;
 								Read();
 							} else {
-								bc.AddChild(new SingleTokenSyntax(Read()));
+								bc.AddChild(new XMLSingleTokenSyntax(Read()));
 							}
 						}
 						currentNode.AddChild(bc);
@@ -56,28 +58,29 @@ namespace CrowEdit.Xml
 
 			return !EOF;
 		}
-		bool accept(MultiNodeSyntax node, Enum tokenType) {
-			if (EOF)
+		bool accept(MultiNodeSyntax node, Enum tokenType, bool skipTrivia = true, bool skipLineBreaks = true) {
+			if (skipTrivia && !skipTriviaAndComments(node, skipLineBreaks))
 				return false;
 			if (Peek().Type == (TokenType)tokenType) {
-				node.AddChild(new SingleTokenSyntax(Read()));
+				node.AddChild(new XMLSingleTokenSyntax(Read()));
 				return true;
 			}
 			return false;
 		}		
-		public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
+		/*public virtual void ProcessAttributeValueSyntax(AttributeSyntax attrib) {
 			//attrib.valueTok = tokIdx - attrib.TokenIndexBase;
-		}
+		}*/
 		AttributeSyntax processNode(AttributeSyntax attrib) {
-			if (accept(attrib, XmlTokenType.EqualSign))
-				if (accept(attrib, XmlTokenType.AttributeValueOpen))
-					if(accept(attrib, XmlTokenType.AttributeValue))
-						accept(attrib, XmlTokenType.AttributeValueClose);
+			if (accept(attrib, XmlTokenType.EqualSign, true))
+				if (accept(attrib, XmlTokenType.AttributeValueOpen, true)) {
+					accept(attrib, XmlTokenType.AttributeValue);
+					accept(attrib, XmlTokenType.AttributeValueClose);
+				}
 			return attrib;
 		}
 		ElementEndTagSyntax processNode(ElementEndTagSyntax et) { 
 			if (accept(et, XmlTokenType.ElementName))
-				accept(et, XmlTokenType.ClosingSign);
+				accept(et, XmlTokenType.ClosingSign, true);
 			return et;
 		}
 		ProcessingInstructionSyntax processNode(ProcessingInstructionSyntax pi) {
@@ -85,7 +88,7 @@ namespace CrowEdit.Xml
 				pi.AddChild(new PITargetSyntax(Read()));
 				while (skipTriviaAndComments(pi, false)) {
 					if (Peek().Is(XmlTokenType.PI_End)) {
-						pi.AddChild(new SingleTokenSyntax(Read()));
+						pi.AddChild(new XMLSingleTokenSyntax(Read()));
 						break;
 					}
 					if (Peek().Is(XmlTokenType.AttributeName))
@@ -127,7 +130,13 @@ namespace CrowEdit.Xml
 					if (accept (start, XmlTokenType.ClosingSign)) {
 						elt = processElement(new ElementSyntax(start));
 						break;
-					}					
+					}
+					//wouldd be better in tokenizer, and break on unexpected tok
+					if (Peek().Is(XmlTokenType.ElementOpen) || Peek().Is(XmlTokenType.EndElementOpen)) {
+						start.AddChild(new UnexpectedTokenSyntax(Read()));
+						break;
+					}
+
 					if (Peek().Is(XmlTokenType.AttributeName))
 						start.AddChild(processNode(new AttributeSyntax(Read())));
 					else

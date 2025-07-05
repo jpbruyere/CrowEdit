@@ -135,11 +135,11 @@ namespace CrowEditBase
 			if (tokType.HasFlag (TokenType.Punctuation))
 				return Colors.DarkGrey;
 			if (tokType.HasFlag (TokenType.WhiteSpace))
-				return Colors.Gainsboro;
-			if (tokType.HasFlag (TokenType.Trivia))
 				return Colors.Silver;
+			if (tokType.HasFlag (TokenType.Trivia))
+				return Colors.DimGrey;
 			if (tokType == TokenType.Keyword)
-				return Colors.DarkSlateBlue;
+				return Colors.Blue;
 			return Colors.Red;
 		}
 		public virtual string GetTokenTypeString (TokenType tokenType) => tokenType.ToString();
@@ -153,6 +153,8 @@ namespace CrowEditBase
 
 			cancelSource = new CancellationTokenSource();
 			backgroundCompilationTask = Task.Run(()=>parseAssync(cancelSource.Token));
+			//TODO: to do
+			await backgroundCompilationTask;
 			
 			//CurrentNode?.ExpandToTheTop();
 			

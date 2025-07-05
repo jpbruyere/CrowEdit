@@ -47,10 +47,9 @@ namespace CERoslynPlugin
 			VisitLeadingTrivia (token);
 
 			Microsoft.CodeAnalysis.Text.TextSpan fs = token.Span;
-			/*if (SyntaxFacts.IsLiteralExpression (token.Kind ()))
+			if (SyntaxFacts.IsLiteralExpression (token.Kind ()))
 				addMultilineToken(token.ToString(), token.Span, (TokenType)token.RawKind);
-			else*/
-			if (fs.Length == 0)
+			else if (fs.Length == 0)
 				Debug.WriteLine($"Empty token: {token}");
 			else {
 				Microsoft.CodeAnalysis.Text.TextSpan span = token.Span;

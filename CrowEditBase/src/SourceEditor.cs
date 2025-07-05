@@ -171,16 +171,20 @@ namespace CrowEditBase
 					");					
 					overlay.DataSource = this;
 					overlay.Loaded += (sender, arg) => (sender as ListBox).SelectedIndex = 0;
-				} else
+				} else {
+					overlay.DataSource = this;
 					overlay.IsVisible = true;
+				}
 				overlay.RegisterForLayouting(LayoutingType.Sizing);
 			}
 		}
 		void hideOverlay () {
 			if (overlay == null)
 				return;
-			lock(App.UpdateMutex)
+			lock(App.UpdateMutex) {
 				overlay.IsVisible = false;
+				overlay.DataSource = null;
+			}
 		}
 		void completeToken () {
 			disableSuggestions = true;
@@ -464,7 +468,6 @@ namespace CrowEditBase
 							return;
 					}
 				}
-
 				base.onKeyDown(sender, e);
 			/*} finally {
 				Document.ExitReadLock ();
@@ -837,7 +840,7 @@ namespace CrowEditBase
 						gr.Stroke ();
 					}
 
-					if (++tokPtr >= sourceDocument.Tokens.Length)
+					if (tokPtr >= sourceDocument.Tokens.Length)
 						break;
 					tok = sourceDocument.Tokens[tokPtr];
 
@@ -902,6 +905,7 @@ namespace CrowEditBase
 
 			updateCurrentTokAndNode();
 
+			hideOverlay();
 			if (!disableSuggestions &&!disableTextChangedEvent && HasFocus)
 				tryGetSuggestions ();
 

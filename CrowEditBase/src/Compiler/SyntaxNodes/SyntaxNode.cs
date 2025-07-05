@@ -66,6 +66,10 @@ namespace CrowEditBase
 				return null;
 			}
 		}
+		public bool NextSiblingIs(TokenType tokType)
+			=> NextSibling is SingleTokenSyntax sts && sts.token.Type == tokType;
+		public bool PreviousSiblingIs(TokenType tokType) 
+			=> PreviousSibling is SingleTokenSyntax sts && sts.token.Type == tokType;
 
 		protected Token getTokenByIndex (int idx) => Root.GetTokenByIndex(idx);
 

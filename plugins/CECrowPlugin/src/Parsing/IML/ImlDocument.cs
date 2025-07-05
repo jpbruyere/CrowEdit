@@ -46,7 +46,7 @@ namespace CECrowPlugin
 			return crowType.GetMember (memberName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault ();
 		}*/
 
-        protected override IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change)
+        protected override IEnumerable<Suggestion> getElementNameSuggestions(string curName, TextChange change, int finalPositionOffset = 0)
         {
 			CrowService srv = App.GetService<CrowService>();
 			if (srv == null || !srv.IsRunning)
@@ -62,13 +62,12 @@ namespace CECrowPlugin
 				widgetTypes = widgetTypes.Where(t=>t.Name.StartsWith(curName, StringComparison.OrdinalIgnoreCase));
 				curNameLength = curName.Length;
 			}
-			int endPosOffset = change.HasNewText ? -change.ChangedText.Length : 0;
             return widgetTypes.Select (t
 				=> new WidgetSuggestion(t,
-					new TextChange(change.Start, change.Length, t.Name + change.ChangedText), endPosOffset));
+					new TextChange(change.Start, change.Length, t.Name + change.ChangedText), finalPositionOffset));
         }
-        protected override IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string curName, TextChange change) {
-			int endPosOffset = change.HasNewText ? -1 : 0;
+        protected override IEnumerable<Suggestion> getAttributeNameSuggestions(string eltName, string curName, TextChange change, int finalPositionOffset = 0) {
+			//int endPosOffset = change.HasNewText ? -1 : 0;
 			var members = App.GetService<CrowService>()?.GetAllCrowTypeMembers(eltName);
 			if (members != null) {
 				
@@ -77,7 +76,7 @@ namespace CECrowPlugin
 
 				var suggs = members?.Where(m=>m.MemberType == MemberTypes.Property)?.Select(p
 					=> new CrowPropertySuggestion(p as PropertyInfo,
-						new TextChange(change.Start, change.Length, p.Name + change.ChangedText), endPosOffset));
+						new TextChange(change.Start, change.Length, p.Name + change.ChangedText), finalPositionOffset));
 
 				foreach (var tmp in suggs.Where(s=>s.Category == "Divers"))
 					yield return tmp;
@@ -92,46 +91,38 @@ namespace CECrowPlugin
 			}
 				
 		}
-		protected override IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change) {
+		protected override IEnumerable<Suggestion> getAttributeValueSuggestions(string eltName, string attribName, string attribValue, TextChange change, int finalPositionOffset = 0) {
 			MemberInfo mi = App.GetService<CrowService>()?.GetAllCrowTypeMembers(eltName)?.Where(m=>m.Name.Equals(attribName, StringComparison.Ordinal)).FirstOrDefault();
 			if (mi is PropertyInfo pi) {
 				if (pi.Name == "Style")
 					return App.Styling.Keys
 						.Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(s=>new Suggestion(s,
-							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+							new TextChange(change.Start, change.Length, s + change.ChangedText), finalPositionOffset));
 				if (pi.PropertyType.IsEnum)
 					return Enum.GetNames (pi.PropertyType)
 						.Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(s=>new Suggestion(s,
-							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+							new TextChange(change.Start, change.Length, s + change.ChangedText), finalPositionOffset));
 				if (pi.PropertyType == typeof(bool))
 					return  (new string[] {"true", "false"}).
 						Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(s=>new Suggestion(s,
-							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+							new TextChange(change.Start, change.Length, s + change.ChangedText), finalPositionOffset));
 				if (pi.PropertyType.Name == "Measure")
 					return (new string[] {"Stretched", "Fit"}).
 						Where (s => s.StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(s=>new Suggestion(s,
-							new TextChange(change.Start, change.Length, s + change.ChangedText)));
+							new TextChange(change.Start, change.Length, s + change.ChangedText), finalPositionOffset));
 				if (pi.PropertyType.Name == "Fill")
 					return  EnumsNET.Enums.GetValues<Colors> ()
 						.Where (s => s.ToString().StartsWith (attribValue, StringComparison.OrdinalIgnoreCase))
 						.Select(c=>new ColorSuggestion(c,
-							new TextChange(change.Start, change.Length, c + change.ChangedText)));
+							new TextChange(change.Start, change.Length, c + change.ChangedText), finalPositionOffset));
 			}
 			return null;
 		}
-        public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {
-			Token tok = GetTokenByIndex(currentTokenIndex);
-			Console.Write($"{absoluteTextPos}({tok.Span}){tok.GetTokenType()}");
-			if (currentTokenIndex > 0)
-				Console.Write($" prev:{GetTokenByIndex(currentTokenIndex-1).GetTokenType()}");			
-			if (currentTokenIndex < Tokens.Length - 1)
-				Console.Write($" next:{GetTokenByIndex(currentTokenIndex+1).GetTokenType()}");	
-			Console.WriteLine($" node:{CurrentNode} ({loc})");
-			
+        public override IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode CurrentNode, CharLocation loc) {		
 			IList sugs = base.GetSuggestions (absoluteTextPos, currentTokenIndex, CurrentNode, loc);
 			if (sugs != null)
 				return sugs;
