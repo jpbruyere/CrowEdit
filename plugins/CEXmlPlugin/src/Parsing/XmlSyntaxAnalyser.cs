@@ -131,8 +131,7 @@ namespace CrowEdit.Xml
 						elt = processElement(new ElementSyntax(start));
 						break;
 					}
-					//wouldd be better in tokenizer, and break on unexpected tok
-					if (Peek().Is(XmlTokenType.ElementOpen) || Peek().Is(XmlTokenType.EndElementOpen)) {
+					if (Peek().Is(XmlTokenType.UnexpectedChar)) {
 						start.AddChild(new UnexpectedTokenSyntax(Read()));
 						break;
 					}

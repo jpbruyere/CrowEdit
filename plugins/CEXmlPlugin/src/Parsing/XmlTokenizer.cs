@@ -113,27 +113,36 @@ namespace CrowEdit.Xml
 								curState = States.DTDObject;
 							}
 						}
-					} else if (reader.TryPeek('/')) {
-						reader.Advance ();
-						addTok (ref reader, XmlTokenType.EndElementOpen);
-						if (readName (ref reader)) {
-							addTok (ref reader, XmlTokenType.ElementName);
-							if (reader.TryPeek('>')) {
-								reader.Advance ();
-								addTok (ref reader, XmlTokenType.ClosingSign);
-
-								if (--curObjectLevel > 0)
-									curState = States.Content;
-								else
-									curState = States.Xml;
+					} else {
+						bool levelup = false;
+						if (curState == States.StartTag) {
+							addTok (ref reader, XmlTokenType.UnexpectedChar);
+							levelup = true;
+						}
+						if (reader.TryPeek('/')) {
+							reader.Advance ();
+							addTok (ref reader, XmlTokenType.EndElementOpen);
+							if (readName (ref reader)) {
+								addTok (ref reader, XmlTokenType.ElementName);
+								if (reader.TryPeek('>')) {
+									reader.Advance ();
+									addTok (ref reader, XmlTokenType.ClosingSign);
+									levelup = true;
+								}
 							}
+						} else {
+							addTok (ref reader, XmlTokenType.ElementOpen);
+							if (readName (ref reader)) {
+								addTok (ref reader, XmlTokenType.ElementName);
+							}
+							curState = States.StartTag;
 						}
-					}else{
-						addTok (ref reader, XmlTokenType.ElementOpen);
-						if (readName (ref reader)) {
-							addTok (ref reader, XmlTokenType.ElementName);
+						if (levelup) {
+							if (--curObjectLevel > 0)
+								curState = States.Content;
+							else
+								curState = States.Xml;
 						}
-						curState = States.StartTag;
 					}
 					break;
 				case '?':

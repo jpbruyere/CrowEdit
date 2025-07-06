@@ -26,10 +26,10 @@ namespace CrowEditBase
 		OpenBrace				= 0x0405,
 		CloseBrace				= 0x0406,
 		DoubleQuote				= 0x0407,
-		SingleQuote				= 0x0408,		
+		SingleQuote				= 0x0408,
 
 		Operator 				= 0x0800,
 		Keyword 				= 0x1000,
-		Syntax					= 0x8000
+		UnexpectedChar			= 0x8000,
 	}
 }

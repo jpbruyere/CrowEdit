@@ -37,7 +37,7 @@ namespace CrowEdit.Xml
 		AttributeValueOpen		= 0x2001,
 		AttributeValueClose		= 0x2002,
 
-
+		UnexpectedChar			= 0x8000,
 		Content,
 	}
 }

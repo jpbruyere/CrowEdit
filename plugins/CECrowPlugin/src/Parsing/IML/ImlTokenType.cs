@@ -36,6 +36,7 @@ namespace CECrowPlugin
 		AttributeValue			= 0x2000,
 		AttributeValueOpen		= 0x2001,
 		AttributeValueClose		= 0x2002,
+		UnexpectedChar			= 0x8000,
 		Content,
 		BindingOpen 			= 0xA401,// '{'
 		BindingClose			= 0xA402,// '}'
