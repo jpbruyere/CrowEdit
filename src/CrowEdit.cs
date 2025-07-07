@@ -75,6 +75,8 @@ namespace CrowEdit
 
 			mainDock = w.FindByName ("mainDock") as DockStack;
 
+			reloadSyntaxTheme ();
+
 			reloadWinConfigs ();
 
 			lock(UpdateMutex) {
@@ -101,6 +103,7 @@ namespace CrowEdit
 		}
 		
 		public Command CMDSave, CMDSaveAs, CMDQuit, CMDHelp, CMDAbout, CMDOptions;
+		public Command CMDSyntaxTheme_Reload, CMDSyntaxTheme_Save, CMDSyntaxTheme_SaveAs;
 
 		void initCommands (){
 			FileCommands = new CommandGroup ("File",
@@ -132,7 +135,8 @@ namespace CrowEdit
 				new ActionCommand("Logs", () => LoadWindow ("#CrowEdit.ui.windows.winLogs.crow", this), "#icons.log.svg"),
 				new ActionCommand("Services", () => LoadWindow ("#CrowEdit.ui.windows.winServices.crow", this), "#icons.services.svg"),
 				new ActionCommand("Plugins", () => LoadWindow ("#CrowEdit.ui.windows.winPlugins.crow", this), "#icons.puzzle-piece.svg"),
-				new ActionCommand("Syntax Tree", () => LoadWindow ("#CrowEdit.ui.windows.winSyntaxExplorer.crow", this), "#icons.plugins.svg")
+				new ActionCommand("Syntax Tree", () => LoadWindow ("#CrowEdit.ui.windows.winSyntaxExplorer.crow", this), "#icons.plugins.svg"),
+				new ActionCommand("Syntax Theme Editor", () => LoadWindow ("#CrowEdit.ui.windows.winThemeEditor.crow", this), "#icons.palette.svg")
 			);
 			CMDHelp = new ActionCommand("Help", () => System.Diagnostics.Debug.WriteLine("help"), "#icons.question.svg");
 
@@ -142,6 +146,10 @@ namespace CrowEdit
 				ViewCommands,
 				new CommandGroup ("Help", CMDHelp)
 			);
+
+			CMDSyntaxTheme_Reload = new ActionCommand ("Reload", () => reloadSyntaxTheme ());
+			CMDSyntaxTheme_Save   = new ActionCommand ("Save", () => saveSyntaxTheme ());
+			CMDSyntaxTheme_SaveAs = new ActionCommand ("Save As...", () => saveSyntaxThemeAs ());
 		}
 
 		static void loadWindowWithThisDataSource(object sender, string path) {
@@ -271,7 +279,7 @@ namespace CrowEdit
 				return;
 			Document doc = OpenedDocuments.FirstOrDefault (d => d.FullPath == lastCurDoc);
 			if (doc != null)
-				CurrentDocument = doc;			
+				CurrentDocument = doc;
 		}
 		void saveProjectList () {
 			if (Projects.Count == 0)
@@ -298,6 +306,108 @@ namespace CrowEdit
         {
             return base.GetStreamFromPath(path);
         }
+
+		#region syntax theme options/loading
+		Dictionary<string, TextFormatting> syntaxTheme;
+		public Dictionary<string, TextFormatting> SyntaxTheme {
+			get => syntaxTheme;
+			set {
+				if (syntaxTheme == value)
+					return;
+				syntaxTheme = value;
+				NotifyValueChanged (SyntaxTheme);
+			}
+		}
+		public string SyntaxThemeDirectory {
+			get => Configuration.Global.Get<string> ("SyntaxThemeDirectory") ??
+					Path.Combine (Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location), "SyntaxThemes");
+			set {
+				if (SyntaxThemeDirectory == value)
+					return;
+				Configuration.Global.Set ("SyntaxThemeDirectory", value);
+				NotifyValueChanged ("SyntaxThemeDirectory", (object)SyntaxThemeDirectory);
+				NotifyValueChanged ("AvailableSyntaxThemes", (object)AvailableSyntaxThemes);
+				reloadSyntaxTheme();
+			}
+		}
+		public string syntaxThemeFile => Path.Combine (SyntaxThemeDirectory, $"{SyntaxThemeName}.syntax");
+		public string[] AvailableSyntaxThemes {
+			get {
+				if (!Directory.Exists(SyntaxThemeDirectory))
+					return null;
+				string[] tmp = Directory.GetFiles (SyntaxThemeDirectory);
+                for (int i = 0; i < tmp.Length; i++)
+					tmp[i] = Path.GetFileNameWithoutExtension (tmp[i]);
+				return tmp;
+            }
+        }
+		public string SyntaxThemeName {
+			get => Configuration.Global.Get<string> ("SyntaxThemeName");
+			set {
+				if (SyntaxThemeName == value)
+					return;
+				Configuration.Global.Set ("SyntaxThemeName", value);
+				NotifyValueChanged ("SyntaxThemeName", (object)SyntaxThemeName);
+				reloadSyntaxTheme ();
+			}
+		}
+		public Command CMDOptions_SyntaxThemeDirectory => new ActionCommand ("...",
+			() => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Syntax Themes Folder' CurrentDirectory='{SyntaxThemeDirectory}'
+							ShowFiles='false' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => SyntaxThemeDirectory = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = this;
+			}
+		);
+
+		void reloadSyntaxTheme () {
+			if (!File.Exists (syntaxThemeFile))
+				return;
+			Dictionary<string, TextFormatting> theme = new Dictionary<string, TextFormatting> ();
+			using (StreamReader sr = new StreamReader(syntaxThemeFile)) {
+				while (!sr.EndOfStream) {
+					string l = sr.ReadLine ();
+					string[] tmp = l.Split ('=');
+					theme.Add (tmp[0].Trim (), TextFormatting.Parse (tmp[1].Trim ()));
+				}
+            }
+			SyntaxTheme = theme;
+		}
+		void saveSyntaxTheme () {
+			using (StreamWriter sw = new StreamWriter (syntaxThemeFile)) {
+				foreach (string key in SyntaxTheme.Keys) {
+					sw.WriteLine ($"{key} = {SyntaxTheme[key]}");
+				}
+			}
+		}
+		void saveSyntaxThemeAs ()
+		{
+			FileDialog fd = LoadIMLFragment<FileDialog> (@"<FileDialog Width='60%' Height='50%' Caption='Save as ...' CurrentDirectory='" +
+				SyntaxThemeDirectory + "' SelectedFile='" +
+				Path.GetFileName(syntaxThemeFile) + "' OkClicked='saveSyntaxThemeAsDialog_OkClicked'/>");
+			fd.DataSource = this;
+			fd.OkClicked += (sender, e) => {
+				FileDialog fd = sender as FileDialog;
+
+				if (string.IsNullOrEmpty (fd.SelectedFileFullPath))
+					return;
+
+				if (File.Exists(fd.SelectedFileFullPath)) {
+					MessageBox mb = MessageBox.ShowModal (this, MessageBox.Type.YesNo, "File exists, overwrite?");
+					mb.Yes += (sender2, e2) => {
+						SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
+						SyntaxThemeDirectory = fd.SelectedDirectory;
+						saveSyntaxTheme ();
+					};
+					return;
+				}
+
+				SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
+				saveSyntaxTheme ();
+			};
+		}
+		#endregion
     }
 }
 

@@ -353,26 +353,43 @@ namespace CERoslynPlugin
 		public bool DebugSymbols => bool.Parse (project.GetProperty ("DebugSymbols").EvaluatedValue);
 		public int WarningLevel => int.Parse (project.GetProperty ("WarningLevel").EvaluatedValue);
 
-		public Stream GetStreamFromTargetPath (string targetPath) {
+		public bool TryGetStreamFromTargetPath (string targetPath, out Stream stream) {
+			stream = null;
 			IEnumerable<MSBuildProjectItemNode> piNodes = Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>();
 			if (targetPath.StartsWith ('#')) {
 				targetPath = targetPath.Substring (1);
 				MSBuildProjectItemNode pin = piNodes.FirstOrDefault (n =>
 					n.NodeType == NodeType.EmbeddedResource &&
 					n.HasMetadataValue ("LogicalName", targetPath));
-				if (pin != null)
-					return new FileStream (pin.FullPath, FileMode.Open);
+				if (pin != null) {
+					stream = new FileStream (pin.FullPath, FileMode.Open);
+					return true;
+				}
 			} else {
 				MSBuildProjectItemNode pin = piNodes.FirstOrDefault (n =>
 					n.NodeType == NodeType.None &&
 					(n.HasMetadataValue ("CopyToOutputDirectory", "PreserveNewest") || n.HasMetadataValue ("CopyToOutputDirectory", "Always")) &&
 					n.EvaluatedInclude == targetPath);
-				if (pin != null)
-					return new FileStream (pin.FullPath, FileMode.Open);
+				if (pin != null) {
+					stream = new FileStream (pin.FullPath, FileMode.Open);
+					return true;
+				}
 			}
-			return null;
+			return false;
 		}
-
+		public IEnumerable<MSBuildProject> ReferencedProjects {
+			get {
+				string rootPath = Path.GetDirectoryName(FullPath);
+				var allProjects = solutionProject.FlattenProjetcs.OfType<MSBuildProject>();
+				var refProjs = Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>().
+						Where (r=>r.NodeType == NodeType.ProjectReference);
+				foreach (var r in refProjs) {
+						var refP = allProjects.FirstOrDefault(p=>Path.GetRelativePath(rootPath, p.FullPath) == r.EvaluatedInclude.Replace("\\","/"));
+						if (refP != null)
+							yield return refP;
+				}
+			}
+		}
 
 		#region debug
 		void printEvaluatedProperties (ProjectInstance pi) {

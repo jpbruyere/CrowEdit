@@ -18,10 +18,13 @@ using static CECrowPlugin.ForeignWidgetContainer;
 using Drawing2D;
 using System.Diagnostics;
 using Crow;
+using System.ComponentModel;
+using CERoslynPlugin;
 
 namespace CECrowPlugin
 {
 	public class CrowService : Service {
+		#region CTOR/DTOR
 		public CrowService () : base () {
 			restoreCrowAssemblies ();
 			initCommands ();
@@ -30,6 +33,8 @@ namespace CECrowPlugin
 		~CrowService() {
 			App.ValueChanged -= app_ValueChanged;
 		}
+		#endregion
+
 		void app_ValueChanged(object instance, ValueChangeEventArgs e) {
 			if (e.MemberName == "CurrentProject") {
 				if (e.NewValue is CERoslynPlugin.SolutionProject sol)
@@ -196,6 +201,7 @@ namespace CECrowPlugin
 				NotifyValueChanged(HoverWidgetDesignId);
 			}
 		}
+		
 		#region dbgIface delegates
 		Func<string,Type> delGetWidgetTypeFromName;
 		Action<int, int> delResize;
@@ -398,6 +404,12 @@ namespace CECrowPlugin
 					foreach (var style in csprj.Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>()
 						.Where (pin=>pin.NodeType == NodeType.EmbeddedResource && pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase)))
 						yield return style.FullPath;
+					foreach (var refP in csprj.ReferencedProjects) {
+						foreach (var style in refP.Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>()
+							.Where (pin=>pin.NodeType == NodeType.EmbeddedResource &&
+									pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase))) 
+							yield return style.FullPath;
+					}
 				}
 			}
 			/*foreach (String item in crowAssemblies)
@@ -407,12 +419,18 @@ namespace CECrowPlugin
 			yield return crowAssembly;
 		}
 		Stream getStreamFromPath (string path) {
+			Stream stream = null;
 			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
 				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
-					return csprj.GetStreamFromTargetPath (path);
+					if (!csprj.TryGetStreamFromTargetPath (path, out stream)) {
+						foreach (MSBuildProject refP in csprj.ReferencedProjects) {
+							if (refP.TryGetStreamFromTargetPath (path, out stream))
+								break;
+						}
+					}
 				}
 			}
-			return null;
+			return stream;
 		}
 		#endregion
 		static string defaultCrowAssemblyLocation =>

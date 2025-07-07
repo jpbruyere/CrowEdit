@@ -18,7 +18,7 @@ namespace CrowEditBase
 		protected ReadOnlyTextBuffer source;
 		protected SyntaxRootNode Root;
 		protected CancellationToken cancel;
-		public IEnumerable<SyntaxException> Exceptions => null;// Root?.GetAllExceptions();
+		public IEnumerable<SyntaxException> Exceptions => Root?.GetAllExceptions(source);
 		public abstract Task<SyntaxRootNode> Process (CancellationToken cancel = default);
 		
 		#region Token handling

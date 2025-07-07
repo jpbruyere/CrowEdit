@@ -1,0 +1,31 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Syntax Theme Editor" Height="60%" Width="60%">
+	<VerticalStack Margin="4" RootDataLevel="true">
+		<Label Text="{SyntaxThemeName}"/>
+		<ListBox Data="{SyntaxTheme}">
+			<Template>
+				<Scroller  Name="scroller1"  >
+					<Table Columns="Name,Stretched;Foreground,150;Background,150;Bold,Fit;Italic,Fit"
+						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+				</Scroller>			
+			</Template>
+			<ItemTemplate>
+				<TableRow>
+					<Label Margin="2" Text="{Key}" Height="Stretched"/>
+					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Foreground}" Height="Stretched" Width="Stretched"
+								 Template="#ui.ColorPicker2.template"/>
+					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Background}" Height="Stretched" Width="Stretched"
+								 Template="#ui.ColorPicker2.template"/>
+					<CheckBox DataSource="{Value}"  RootDataLevel="true" Caption="" IsChecked="{²Bold}" />
+					<CheckBox DataSource="{Value}"  RootDataLevel="true" Caption="" IsChecked="{²Italic}" />
+				</TableRow>
+			</ItemTemplate>
+		</ListBox>
+		<HorizontalStack Fit="True" HorizontalAlignment="Right">
+			<Button Command="{CMDSyntaxTheme_Reload}"/>
+			<Button Command="{CMDSyntaxTheme_Save}"/>
+			<Button Command="{CMDSyntaxTheme_SaveAs}"/>
+			<CheckBox Style="simpleCheckBox"/>
+		</HorizontalStack>
+	</VerticalStack>
+</DockWindow>

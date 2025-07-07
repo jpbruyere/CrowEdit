@@ -135,5 +135,16 @@ namespace CrowEditBase
 			}
 		}
 		
+		public IEnumerable<SyntaxException> GetAllExceptions(ReadOnlyTextBuffer source) {
+			foreach (SyntaxNode n in children) {
+				if (n is UnexpectedTokenSyntax uts)
+					yield return new SyntaxException(uts.Message, source.Lines.GetLocation(uts.SpanStart));
+				else if (n is MultiNodeSyntax mns) {
+					foreach (SyntaxException se in mns.GetAllExceptions(source))
+						yield return se;
+				}
+			}
+		}
+
    }
 }

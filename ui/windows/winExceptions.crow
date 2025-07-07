@@ -1,21 +1,22 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Exceptions"  Width="40%" Height="20%">
-	<ListBox DataSource="{CurrentDocument}" Data='{Exceptions}' SelectedItem="{²CurrentException}"
+<DockWindow Caption="Exceptions"  Width="40%" Height="20%">	
+	<ListBox RootDataLevel="true" DataSource="{CurrentDocument}" Data='{Exceptions}' SelectedItem="{²CurrentException}"
 		Height='Stretched' Width='Stretched'>
 		<Template>
 			<Scroller  Name="scroller1"  >
-				<Table Columns="Message,Stretched;Location,Fit"
+				<Table Columns="-, 28;Message,Stretched;Location,Fit"
 					Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
 			</Scroller>
 		</Template>
 		<ItemTemplate>
 			<TableRow 	Selected = "{Background=${ControlHighlight}}"
 						Unselected = "{Background=Transparent}">
+				<Image Width="20" Height="20" Path="{GetIcon}" Margin="0"  />
 				<Label Text="{Message}" />
 				<Label Text="{Location}"/>
 			</TableRow>
 		</ItemTemplate>
-	</ListBox>
+	</ListBox>	
 </DockWindow>
 
 

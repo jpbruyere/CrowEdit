@@ -8,7 +8,10 @@ using Crow.Text;
 namespace CrowEditBase
 {
 	public class UnexpectedTokenSyntax : SingleTokenSyntax {
-		public UnexpectedTokenSyntax(Token tok) : base (tok) { }
+		public string Message;
+		public UnexpectedTokenSyntax(Token tok, string message = "Unexpected token") : base (tok) { 
+			Message = message;
+		}
 	}
 	public class CommentTriviaSyntax : MultiNodeSyntax {
 		bool block;

@@ -32,6 +32,7 @@ namespace CrowEditBase
 		public bool IsParsed => root != null && Tokens.Length > 0;
 		public ReadOnlySpan<Token> Tokens => root.Tokens;
 		public IEnumerable<SyntaxNode> SyntaxRootChildNodes => root?.children;
+		public IEnumerable<SyntaxException> Exceptions => root?.AllExceptions;
 		public SyntaxException CurrentException {
 			get => CrowEditBase.App.CurrentException;
 			set {
@@ -168,7 +169,7 @@ namespace CrowEditBase
 			if (cancel.IsCancellationRequested)
 				return;
 
-			NotifyValueChanged("Exceptions", syntaxAnalyser?.Exceptions);
+			NotifyValueChanged("Exceptions", Exceptions);
 			NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
 			NotifyValueChanged ("SyntaxRootChildNodes", SyntaxRootChildNodes);
 		}

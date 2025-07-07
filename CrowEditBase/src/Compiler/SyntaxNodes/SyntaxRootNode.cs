@@ -2,6 +2,8 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Crow.Text;
 
 namespace CrowEditBase
@@ -17,14 +19,11 @@ namespace CrowEditBase
 		protected readonly ReadOnlyTextBuffer buffer;
 		protected Token[] tokens;
 		public ReadOnlySpan<Token> Tokens => tokens;
-		
 		public override SyntaxRootNode Root => this;
 		public override bool IsFoldable => false;
 		public override void UnfoldToTheTop() {}
 		public override SyntaxNode NextSiblingOrParentsNextSibling => null;
-
-
-
+        public IEnumerable<SyntaxException> AllExceptions => GetAllExceptions(buffer);
 		public string GetTokenStringByIndex (int idx) => tokens != null ?
 			idx >= 0 && idx < tokens.Length ? GetText(tokens[idx].Span).ToString() : null : null;
 		public Token GetTokenByIndex (int idx) => tokens != null ?

@@ -141,8 +141,6 @@ namespace CrowEditBase
 		}
 		#endregion
 
-
-
 		public T GetService<T> () where T : Service {
 			T service = Services.OfType<T>().FirstOrDefault ();
 			if (service == null) {

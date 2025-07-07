@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2021-2025  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -6,8 +6,6 @@ using System;
 using System.IO;
 using System.Threading;
 using Crow;
-using System.Runtime.CompilerServices;
-using System.Collections.Generic;
 using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
@@ -39,8 +37,6 @@ namespace CrowEditBase
 		public void ExitReadLock () => documentRWLock.ExitReadLock ();
 		public void EnterWriteLock () => documentRWLock.EnterWriteLock ();
 		public void ExitWriteLock () => documentRWLock.ExitWriteLock ();
-
-
 
 		public string FullPath {
 			get => fullPath;

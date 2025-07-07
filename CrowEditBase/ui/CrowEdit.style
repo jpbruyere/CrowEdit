@@ -153,7 +153,7 @@ EnumSelector {
 	Template = "#ui.EnumSelector.template";
 	//ItemStyle = "CheckBox";
 }
-CheckBox {
+/*CheckBox {
 	Template= "#Crow.CheckBox2.template";
 	Width = "Stretched";
 	Height = "Fit";
@@ -164,7 +164,7 @@ CheckBox {
 	Unchecked = "{Background=${ControlIdle}}";
 	MouseEnter = "{Foreground=${ControlCaptionHoverColor}}";
 	MouseLeave = "{Foreground=${ControlForeground}}";
-}
+}*/
 StateBox {
 	Template= "#Crow.CheckBox2.template";
 	Width = "Stretched";
