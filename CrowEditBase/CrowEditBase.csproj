@@ -7,8 +7,11 @@
 
 	<ItemGroup>
 		<Compile Include="src\**\*.cs" />
-		<EmbeddedResource Include="ui\**\*.*">
+		<EmbeddedResource Include="ui\**\*.*" Exclude="ui\DefaultTemplateOverrides\*.*">
 			<LogicalName>ui.%(Filename)%(Extension)</LogicalName>
+		</EmbeddedResource>
+		<EmbeddedResource Include="ui\DefaultTemplateOverrides\*.template">
+			<LogicalName>Crow.%(Filename).template</LogicalName>
 		</EmbeddedResource>
 		<EmbeddedResource Include="icons\**\*.*">
 			<LogicalName>icons.%(Filename)%(Extension)</LogicalName>
