@@ -6,10 +6,10 @@
 		<CheckBox Caption="Indent With Spaces" IsChecked="{²IndentWithSpace}"/>
 		<CheckBox Caption="Show White Spaces" IsChecked="{²ShowWhiteSpace}"/>
 		<Spinner Caption="Tabulation Size" Value="{²TabulationSize}"/>
-		<Slider Template="#ui.slider.tmp" Height="Fit" Background="0.1,0.1,0.2,0.8"
+		<Slider Template="#ui.slider.template" Height="Fit" Background="0.1,0.1,0.2,0.8"
 				Minimum="1" Maximum="50" SmallIncrement="1" LargeIncrement="10"
 				Caption="Crow Update Interval (ms)" Value="{²CrowUpdateInterval}" />
-		<Slider Template="#ui.slider.tmp" Height="Fit" Background="0.1,0.1,0.2,0.8"
+		<Slider Template="#ui.slider.template" Height="Fit" Background="0.1,0.1,0.2,0.8"
 				Minimum="1" Maximum="50" SmallIncrement="1" LargeIncrement="10"
 				Caption="GLFW polling Interval (ms)" Value="{²CrowPollingInterval}" />
 		<HorizontalStack Height="Fit">

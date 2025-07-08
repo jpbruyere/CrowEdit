@@ -77,6 +77,8 @@ namespace CrowEdit
 
 			reloadSyntaxTheme ();
 
+			reloadLogsConfigs ();
+			
 			reloadWinConfigs ();
 
 			lock(UpdateMutex) {
@@ -88,7 +90,6 @@ namespace CrowEdit
 				}
 			}
 
-			reloadLogsConfigs ();
 
 			reopenLastProjectList ();
 

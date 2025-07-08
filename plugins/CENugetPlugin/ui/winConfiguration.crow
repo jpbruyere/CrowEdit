@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="NetcoreDbg plugin configuration"  Width="80%" Height="400" Resizable="false">
+<DockWindow Caption="NetcoreDbg plugin configuration"  Width="600" Height="400" Resizable="false">
 	<VerticalStack RootDataLevel="true" Margin="5">
 		<HorizontalStack Height="Fit">
 			<Label Width="200" Text="Netcoredbg path"/>

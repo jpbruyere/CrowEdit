@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<MenuItem MinimumSize="20,20" Height="Fit" Width="Fit" Caption="Context Menu" Data="{ContextCommands}" Orientation="Vertical"
+	IsOpened ="true" Visible="{/IsOpened}">
+	<Template>		
+		<Border Background="0.2,0.2,0.2,0.8" Foreground="Black" CornerRadius="2">			
+			<GenericStack Height="Fit" VerticalAlignment="Top" Orientation="{./Orientation}" Name="ItemsContainer" Margin="5"/>			
+		</Border>		
+	</Template>
+	<ItemTemplate>
+		<MenuItem Command="{}" Width="150" PopWidth="120" IsEnabled="{CanExecute}">
+			<Template>
+				<Popper Font="{./Font}" Caption="{./Caption}"  Background="{./Background}" PopDirection="{./PopDirection}"
+					Foreground = "{./Foreground}" CanPop="{./HasChildren}" MouseDown="./onMI_Click" BubbleEvents="All"
+					IsPopped="{²./IsOpened}" PopWidth="{./PopWidth}" PopHeight="{./PopHeight}">
+					<Template>
+						<Border Name="border1"
+								CornerRadius="0"
+								MouseEnter="{Foreground=vgradient|0:White|0.2:Grey|0.9:Grey|1:Black}"
+								MouseLeave="{Foreground=Transparent}"
+								MouseDown="{Foreground=vgradient|0:Black|0.05:Grey|0.85:Grey|1:White}"
+								MouseUp="{Foreground=vgradient|0:White|0.2:Grey|0.9:Grey|1:Black}"
+								MinimumSize = "60,0"
+								Foreground="Transparent"
+								Background="{./Background}">
+								<HorizontalStack Spacing="5">
+									<Image Height="14" Width="14" Picture="{Icon}" />
+									<Label Text="{./Caption}"
+										Foreground="{./Foreground}"
+										Margin="1" HorizontalAlignment="Left"
+										Font="{./Font}"	/>
+								</HorizontalStack>
+						</Border>
+					</Template>
+					<Border Foreground="DimGrey" Width="{../PopWidth}" Height="{../PopHeight}" Background="DimGrey">
+						<VerticalStack Name="ItemsContainer"/>
+					</Border>
+				</Popper>
+			</Template>
+		</MenuItem>
+	</ItemTemplate>
+</MenuItem>
+
