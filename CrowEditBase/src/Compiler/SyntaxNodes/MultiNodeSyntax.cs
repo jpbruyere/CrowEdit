@@ -107,7 +107,7 @@ namespace CrowEditBase
 		public virtual int FoldedLineCount {
 			get {
 				if (isFolded)
-					return LineCount;
+					return LineCount - 1;
 				int tmp = 0;
 				if (HasChilds) {
 					foreach (MultiNodeSyntax n in children.OfType<MultiNodeSyntax>().Where (c => c.IsFoldable))
