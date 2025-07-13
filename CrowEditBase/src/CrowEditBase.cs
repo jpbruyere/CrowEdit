@@ -72,10 +72,10 @@ namespace CrowEditBase
 		public ObservableList<LogItem> Logs = new ObservableList<LogItem>();
 		public ObservableList<LogItem> OpenedLogs = new ObservableList<LogItem>();
 		internal LogItem MainLog;
-		[Obsolete]public void Log(LogType type, string message) {
+		public void Log(LogType type, string message) {
 			MainLog.Add (type, message);
 		}
-		[Obsolete]public void ResetLog () {
+		public void ResetLog () {
 			MainLog.ResetLog();
 		}
 		public LogItem GetLog(string name) {

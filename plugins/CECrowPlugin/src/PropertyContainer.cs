@@ -108,6 +108,7 @@ namespace CECrowPlugin
 			if (!HasStyling)
 				return;
 			FileLocation fl = host.StyleLocation[Name];
+			Debug.WriteLine($"goto style: {fl.FilePath}");
 
 			CrowService srv = App.GetService<CrowService> ();
 			if (srv?.CurrentSolution == null)

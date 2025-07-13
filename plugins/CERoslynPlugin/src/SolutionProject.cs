@@ -81,7 +81,6 @@ namespace CERoslynPlugin
 			fileNode = null;
 			return false;
 		}
-				
 
 		public override string Name => Path.GetFileNameWithoutExtension (FullPath);
 		public override string Icon => "#icons.file_type_sln2.svg";

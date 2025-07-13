@@ -53,6 +53,18 @@ namespace CERoslynPlugin
 			SyntaxKind syntaxKind = (SyntaxKind)token.Type;
 			TokenType tokType = token.Type;
 			CSTokenType xmlTokType = (CSTokenType)tokType;
+
+			if (SyntaxFacts.IsPredefinedType(syntaxKind))
+				return Colors.Fuchsia;
+			if (SyntaxFacts.IsLiteralExpression(syntaxKind))
+				return Colors.DarkGoldenRod;
+			if (SyntaxFacts.IsPreprocessorKeyword(syntaxKind))
+				return Colors.Indigo;
+			if (SyntaxFacts.IsKeywordKind(syntaxKind))
+				return Colors.DodgerBlue;
+			if (SyntaxFacts.IsPunctuation(syntaxKind))
+				return Colors.Black;
+
 			if (syntaxKind == SyntaxKind.IdentifierToken)
 				return Colors.Blue;
 			

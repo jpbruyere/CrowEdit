@@ -4,9 +4,11 @@
 using CrowEditBase;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CERoslynPlugin
 {
+	public enum TriviaPos { none, leading, trailing };
 	public class CSRootSyntax : SyntaxRootNode {
 		public CSRootSyntax (ReadOnlyTextBuffer source) : base (source, null) {	}
 		internal void SetTokens(Token[] tokens) {
@@ -20,6 +22,15 @@ namespace CERoslynPlugin
 		}
 		public override string ToString() => $"TOK: {cstoken.Kind()}";
 	}
+	public class CSTriviaSyntax : MultiNodeSyntax {
+		public TriviaPos TriviaPos;
+		public SyntaxTrivia Trivia;
+		public CSTriviaSyntax(SyntaxTrivia trivia, TriviaPos triviaPos) {
+			Trivia = trivia;
+			TriviaPos = triviaPos;
+		}
+		public override string ToString() => $"TriviaSyntax({TriviaPos}): {Trivia}";
+	}
 	public class CSTrivia : SingleTokenSyntax {
 		SyntaxTrivia cstrivia;
 		public CSTrivia(SyntaxTrivia token, Token tok) : base (tok) {
@@ -28,11 +39,16 @@ namespace CERoslynPlugin
 		public override string ToString() => $"Trivia: {cstrivia.Kind()}";
 	}	
 	public class CSSyntaxNode : MultiNodeSyntax {
-		Microsoft.CodeAnalysis.SyntaxNode node;
+		protected Microsoft.CodeAnalysis.SyntaxNode node;
 		public CSSyntaxNode(Microsoft.CodeAnalysis.SyntaxNode node) {
 			this.node = node;
 		}
 		public override string ToString() => $"{node.Kind()}";
-
     }
+	public class CSUsingDirectiveSyntax : CSSyntaxNode {
+		public CSUsingDirectiveSyntax(Microsoft.CodeAnalysis.SyntaxNode node) : base(node) { }
+        /*public override int FoldedLineCount => base.FoldedLineCount;
+        public override bool IsFoldable => (PreviousSibling == null || !PreviousSibling.GetType().IsAssignableFrom(typeof(UsingDirectiveSyntax)))
+			&& NextSibling != null && NextSibling.GetType().IsAssignableFrom(typeof(UsingDirectiveSyntax));*/
+	}
 }

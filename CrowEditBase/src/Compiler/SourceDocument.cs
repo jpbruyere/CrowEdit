@@ -5,11 +5,9 @@
 using System;
 using Crow;
 using Crow.Text;
-using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using Drawing2D;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -129,7 +127,7 @@ namespace CrowEditBase
 			//Console.WriteLine ($"CurrentToken: idx({currentTokenIndex}) {currentToken} {RootNode.Root.GetTokenStringByIndex(currentTokenIndex)}");
 		}
 		#endregion
-
+		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 		public virtual Color GetColorForToken (Token token)
 		{
 			TokenType tokType = token.Type;
@@ -146,7 +144,11 @@ namespace CrowEditBase
 		public virtual string GetTokenTypeString (TokenType tokenType) => tokenType.ToString();
 		//protected abstract Tokenizer CreateTokenizer ();
 		public abstract IList GetSuggestions (int absoluteTextPos, int currentTokenIndex, SyntaxNode currentNode, CharLocation loc);
-		protected virtual async void parse () {
+		protected virtual void parse () {
+			cancelSource = new CancellationTokenSource();
+			parseAssync(cancelSource.Token);
+		}
+		protected virtual async void parseAsync () {
 			if (backgroundCompilationTask != null && !backgroundCompilationTask.IsCompleted) {
 				cancelSource.Cancel();
 				await backgroundCompilationTask;
@@ -161,7 +163,6 @@ namespace CrowEditBase
 			
 			//CrowEditBase.App.Log (LogType.Low, $"Syntax Analysis done in {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
 		}
-		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
 
 		async void parseAssync(CancellationToken cancel) {
 			SyntaxAnalyser syntaxAnalyser = CreateSyntaxAnalyser ();
@@ -172,8 +173,7 @@ namespace CrowEditBase
 			NotifyValueChanged("Exceptions", Exceptions);
 			NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
 			NotifyValueChanged ("SyntaxRootChildNodes", SyntaxRootChildNodes);
+			Console.WriteLine("parse async finished");
 		}
-
-
 	}
 }

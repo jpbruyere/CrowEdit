@@ -12,14 +12,6 @@ using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
-	public class ReadOnlyTextBuffer {
-		public readonly ReadOnlyMemory<char> Source;
-		public readonly LineCollection Lines;
-		public ReadOnlyTextBuffer(ReadOnlyMemory<char> source, LineCollection lines) {
-			Source = source;
-			Lines = lines;
-		}
-	}
 	public class TextDocument : Document {
 		#region CTOR
 		public TextDocument (string fullPath, string editorPath = "default")

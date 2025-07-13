@@ -38,7 +38,7 @@ namespace CrowEditBase
 						if (isOpened) {
 							App.OpenLog(this);
 						 } else
-							App.CloseLog(this);						
+							App.CloseLog(this);
 					}
 					IsSelected = value;
 				}

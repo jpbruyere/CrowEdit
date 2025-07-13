@@ -80,14 +80,12 @@ namespace CrowEdit.Xml
 				switch (reader.Peek) {
 				case '<':
 					reader.Advance ();
-					if (reader.TryPeek ('?')) {
-						reader.Advance ();
+					if (reader.TryRead ('?')) {
 						addTok (ref reader, XmlTokenType.PI_Start);
 						readName (ref reader);
 						addTok (ref reader, XmlTokenType.PI_Target);
 						curState = States.ProcessingInstrucitons;
-					} else if (reader.TryPeek ('!')) {
-						reader.Advance ();
+					} else if (reader.TryRead ('!')) {
 						if (reader.TryPeek ("--")) {
 							reader.Advance (2);
 							addTok (ref reader, XmlTokenType.BlockCommentStart);
@@ -119,8 +117,7 @@ namespace CrowEdit.Xml
 							addTok (ref reader, XmlTokenType.UnexpectedChar);
 							levelup = true;
 						}
-						if (reader.TryPeek('/')) {
-							reader.Advance ();
+						if (reader.TryRead('/')) {
 							addTok (ref reader, XmlTokenType.EndElementOpen);
 							if (readName (ref reader)) {
 								addTok (ref reader, XmlTokenType.ElementName);
@@ -147,8 +144,7 @@ namespace CrowEdit.Xml
 					break;
 				case '?':
 					reader.Advance ();
-					if (reader.TryPeek ('>')){
-						reader.Advance ();
+					if (reader.TryRead ('>')){
 						addTok (ref reader, XmlTokenType.PI_End);
 					}else
 						addTok (ref reader, XmlTokenType.Unknown);
@@ -170,8 +166,7 @@ namespace CrowEdit.Xml
 					break;
 				case '/':
 					reader.Advance();
-					if (reader.TryPeek ('>')) {
-						reader.Advance();
+					if (reader.TryRead ('>')) {
 						addTok (ref reader, XmlTokenType.EmptyElementClosing);
 						if (--curObjectLevel > 0)
 							curState = States.Content;

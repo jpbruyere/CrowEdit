@@ -135,6 +135,12 @@ namespace CERoslynPlugin
 			}
 			IsLoaded = false;
 		}
+        public override void Close()
+        {
+			//TODO: close all opened project's files
+			//App.OpenedDocuments.Where(doc=>doc)
+            base.Close();
+        }
 
 		public void Build () => Build ("Build");
 		public void Build (params string[] targets)
@@ -157,14 +163,14 @@ namespace CERoslynPlugin
 				/*var test = lastBuildResult.ProjectStateAfterBuild.GetItems ("Reference");*/
 
 				//Console.WriteLine (IsCrowProject);
-				foreach (var type in lastBuildResult.ProjectStateAfterBuild.ItemTypes)
+				/*foreach (var type in lastBuildResult.ProjectStateAfterBuild.ItemTypes)
 				{
 					Console.WriteLine ($"{type}");
 					foreach (var item in lastBuildResult.ProjectStateAfterBuild.GetItems(type))
 					{
 						Console.WriteLine ($"\t{item}");
 					}
-				}
+				}*/
 				
 
 			//}
@@ -381,7 +387,7 @@ namespace CERoslynPlugin
 			get {
 				string rootPath = Path.GetDirectoryName(FullPath);
 				var allProjects = solutionProject.FlattenProjetcs.OfType<MSBuildProject>();
-				var refProjs = Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>().
+				var refProjs = Flatten.OfType<MSBuildProjectItemNode>().
 						Where (r=>r.NodeType == NodeType.ProjectReference);
 				foreach (var r in refProjs) {
 						var refP = allProjects.FirstOrDefault(p=>Path.GetRelativePath(rootPath, p.FullPath) == r.EvaluatedInclude.Replace("\\","/"));

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2021  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2025  Bruyère Jean-Philippe <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -15,9 +15,6 @@ using Crow;
 
 namespace CrowEditBase
 {
-	public interface IDocumentClient {
-
-	}
 	public class Editor : ScrollingObject, IEditableTextWidget {
 		#region CTOR
 		protected Editor () : base () {

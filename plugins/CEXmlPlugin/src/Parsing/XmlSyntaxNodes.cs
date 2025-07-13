@@ -27,6 +27,7 @@ namespace CrowEdit.Xml
 	public class XMLSingleTokenSyntax : SingleTokenSyntax {
 		public XMLSingleTokenSyntax(Token tok) : base(tok) { }
         public static implicit operator XmlTokenType (XMLSingleTokenSyntax sts) => sts == null ? XmlTokenType.Unknown : (XmlTokenType)sts.Type;
+        public override string ToString() => token.GetTokenType().ToString();
 	}
 	public abstract class ElementTagSyntax : MultiNodeSyntax {
 //		public override bool IsComplete => base.IsComplete & name.HasValue & close.HasValue;
@@ -34,19 +35,20 @@ namespace CrowEdit.Xml
 		protected ElementTagSyntax (Token openTok) {
 			AddChild(new XMLSingleTokenSyntax(openTok));
 		}
-        public override bool IsComplete => ChildSequenceIs();
+        public override bool IsComplete => HasOpeningToken && HasName &&  HasClosingToken;
+		public bool HasName => HasChilds && Children.ElementAtOrDefault(1).IsSimilar(XmlTokenType.ElementName);
 		public string Name => Children.ElementAtOrDefault(1) is SingleTokenSyntax sts &&
 							  sts.token.GetTokenType() == XmlTokenType.ElementName ? sts.AsText(): "";
-		public abstract bool HasClosingToken { get; }
+		public virtual bool HasOpeningToken => Children.FirstOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.ElementOpen;
+		public virtual bool HasClosingToken => Children.LastOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.ClosingSign;
 	}
 	public class ElementStartTagSyntax : ElementTagSyntax {
 		public ElementStartTagSyntax (Token openTok) : base(openTok) {}
-		public override bool HasClosingToken => Children.LastOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.ClosingSign;
 
 	}
 	public class ElementEndTagSyntax : ElementTagSyntax {
 		public ElementEndTagSyntax (Token openTok) : base(openTok) {}
-        public override bool HasClosingToken => Children.LastOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.ClosingSign;
+		public override bool HasOpeningToken => Children.FirstOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.EndElementOpen;
 	}
 	public class EmptyElementSyntax : ElementTagSyntax {
 		public EmptyElementSyntax (ElementStartTagSyntax startNode) {

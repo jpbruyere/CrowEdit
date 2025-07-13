@@ -412,6 +412,7 @@ namespace CECrowPlugin
 					}
 				}
 			}
+			//TODO get styling from nuget package refs
 			/*foreach (String item in crowAssemblies)
 			{
 				yield return Assembly.LoadFile();

@@ -137,8 +137,9 @@ namespace Crow
 					//Console.WriteLine("updatefilteredlines");
 					lock (logger.LogMutext)
 						filteredLines = logger.log.Where (l=>((int)l.Type & (int)filter) > 0).ToArray();
-					MaxScrollY = filteredLines == null ? 0 : filteredLines.Count() - visibleLines;
-					NotifyValueChanged ("ChildHeightRatio", Math.Min (1.0, (double)visibleLines / filteredLines.Count()));
+					int count = filteredLines == null ? 0 : filteredLines.Count();
+					MaxScrollY = count - visibleLines;
+					NotifyValueChanged ("ChildHeightRatio", Math.Min (1.0, (double)visibleLines / count));
 				}
 				if (scrollOnOutput)
 					ScrollY = MaxScrollY;
@@ -292,8 +293,8 @@ namespace Crow
 				else {
 					int count = 0;
 					lock (filteredLinesMutex) 
-						count = filteredLines.Count();
-					MaxScrollY = filteredLines == null ? 0 : count - visibleLines;
+						count = filteredLines == null ? 0 : filteredLines.Count();
+					MaxScrollY = count - visibleLines;
 					NotifyValueChanged ("ChildHeightRatio", Math.Min (1.0, (double)visibleLines / count));
 				}
 			}
