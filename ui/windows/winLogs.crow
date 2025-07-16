@@ -29,7 +29,6 @@
 										Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}"
 										BubbleEvents="MouseWheel">
 									<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
-										<!--<Image Style="TreeIcon" Path="{Icon}" SvgSub="{IconSub}"/> No icon in Document class-->
 										<Label Text="{Name}" ContextCommands="{TabCommands}" Foreground="{../../Foreground}" />
 										<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
 													MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
@@ -72,12 +71,12 @@
 							<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}" CursorRatio="{../log.ChildHeightRatio}" Maximum="{../log.MaxScrollY}" />
 						</HorizontalStack>
 						<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>
-						<HorizontalStack Height="Fit">
+						<!--<HorizontalStack Height="Fit">
 							<Label Text="MaxScrollY:"/>
 							<Label Text="{../../log.MaxScrollY}"/>
 							<Label Text="ScrollY:"/>
 							<Label Text="{../../log.ScrollY}"/>
-						</HorizontalStack>
+						</HorizontalStack>-->
 					</VerticalStack>
 				</ListItem>
 			</ItemTemplate>

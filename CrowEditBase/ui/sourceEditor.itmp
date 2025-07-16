@@ -12,7 +12,7 @@
 					LargeIncrement="{../tb.PageWidth}" SmallIncrement="1"
 					CursorRatio="{../tb.ChildWidthRatio}" Maximum="{../tb.MaxScrollX}" />
 			<HorizontalStack Height="Fit" Spacing='3'>
-				<Widget Width="Stretched"/>
+				<!--<Widget Width="Stretched"/>
 				<Label Text="TokType" Foreground="Grey"/>
 				<Label Text="{../../tb.CurrentTokenType}" Margin="3"/>
 				<Label Text="Tok" Foreground="Grey"/>
@@ -40,7 +40,7 @@
 				<Label Text="Col:" Foreground="Grey"/>
 				<Label Text="{../../tb.TabulatedColumn}" Margin="3"/>
 				<Label Text="Abs:" Foreground="Grey"/>
-				<Label Text="{../../tb.AbsoluteCharLoc}" Margin="3"/>
+				<Label Text="{../../tb.AbsoluteCharLoc}" Margin="3"/>-->
 			</HorizontalStack>
 	</VerticalStack>
 </ListItem>

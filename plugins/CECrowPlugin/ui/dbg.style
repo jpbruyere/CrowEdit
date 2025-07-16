@@ -4,7 +4,7 @@
 }
 
 smallLabCaption {
-	Font="mono, 8";
+	Font="mono, 10";
 	Foreground="Grey";
 }
 smallLabValue {
@@ -32,4 +32,16 @@ labWidgetRecordList {
 
 DbgEventWidget {
 	CacheEnabled = "true";
+}
+CheckBoxEvtType {
+	Template= "#Crow.CheckBox2.template";
+	Width = "160";
+	Height = "Fit";
+	CornerRadius = "2";
+	Background = "${ControlIdle}";
+	Foreground = "${ControlForeground}";
+	Checked = "{Background=${ControlHighlight}}";
+	Unchecked = "{Background=${ControlIdle}}";
+	MouseEnter = "{Foreground=${ControlCaptionHoverColor}}";
+	MouseLeave = "{Foreground=${ControlForeground}}";
 }

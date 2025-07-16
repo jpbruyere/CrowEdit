@@ -322,8 +322,6 @@ namespace Crow
 				entries = filteredLines.Skip(ScrollY).Take(visibleLines).ToArray();
 			}
 
-			//perf.Restart();
-
 			for (int i = 0; i < entries.Count(); i++) {
 				int idx = i + ScrollY;
 				LogEntry le = entries.ElementAt(i);
@@ -371,14 +369,11 @@ namespace Crow
 							break;
 					}
 					gr.MoveTo (x, y + fe.Ascent);
-					ReadOnlySpan<char> tmp = le.msg.AsSpan(0, Math.Min (400, le.msg.Length));
+					ReadOnlySpan<char> tmp = le.msg.AsSpan(0, Math.Min (100, le.msg.Length));
 					gr.ShowText (tmp);
 				}
 				y += fe.Height;
 			}
-			/*perf.Stop();
-			Console.WriteLine($"log onDraw: {visibleLines} lines in {perf.ElapsedMilliseconds} ms");*/
-			
 		}
 		
 		public override void onMouseLeave(object sender, MouseMoveEventArgs e)

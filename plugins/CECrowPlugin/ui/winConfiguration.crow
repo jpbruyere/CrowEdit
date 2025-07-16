@@ -40,13 +40,21 @@
 		<Spinner Caption="Max Layout Try" Value="{²MaxLayoutingTries}" Maximum="1000"/>
 		<Spinner Caption="Max Layout Discard" Value="{²MaxDiscardCount}" Maximum="1000"/>
 		<GroupBox Caption="Debug Logger" IsEnabled="{DebugLogIsEnabled}" Height="40%">
-			<HorizontalStack>
-				<ListBox Data="{²RecordedEvents}"/>
+			<HorizontalStack Margin="4">
+				<ListBox Data="{RecordedEvents}" SelectedItem="{²CurrentRecordedEvent}"/>
 				<VerticalStack Width="50%">
-					<EnumSelector RadioButtonStyle="CheckBox2" Template="#CECrowPlugin.ui.EnumSelector.template" Width="Stretched"
-						Caption="Recorded Events" EnumValue="{²AddRecordedEvents}"  />
-					<HorizontalStack>
-						<Button/>
+					<CheckBox Name="cbFile" Caption="Record to file" IsChecked="{²DebugLogToFile}" Background="Onyx"/>
+					<HorizontalStack Height="Fit" Width="Stretched" IsEnabled="{../cbFile.IsChecked}" Background="Onyx" Margin="5">
+						<Label Text="Debug log output directory:" Fit="true"/>
+						<TextBox Text="{²DebugLogFileDirectory}"  />
+						<Button Command="{CMDOptions_SelectDebugLogDirectory}" MinimumSize="0,0"/>
+					</HorizontalStack>
+					<Label Text="{CurrentRecordedEvent}"/>
+					<EnumSelector RadioButtonStyle="CheckBoxEvtType" Template="#CECrowPlugin.ui.EnumSelector.template" Width="Stretched"
+						Caption="Event Type to add for recording:" EnumValue="{²EvtTypeToAddForRecording}"  />
+					<HorizontalStack Width="Stretched">
+						<Button Command="{CMDAddEventToRecord}" Width="Fit"/>
+						<Button Command="{CMDRemoveEventToRecord}" Width="Fit"/>
 					</HorizontalStack>
 				</VerticalStack>
 			</HorizontalStack>

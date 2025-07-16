@@ -47,14 +47,14 @@
 					<Template>
 						<Wrapper Name="ItemsContainer" Spacing="1" Background="{./Background}"/>
 					</Template>
-				</ListBox>			
-			</VerticalStack>			
+				</ListBox>
+			</VerticalStack>
 		</TabView>
 		<Splitter/>
 		<HorizontalStack Height="30%">
-			<!--<ListBox Data="{Widgets}" Width="200" SelectedItem="{²CurrentWidget}"
-				ItemTemplate="#CECrowPlugin.ui.WidgetRecord.itemp">				
-			</ListBox>-->
+			<ListBox Data="{Widgets}" Width="200" SelectedItem="{²CurrentWidgetRecord}"
+				ItemTemplate="#CECrowPlugin.ui.WidgetRecord.itemp">
+			</ListBox>
 			<ListBox Data="{CurWidgetProperties}" Width="25%" >
 				<ItemTemplate>
 					<ListItem Height="Fit" Margin="1" Focusable="true" HorizontalAlignment="Left" 
@@ -64,15 +64,15 @@
 							<Label Text="{Key}" Width="140"/>
 							<Label Text="{Value}" Width="Stretched" Background="White" Foreground="Black" TextAlignment="Left"/>
 						</HorizontalStack>
-					</ListItem>				
+					</ListItem>
 				</ItemTemplate>
 			</ListBox>
 			<Splitter/>
 			<VerticalStack>
 				<HorizontalStack Height="Fit" Background="Onyx" Spacing="5">
-					<Label Text="{CurrentWidget}"/>
+					<Label Text="{CurrentWidgetRecord}"/>
 					<Label Text="events"/>
-				</HorizontalStack>				
+				</HorizontalStack>
 				<ListBox Height="Stretched" Data="{CurrentWidgetEvents}" SelectedItem="{²CurrentEvent}" Background="DarkGrey"
 							ItemTemplate="#CECrowPlugin.ui.DbgWidgetEventListItems.itemp"/>
 			</VerticalStack>

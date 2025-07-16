@@ -50,36 +50,17 @@ namespace CECrowPlugin
 		];
 
 		#region Commands
-		public Command CMDStartRecording, CMDStopRecording, CMDRefresh;
+		public Command CMDStartRecording, CMDStopRecording, CMDRefresh, CMDAddEventToRecord, CMDRemoveEventToRecord;
 		public Command CMDGotoParentEvent, CMDEventHistoryForward, CMDEventHistoryBackward;
 		public CommandGroup LoggerCommands => new CommandGroup (CMDRefresh, CMDStartRecording, CMDStopRecording);
 		public CommandGroup GraphicTreeCommands => new CommandGroup (CMDRefresh);
 		public CommandGroup EventCommands => new CommandGroup(
 				CMDGotoParentEvent, CMDEventHistoryBackward, CMDEventHistoryForward);
-		public ActionCommand CMDOptions_SelectCrowAssemblyLocation => new ActionCommand ("...",
-			() => {
-				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
-							ShowFiles='true' ShowHidden='true' />");
-				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
-				dlg.DataSource = this;
-			}
-		);
-		public ActionCommand CMDOptions_AddCrowAssembly => new ActionCommand ("Add Assembly with Crow Ressource",
-			() => {
-				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select Assembly with Crow Ressources' CurrentDirectory='{CrowDbgAssemblyLocation}'
-							ShowFiles='true' ShowHidden='true' />");
-				dlg.OkClicked += (sender, e) => {
-					crowAssemblies.Add ((sender as FileDialog).SelectedFileFullPath);
-					saveCrowAssemblies ();
-				};
-				dlg.DataSource = this;
-			}
-		);
-		public ActionCommand CMDOptions_RemoveCrowAssembly;
-		public ActionCommand CMDViewPreview, CMDViewGraphicTree, CMDViewProperties;
+		public Command CMDOptions_SelectCrowAssemblyLocation, CMDOptions_AddCrowAssembly, CMDOptions_RemoveCrowAssembly;
+		public Command CMDOptions_SelectDebugLogDirectory;
+		public Command CMDViewPreview, CMDViewGraphicTree, CMDViewProperties;
 		public CommandGroup ViewCommands;
+		
 		void initCommands ()
 		{
 			CMDViewPreview = new ActionCommand("Preview", () => App.LoadWindow ("#CECrowPlugin.ui.winCrowPreview.crow", App), "#icons.presentation.svg");
@@ -90,6 +71,19 @@ namespace CECrowPlugin
 			CMDRefresh = new ActionCommand ("Refresh", refresh, "#icons.refresh.svg", IsRunning);
 			CMDStartRecording = new ActionCommand ("Start Recording", () => Recording = true, "#icons.circle.svg", false);
 			CMDStopRecording = new ActionCommand ("Stop Recording", stopRecording, "#icons.circle-red.svg", false);
+			CMDAddEventToRecord = new ActionCommand ("Add Event To Record", () => {
+				if (EvtTypeToAddForRecording != DbgEvtType.None && !recordedEvents.Contains(EvtTypeToAddForRecording)) {
+					recordedEvents.Add(EvtTypeToAddForRecording);
+					EvtTypeToAddForRecording = DbgEvtType.None;
+				}
+			});
+			CMDRemoveEventToRecord = new ActionCommand ("Remove Event To Record", () => {
+				if (currentRecordedEvent != DbgEvtType.None && recordedEvents.Contains(currentRecordedEvent)) {
+					recordedEvents.Remove(currentRecordedEvent);
+					currentRecordedEvent = DbgEvtType.None;
+				}
+			});
+
 
 			CMDGotoParentEvent = new ActionCommand("parent", ()=> { CurrentEvent = CurrentEvent?.parentEvent; }, "#icons.level-up.svg", false);
 			CMDEventHistoryBackward = new ActionCommand("back.", currentEventHistoryGoBack, "#icons.previous.svg", false);
@@ -100,6 +94,32 @@ namespace CECrowPlugin
 					crowAssemblies.Remove(selectedCrowAssembly);
 					saveCrowAssemblies ();
 				}, "#icons.trash.svg", false);
+			CMDOptions_SelectCrowAssemblyLocation = new ActionCommand ("...", () =>
+			{
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Crow.dll assembly' CurrentDirectory='{CrowDbgAssemblyLocation}'
+							ShowFiles='true' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => CrowDbgAssemblyLocation = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = this;
+			});
+			CMDOptions_AddCrowAssembly = new ActionCommand ("Add Assembly with Crow Ressource", () => {
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Assembly with Crow Ressources' CurrentDirectory='{CrowDbgAssemblyLocation}'
+							ShowFiles='true' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => {
+					crowAssemblies.Add ((sender as FileDialog).SelectedFileFullPath);
+					saveCrowAssemblies ();
+				};
+				dlg.DataSource = this;
+			});
+			CMDOptions_SelectDebugLogDirectory = new ActionCommand ("...", () =>
+			{
+				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
+				<FileDialog Caption='Select Logs directory ' CurrentDirectory='{²DebugLogFileDirectory}'
+							ShowFiles='false' ShowHidden='false' />");
+				dlg.DataSource = this;
+			});
+
 		}
 		#endregion
 
@@ -107,6 +127,14 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				fiITor_NextInstantiatorID?.SetValue (null, 0);
 				delSetSource (imlSource);
+			}
+		}
+		void refresh () {
+			if (!IsRunning)
+				Start ();
+			if (IsRunning) {
+				fiITor_NextInstantiatorID?.SetValue (null, 0);
+				delReloadIml ();
 			}
 		}
 		
@@ -226,70 +254,6 @@ namespace CECrowPlugin
 		FieldInfo fiDbg_IncludedEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount, fiDbgIFace_Terminate;
 		FieldInfo fiITor_NextInstantiatorID;
 		
-		#endregion
-
-		#region DebugLog
-		bool recording, debugLogIsEnabled;
-		IList<DbgEvtType> recordedEvents = new ObservableList<DbgEvtType>(new DbgEvtType[] {DbgEvtType.Widget} );
-		DbgEvtType addRecordedEvents = DbgEvtType.None;
-		public bool DebugLogIsEnabled {
-			get => debugLogIsEnabled;
-			set {
-				if (debugLogIsEnabled == value)
-					return;
-				debugLogIsEnabled = value;
-				CMDStartRecording.CanExecute = debugLogIsEnabled & !Recording;
-				CMDStopRecording.CanExecute = debugLogIsEnabled & Recording;
-				NotifyValueChanged (debugLogIsEnabled);
-			}
-		}
-		public bool Recording {
-			get => recording;
-			set {
-				if (recording == value)
-					return;
-				recording = IsRunning & DebugLogIsEnabled & value;
-				if (recording) {
-					fiDbg_IncludedEvents.SetValue (dbgIFace, RecordedEvents.ToList());
-					CMDStartRecording.CanExecute = false;
-					CMDStopRecording.CanExecute = true;
-				} else {
-					fiDbg_IncludedEvents.SetValue (dbgIFace, new List<DbgEvtType>());
-					CMDStartRecording.CanExecute = debugLogIsEnabled;
-					CMDStopRecording.CanExecute = false;
-				}
-				NotifyValueChanged(recording);
-			}
-		}
-		public IList<DbgEvtType> RecordedEvents {
-			get => recordedEvents;
-			set {
-				if (recordedEvents == value)
-					return;
-				recordedEvents = value;
-				if (Recording)
-					fiDbg_IncludedEvents.SetValue (dbgIFace, value);
-				NotifyValueChanged (recordedEvents);
-			}
-		}
-		public DbgEvtType AddRecordedEvents {
-			get => addRecordedEvents;
-			set {
-				if (addRecordedEvents == value)
-					return;
-				addRecordedEvents = value;
-				NotifyValueChanged (addRecordedEvents);
-			}
-		}		
-		public string DebugLogFilePath {
-			get => Configuration.Global.Get<string> ("DebugLogFilePath");
-			set {
-				if (DebugLogFilePath == value)
-					return;
-				Configuration.Global.Set ("DebugLogFilePath", value);
-				NotifyValueChanged (value);
-			}
-		}
 		#endregion
 
 		public bool HasVkvgBackend { get; private set; }
@@ -662,7 +626,7 @@ namespace CECrowPlugin
 		}
 		#endregion
 		
-		#region Mouse & Keyboard		
+		#region Mouse & Keyboard
 		Point mouseScreenPos;//absolute on screen position.
 		public void onKeyDown(KeyEventArgs e)
 		{
@@ -763,8 +727,91 @@ namespace CECrowPlugin
 		#endregion
 
 		#region Debug log
+		bool recording, debugLogIsEnabled;
+		int firstWidgetIndexToGet = 0;
+		public object LogMutex = new object ();
 		IList<DbgEvent> events;
 		IList<DbgWidgetRecord> widgets;
+		IList<DbgEvtType> recordedEvents = new ObservableList<DbgEvtType>(new DbgEvtType[] { DbgEvtType.Widget } );
+		DbgEvtType evtTypeToAddForRecording = DbgEvtType.None, currentRecordedEvent = DbgEvtType.None;
+		public bool DebugLogIsEnabled {
+			get => debugLogIsEnabled;
+			set {
+				if (debugLogIsEnabled == value)
+					return;
+				debugLogIsEnabled = value;
+				CMDStartRecording.CanExecute = debugLogIsEnabled & !Recording;
+				CMDStopRecording.CanExecute = debugLogIsEnabled & Recording;
+				NotifyValueChanged (debugLogIsEnabled);
+			}
+		}
+		public bool Recording {
+			get => recording;
+			set {
+				if (recording == value)
+					return;
+				recording = IsRunning & DebugLogIsEnabled & value;
+				if (recording) {
+					fiDbg_IncludedEvents.SetValue (dbgIFace, RecordedEvents.ToList());
+					CMDStartRecording.CanExecute = false;
+					CMDStopRecording.CanExecute = true;
+				} else {
+					fiDbg_IncludedEvents.SetValue (dbgIFace, new List<DbgEvtType>());
+					CMDStartRecording.CanExecute = debugLogIsEnabled;
+					CMDStopRecording.CanExecute = false;
+				}
+				NotifyValueChanged(recording);
+			}
+		}
+		public IList<DbgEvtType> RecordedEvents {
+			get => recordedEvents;
+			set {
+				if (recordedEvents == value)
+					return;
+				recordedEvents = value;
+				if (Recording)
+					fiDbg_IncludedEvents.SetValue (dbgIFace, value);
+				NotifyValueChanged (recordedEvents);
+			}
+		}
+		public DbgEvtType EvtTypeToAddForRecording {
+			get => evtTypeToAddForRecording;
+			set {
+				if (evtTypeToAddForRecording == value)
+					return;
+				evtTypeToAddForRecording = value;
+				NotifyValueChanged (evtTypeToAddForRecording);
+			}
+		}
+		public object CurrentRecordedEvent {
+			get => currentRecordedEvent;
+			set {
+				if (currentRecordedEvent == (DbgEvtType)value)
+					return;
+				currentRecordedEvent = (DbgEvtType)value;
+				NotifyValueChanged(currentRecordedEvent);
+			}
+		}
+		public string DebugLogFileDirectory {
+			get => Configuration.Global.Get<string> ("DebugLogFileDirectory", Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments));
+			set {
+				if (DebugLogFileDirectory == value)
+					return;
+				Configuration.Global.Set ("DebugLogFileDirectory", value);
+				NotifyValueChanged (value);
+			}
+		}
+		public bool DebugLogToFile {
+			get => Configuration.Global.Get<bool> (nameof(DebugLogToFile));
+			set {
+				if (DebugLogToFile == value)
+					return;
+				Configuration.Global.Set (nameof(DebugLogToFile), value);
+				NotifyValueChanged(DebugLogToFile);
+				DbgLogger.ConsoleOutput = !value;
+			}
+		}
+
 		public IList<DbgEvent> Events {
 			get => events;
 			set {
@@ -783,42 +830,42 @@ namespace CECrowPlugin
 				NotifyValueChanged (nameof (Widgets), widgets);
 			}
 		}
-		void refresh () {
-			if (!IsRunning)
-				Start ();
-			if (IsRunning) {
-				fiITor_NextInstantiatorID?.SetValue (null, 0);
-				delReloadIml ();
-			}
-				
-			//updateCrowApp();
-		}
+
 		void stopRecording () {
 			if (!Recording)
 				return;
 			Recording = false;
-			getLog ();
-			App.LoadWindow ("#CECrowPlugin.ui.winDebugLog.crow", this);
+			if (DebugLogToFile) {
+				string logfilepath = Path.Combine(DebugLogFileDirectory,  $"crow-{DateTime.Now:yyyy-MM-dd_hh-mm}.log");
+				using (FileStream stream = new FileStream(logfilepath, FileMode.CreateNew, FileAccess.Write)) {
+					writeLog(stream);
+					MessageBox.ShowModal(App, MessageBox.Type.Information, $"Debug log saved to: {logfilepath}");
+				}
+			} else {
+				getLog ();
+				App.LoadWindow ("#CECrowPlugin.ui.winDebugLog.crow", this);
+			}
 		}
-		int firstWidgetIndexToGet = 0;
-		public object LogMutex = new object ();
+		void writeLog(Stream stream) {
+			Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
+			MethodInfo miSave = debuggerType.GetMethod("Save",
+				new Type[] {
+					dbgIfaceType,
+					typeof(Stream),
+					typeof(int),
+					typeof(bool)
+				});
+			miSave.Invoke(null, new object[] {dbgIFace, stream, firstWidgetIndexToGet, true});
+		}
 		void getLog () {
 
 			using (Stream stream = new MemoryStream (1024)) {
-				Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
-				MethodInfo miSave = debuggerType.GetMethod("Save",
-					new Type[] {
-						dbgIfaceType,
-						typeof(Stream),
-						typeof(int),
-						typeof(bool)
-					});
-
-
 				List<DbgWidgetRecord> widgets = new List<DbgWidgetRecord>();
 				List<DbgEvent> events = new List<DbgEvent>();
-				miSave.Invoke(null, new object[] {dbgIFace, stream, firstWidgetIndexToGet, true});
+
+				writeLog(stream);
 				stream.Seek(0, SeekOrigin.Begin);
+
 				DbgLogger.Load (stream, events, widgets);
 
 				lock (LogMutex) {
@@ -918,7 +965,6 @@ namespace CECrowPlugin
 
 			disableCurrentEventHistory = false;
 		}
-
 		void currentEventHistoryGoForward () {
 			disableCurrentEventHistory = true;
 			CurrentEventHistoryBackward.Push (CurrentEvent);
@@ -935,7 +981,7 @@ namespace CECrowPlugin
 				if (curWidgetRecord == value)
 					return;
 				curWidgetRecord = value;
-				NotifyValueChanged (nameof (CurrentWidget), curWidgetRecord);
+				NotifyValueChanged ("CurrentWidgetRecord", curWidgetRecord);
 				NotifyValueChanged ("CurWidgetRootEvents", curWidgetRecord?.RootEvents);
 				NotifyValueChanged ("CurrentWidgetEvents", curWidgetRecord?.Events);
 				NotifyValueChanged ("CurWidgetProperties", CurWidgetProperties);

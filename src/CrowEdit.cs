@@ -37,20 +37,10 @@ namespace CrowEdit
 
 		static void Main ()
 		{
-			/*DbgLogger.IncludedEvents.AddRange ( new DbgEvtType[] {
-				DbgEvtType.MouseEnter,
-				DbgEvtType.MouseLeave,
-				DbgEvtType.WidgetMouseDown,
-				DbgEvtType.WidgetMouseUp,
-				DbgEvtType.WidgetMouseClick,
-				DbgEvtType.HoverWidget
-			});*/
 			using (CrowEdit app = new CrowEdit ())
 				app.Run	();
 		}
-		public CrowEdit () : base (Configuration.Global.Get<int>("MainWinWidth", 800), Configuration.Global.Get<int>("MainWinHeight", 600), true) {
-
-		}
+		public CrowEdit () : base (Configuration.Global.Get<int>("MainWinWidth", 800), Configuration.Global.Get<int>("MainWinHeight", 600), true) {	}
 		public override void ProcessResize(Rectangle bounds)
 		{
 			base.ProcessResize(bounds);
@@ -89,7 +79,6 @@ namespace CrowEdit
 					}
 				}
 			}
-
 
 			reopenLastProjectList ();
 

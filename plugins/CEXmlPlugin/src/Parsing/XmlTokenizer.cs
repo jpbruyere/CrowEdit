@@ -202,6 +202,5 @@ namespace CrowEdit.Xml
 			addTok (ref reader, XmlTokenType.Unknown);
 			return Toks.ToArray();
 		}
-
 	}
 }
