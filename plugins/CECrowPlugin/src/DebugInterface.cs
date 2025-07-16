@@ -52,10 +52,11 @@ namespace CECrowPlugin
 			};
 			t.Start ();
 		}
-		public bool Terminate;
-		public bool Edition = true;
-		public bool FirstRenderingFinished = false;
+		public bool Terminate = false;
+        public bool Edition = true;
+        public bool FirstRenderingFinished = false;
 		
+
 		bool checkEditHoverWidget() {
 			if (lastEditHoverWidget != editHoverWidget) {
 				if (editHoverWidget == null)
@@ -89,6 +90,8 @@ namespace CECrowPlugin
 								lqiCount = LayoutingQueue.Count;
 						}
 						FirstRenderingFinished = true;
+					} else {
+						Update();
 					}
 				}
 				catch (System.Exception ex)
@@ -191,9 +194,7 @@ namespace CECrowPlugin
 			}
 		}
 
-
-		
-		void resetInterface () {
+        void resetInterface () {
 			ClearInterface();
 			initDictionaries();
 			foreach (object style in delCrowServiceGetStyling ()) {

@@ -46,15 +46,13 @@ namespace CECrowPlugin
 						RegisterForGraphicUpdate ();
 					}
 				}, "#icons.zoom-out.svg");
-			//CMDRun = new ToggleCommand(this,"Run",,)
-
 			Thread t = new Thread (backgroundThreadFunc);
 			t.IsBackground = true;
 			t.Start ();
 		}
         ~DebugInterfaceWidget() {
 			if (crowIFaceService != null)
-				crowIFaceService.ValueChanged -= service_ValueChanged;			
+				crowIFaceService.ValueChanged -= service_ValueChanged;
 		}
         void service_ValueChanged(object instance, ValueChangeEventArgs e) {
 			if (e.MemberName == "CurrentWidget") {
@@ -74,8 +72,10 @@ namespace CECrowPlugin
 		ImlDocument document;
 		ForeignWidgetContainer currentWidget, hoverWidget;
 		
-		Command CMDRefresh, CMDZoomIn, CMDZoomOut, CMDRun;
+		Command CMDRefresh, CMDZoomIn, CMDZoomOut;
 		public CommandGroup WindowCommands => new CommandGroup (
+			crowIFaceService.CMDRun,
+			crowIFaceService.CMDEditMode,
 			CMDRefresh, //CMDZoomIn, CMDZoomOut,
 			crowIFaceService.CMDStartRecording,
 			crowIFaceService.CMDStopRecording,
@@ -215,24 +215,26 @@ namespace CECrowPlugin
 			if (crowIFaceService != null && crowIFaceService.IsRunning && bmp != null) {
 				//crowIFaceService.LockRenderMutex();
 				paintCache (ctx, Slot + Parent.ClientRectangle.Position);
-				if (hoverWidget != null && hoverWidget != currentWidget) {
-					//currentWidget.
-					RectangleD r = hoverWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
-					ctx.SetDash([1,3]);
-					ctx.SetSource(Colors.Yellow);
-					ctx.Rectangle(r, 1);
-					ctx.SetDash([]);
-				}				
-				if (currentWidget != null) {
-					//currentWidget.
-					RectangleD r = currentWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
-					//ctx.ResetClip();
-					//ctx.SetDash([2,3]);
-					ctx.SetSource(Colors.White);
-					ctx.Rectangle(r.Inflated(1), 1);
-//					ctx.Stroke();
-					//ctx.SetDash([0]);
-				}				
+				if (crowIFaceService.EditMode) {
+					if (hoverWidget != null && hoverWidget != currentWidget) {
+						//currentWidget.
+						RectangleD r = hoverWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
+						ctx.SetDash([1,3]);
+						ctx.SetSource(Colors.Yellow);
+						ctx.Rectangle(r, 1);
+						ctx.SetDash([]);
+					}				
+					if (currentWidget != null) {
+						//currentWidget.
+						RectangleD r = currentWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
+						//ctx.ResetClip();
+						//ctx.SetDash([2,3]);
+						ctx.SetSource(Colors.White);
+						ctx.Rectangle(r.Inflated(1), 1);
+	//					ctx.Stroke();
+						//ctx.SetDash([0]);
+					}
+				}
 				//crowIFaceService.UnlockRenderMutex();
 				crowIFaceService.ResetDirtyState ();
 			} 

@@ -59,6 +59,7 @@ namespace CECrowPlugin
 		public Command CMDOptions_SelectCrowAssemblyLocation, CMDOptions_AddCrowAssembly, CMDOptions_RemoveCrowAssembly;
 		public Command CMDOptions_SelectDebugLogDirectory;
 		public Command CMDViewPreview, CMDViewGraphicTree, CMDViewProperties;
+		public Command CMDEditMode, CMDRun;
 		public CommandGroup ViewCommands;
 		
 		void initCommands ()
@@ -67,6 +68,9 @@ namespace CECrowPlugin
 			CMDViewGraphicTree = new ActionCommand("Graphic Tree", () => App.LoadWindow (ServiceWindowsPath[1], this), "#icons.Crow.TreeView.svg");
 			CMDViewProperties = new ActionCommand("Widget Properties", () => App.LoadWindow (ServiceWindowsPath[2], this), "#icons.property.svg");
 			ViewCommands = new CommandGroup("C.R.O.W.", "#icons.crow.svg" ,CMDViewPreview, CMDViewGraphicTree, CMDViewProperties);
+
+			CMDRun = new ActionCommand ("Run", () => EditMode = false, "#icons.presentation.svg", true);
+			CMDEditMode = new ActionCommand ("Edit mode", () => EditMode = true, "#icons.edit.svg", false);
 
 			CMDRefresh = new ActionCommand ("Refresh", refresh, "#icons.refresh.svg", IsRunning);
 			CMDStartRecording = new ActionCommand ("Start Recording", () => Recording = true, "#icons.circle.svg", false);
@@ -252,11 +256,21 @@ namespace CECrowPlugin
 
 
 		FieldInfo fiDbg_IncludedEvents, fiDbg_ConsoleOutput, fiDbgIFace_MaxLayoutingTries, fiDbgIFace_MaxDiscardCount, fiDbgIFace_Terminate;
+		FieldInfo fiDbgIFace_UPDATE_INTERVAL, fiDbgIFace_Edition;
 		FieldInfo fiITor_NextInstantiatorID;
 		
 		#endregion
 
 		public bool HasVkvgBackend { get; private set; }
+		public int CrowUpdateInterval {
+			get => (int)fiDbgIFace_UPDATE_INTERVAL.GetValue(null);
+			set {
+				if (CrowUpdateInterval == value)
+					return;
+				fiDbgIFace_UPDATE_INTERVAL.SetValue (null, value);
+				NotifyValueChanged (value);
+			}
+		}		
 		public int RefreshRate {
 			get => Configuration.Global.Get<int> ("RefreshRate", 10);
 			set {
@@ -286,6 +300,18 @@ namespace CECrowPlugin
 				fiDbgIFace_MaxDiscardCount.SetValue (null, value);
 			}
 		}
+		public bool EditMode {
+			get => (bool)fiDbgIFace_Edition.GetValue(dbgIFace);
+			set {
+				if (EditMode == value)
+					return;
+				fiDbgIFace_Edition.SetValue(dbgIFace, value);
+				CMDEditMode.CanExecute = !value;
+				CMDRun.CanExecute = value;
+				NotifyValueChanged(value);
+			}
+		}
+		
 		public double ZoomFactor {
 			get => Configuration.Global.Get<Double> ("CrowPreviewZoomFactor", 1.0);
 			set {
@@ -533,6 +559,8 @@ namespace CECrowPlugin
 
 			fiDbgIFace_Terminate = dbgIfaceType.GetField("Terminate");
 			fiDbgIFace_IsDirty = dbgIfaceType.GetField("IsDirty");
+			fiDbgIFace_Edition = dbgIfaceType.GetField("Edition");
+			fiDbgIFace_UPDATE_INTERVAL = dbgIfaceType.GetField("UPDATE_INTERVAL", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 			fiDbgIFace_MaxLayoutingTries = dbgIfaceType.GetField("MaxLayoutingTries", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 			fiDbgIFace_MaxDiscardCount = dbgIfaceType.GetField("MaxDiscardCount", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 
@@ -689,8 +717,10 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				try
 				{
-					//e.Handled = delMouseDown (e.Button);
-					CurrentWidget = HoverWidget;
+					if (EditMode)
+						CurrentWidget = HoverWidget;
+					else
+						e.Handled = delMouseDown (e.Button);
 				}
 				catch (System.Exception ex)
 				{
@@ -703,7 +733,10 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = true;//delMouseUp (e.Button);
+					if (EditMode)
+						e.Handled = true;
+					else
+						delMouseUp (e.Button);
 				}
 				catch (System.Exception ex)
 				{
@@ -716,7 +749,10 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				try
 				{
-					e.Handled = true;// delMouseWheelChanged (e.Delta);
+					if (EditMode)
+						e.Handled = true;
+					else
+						delMouseWheelChanged (e.Delta);
 				}
 				catch (System.Exception ex)
 				{

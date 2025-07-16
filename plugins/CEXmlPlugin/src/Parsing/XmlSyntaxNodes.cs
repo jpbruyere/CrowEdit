@@ -36,7 +36,7 @@ namespace CrowEdit.Xml
 			AddChild(new XMLSingleTokenSyntax(openTok));
 		}
         public override bool IsComplete => HasOpeningToken && HasName &&  HasClosingToken;
-		public bool HasName => HasChilds && Children.ElementAtOrDefault(1).IsSimilar(XmlTokenType.ElementName);
+		public bool HasName => !string.IsNullOrEmpty(Name);
 		public string Name => Children.ElementAtOrDefault(1) is SingleTokenSyntax sts &&
 							  sts.token.GetTokenType() == XmlTokenType.ElementName ? sts.AsText(): "";
 		public virtual bool HasOpeningToken => Children.FirstOrDefault() is SingleTokenSyntax sts && sts.token.GetTokenType() == XmlTokenType.ElementOpen;
