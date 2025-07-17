@@ -119,8 +119,10 @@ namespace CECrowPlugin
 			CMDOptions_SelectDebugLogDirectory = new ActionCommand ("...", () =>
 			{
 				FileDialog dlg = App.LoadIMLFragment<FileDialog> (@"
-				<FileDialog Caption='Select Logs directory ' CurrentDirectory='{²DebugLogFileDirectory}'
-							ShowFiles='false' ShowHidden='false' />");
+				<FileDialog Caption='Select Logs directory '
+							CurrentDirectory='{²DebugLogFileDirectory}'
+							SelectedFile='{²DebugLogFileName}'
+							ShowFiles='true' ShowHidden='false' />");
 				dlg.DataSource = this;
 			});
 
@@ -381,12 +383,12 @@ namespace CECrowPlugin
 
 		#region DesignInterface callbacks
 		//those methods are called by designed interface
+		public void ForceMousePosition() {
+			//todo: looks like having no effect
+			App.ForceMousePosition();
+		}
 		public void UpdateRootWidget(Type widgetType, object instance) {
 			GraphicTree = new List<ForeignWidgetContainer>([new ForeignWidgetContainer(widgetType, instance)]);
-		}
-		void getMouseScreenCoordinates (out int x, out int y) {
-			x = mouseScreenPos.X;
-			y = mouseScreenPos.Y;
 		}
 		IEnumerable<object> getStyling () {
 			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
@@ -700,7 +702,7 @@ namespace CECrowPlugin
 			if (CurrentState == Status.Running) {
 				try
 				{
-					mouseScreenPos = _mouseScreenPos;//absolute on screen position.
+					mouseScreenPos = _mouseScreenPos;
 					//e.Handled = delMouseMove ((int)(e.X / ZoomFactor), (int)(e.Y / ZoomFactor));//DebugInterface local coordinate for mouse.
 					e.Handled = delMouseMove (e.X, e.Y);//DebugInterface local coordinate for mouse.
 				}
@@ -768,7 +770,7 @@ namespace CECrowPlugin
 		public object LogMutex = new object ();
 		IList<DbgEvent> events;
 		IList<DbgWidgetRecord> widgets;
-		IList<DbgEvtType> recordedEvents = new ObservableList<DbgEvtType>(new DbgEvtType[] { DbgEvtType.Widget } );
+		IList<DbgEvtType> recordedEvents = new ObservableList<DbgEvtType>(new DbgEvtType[] { DbgEvtType.Widget, DbgEvtType.IFace } );
 		DbgEvtType evtTypeToAddForRecording = DbgEvtType.None, currentRecordedEvent = DbgEvtType.None;
 		public bool DebugLogIsEnabled {
 			get => debugLogIsEnabled;
@@ -837,6 +839,15 @@ namespace CECrowPlugin
 				NotifyValueChanged (value);
 			}
 		}
+		public string DebugLogFileName {
+			get => Configuration.Global.Get<string> ("DebugLogFileName", "crow.log");
+			set {
+				if (DebugLogFileName == value)
+					return;
+				Configuration.Global.Set ("DebugLogFileName", value);
+				NotifyValueChanged (value);
+			}
+		}
 		public bool DebugLogToFile {
 			get => Configuration.Global.Get<bool> (nameof(DebugLogToFile));
 			set {
@@ -845,6 +856,15 @@ namespace CECrowPlugin
 				Configuration.Global.Set (nameof(DebugLogToFile), value);
 				NotifyValueChanged(DebugLogToFile);
 				DbgLogger.ConsoleOutput = !value;
+			}
+		}
+		public bool ManualDebugLogFileName {
+			get => Configuration.Global.Get<bool> (nameof(ManualDebugLogFileName));
+			set {
+				if (ManualDebugLogFileName == value)
+					return;
+				Configuration.Global.Set (nameof(ManualDebugLogFileName), value);
+				NotifyValueChanged(ManualDebugLogFileName);
 			}
 		}
 
@@ -872,9 +892,11 @@ namespace CECrowPlugin
 				return;
 			Recording = false;
 			if (DebugLogToFile) {
-				string logfilepath = Path.Combine(DebugLogFileDirectory,  $"crow-{DateTime.Now:yyyy-MM-dd_hh-mm}.log");
-				using (FileStream stream = new FileStream(logfilepath, FileMode.CreateNew, FileAccess.Write)) {
+				string logfilepath = Path.Combine(DebugLogFileDirectory,
+					ManualDebugLogFileName ? DebugLogFileName : $"crow-{DateTime.Now:yyyy-MM-dd_hh-mm}.log");
+				using (FileStream stream = new FileStream(logfilepath, FileMode.Create, FileAccess.Write)) {
 					writeLog(stream);
+					//todo: should be notified in crowedit logs
 					MessageBox.ShowModal(App, MessageBox.Type.Information, $"Debug log saved to: {logfilepath}");
 				}
 			} else {

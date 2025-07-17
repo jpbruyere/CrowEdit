@@ -193,9 +193,12 @@ namespace CECrowPlugin
 		public override void onKeyDown(object sender, KeyEventArgs e) => crowIFaceService?.onKeyDown(e);
 		public override void onKeyUp(object sender, KeyEventArgs e) => crowIFaceService?.onKeyUp(e);
 		public override void onKeyPress(object sender, KeyPressEventArgs e) => crowIFaceService?.onKeyPress(e);
+		Point localMousePos;
 		public override void onMouseMove(object sender, MouseMoveEventArgs e) {
 			Point m = ScreenPointToLocal (e.Position);
-			crowIFaceService?.onMouseMove(e.Position, new MouseMoveEventArgs(m.X,m.Y, e.XDelta, e.YDelta));
+			localMousePos = m;
+			//Debug.WriteLine($"local mouse position: {m}");
+			crowIFaceService?.onMouseMove(e.Position, new MouseMoveEventArgs (m.X, m.Y, e.XDelta, e.YDelta));
 		}
 		public override void onMouseDown(object sender, MouseButtonEventArgs e) => crowIFaceService?.onMouseDown(e);
 		public override void onMouseUp(object sender, MouseButtonEventArgs e) => crowIFaceService?.onMouseUp(e);
@@ -215,6 +218,7 @@ namespace CECrowPlugin
 			if (crowIFaceService != null && crowIFaceService.IsRunning && bmp != null) {
 				//crowIFaceService.LockRenderMutex();
 				paintCache (ctx, Slot + Parent.ClientRectangle.Position);
+
 				if (crowIFaceService.EditMode) {
 					if (hoverWidget != null && hoverWidget != currentWidget) {
 						//currentWidget.
@@ -234,7 +238,12 @@ namespace CECrowPlugin
 	//					ctx.Stroke();
 						//ctx.SetDash([0]);
 					}
+					/*ctx.LineWidth = 1;
+					ctx.Arc(localMousePos, 3, 0, Math.PI * 2.0);
+					ctx.SetSource(Colors.Yellow);
+					ctx.Stroke();*/
 				}
+
 				//crowIFaceService.UnlockRenderMutex();
 				crowIFaceService.ResetDirtyState ();
 			} 
@@ -255,6 +264,12 @@ namespace CECrowPlugin
 			}
 		}
 
+        public override MouseCursor MouseCursor {
+			get => base.MouseCursor;
+			set {
+				Console.WriteLine("set mouse cursor");
+			}
+		}
 		protected override void Dispose(bool disposing)
 		{
 			CMDRefresh?.Dispose ();

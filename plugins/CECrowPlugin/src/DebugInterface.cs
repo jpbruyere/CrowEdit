@@ -132,10 +132,10 @@ namespace CECrowPlugin
 		Action<Exception> delCrowServiceSetCurrentException;
 		Action<Type,object> delCrowServiceUpdateRootWidget;
 		Action<string> delCrowServiceSetCurrentDesignId, delCrowServiceSetHoverDesignId;
-
+		Action delCrowServiceForceMousePosition;
 
 		delegate void GetScreenCoordinateDelegateType(out int x, out int y);
-		GetScreenCoordinateDelegateType delCrowServiceGetScreenCoordinate;
+		//GetScreenCoordinateDelegateType delCrowServiceGetScreenCoordinate;
 		Func<IEnumerable<object>> delCrowServiceGetStyling;
 		Func<string, Stream> delCrowServiceGetStreamFromPath;
 		FieldInfo fiWidget_design_id, fiPrivateContainer_child;
@@ -143,7 +143,8 @@ namespace CECrowPlugin
 		
 		public void RegisterDebugInterfaceCallback (object crowService){
 			Type t = crowService.GetType();
-			//delRegisterForRepaint = (Action)Delegate.CreateDelegate(typeof(Action), w, t.GetMethod("RegisterForRepaint"));
+			delCrowServiceForceMousePosition = (Action)Delegate.CreateDelegate(typeof(Action), crowService,
+				t.GetMethod("ForceMousePosition"));
 			delCrowServiceSetCurrentException = (Action<Exception>)Delegate.CreateDelegate(typeof(Action<Exception>), crowService,
 				t.GetProperty("CurrentException").GetSetMethod(true));
 			delCrowServiceSetCurrentDesignId = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), crowService,
@@ -154,8 +155,8 @@ namespace CECrowPlugin
 			delCrowServiceUpdateRootWidget = (Action<Type,object>)Delegate.CreateDelegate(typeof(Action<Type,object>), crowService,
 				t.GetMethod("UpdateRootWidget"));
 
-			delCrowServiceGetScreenCoordinate = (GetScreenCoordinateDelegateType)Delegate.CreateDelegate(typeof(GetScreenCoordinateDelegateType), crowService,
-				t.GetMethod("getMouseScreenCoordinates", BindingFlags.Instance | BindingFlags.NonPublic));
+			/*delCrowServiceGetScreenCoordinate = (GetScreenCoordinateDelegateType)Delegate.CreateDelegate(typeof(GetScreenCoordinateDelegateType), crowService,
+				t.GetMethod("getMouseScreenCoordinates", BindingFlags.Instance | BindingFlags.NonPublic));*/
 			delCrowServiceGetStyling = (Func<IEnumerable<object>>)Delegate.CreateDelegate (typeof (Func<IEnumerable<object>>), crowService,
 				t.GetMethod ("getStyling", BindingFlags.Instance | BindingFlags.NonPublic));
 			delCrowServiceGetStreamFromPath = (Func<string, Stream>)Delegate.CreateDelegate (typeof (Func<string, Stream>), crowService,
@@ -265,13 +266,13 @@ namespace CECrowPlugin
 		}
         public override bool OnMouseMove(int x, int y)
         {
-			int deltaX = x - base.MousePosition.X;
-			int deltaY = y - base.MousePosition.Y;
-
-			MousePosition = new Point(x,y);
-			MouseMoveEventArgs e = new MouseMoveEventArgs (x, y, deltaX, deltaY);
-			
 			if (Edition) {
+				int deltaX = x - base.MousePosition.X;
+				int deltaY = y - base.MousePosition.Y;
+
+				MousePosition = new Point(x,y);
+				MouseMoveEventArgs e = new MouseMoveEventArgs (x, y, deltaX, deltaY);
+
 				if (editHoverWidget != null) {
 					//check topmost graphicobject first
 					Widget topContainer = editHoverWidget;
@@ -316,8 +317,8 @@ namespace CECrowPlugin
 				}
 				editHoverWidget = null;
 				return false;
-			} else
-            	return base.OnMouseMove(x, y);
+			}
+            return base.OnMouseMove(x, y);
         }
         public override bool OnMouseButtonDown(MouseButton button)
         {
@@ -335,8 +336,10 @@ namespace CECrowPlugin
 
         public override void ForceMousePosition()
 		{
-			delCrowServiceGetScreenCoordinate(out int x, out int y);
-			Glfw.Glfw3.SetCursorPosition (WindowHandle, x, y);
+			//delCrowServiceGetScreenCoordinate(out int x, out int y);
+			//Debug.WriteLine($"force mouse position: {x},{y}");
+			//Glfw.Glfw3.SetCursorPosition (WindowHandle, x, y);
+			delCrowServiceForceMousePosition();
 		}
 
 		public bool OnKeyDown (Glfw.Key key, int scancode, Glfw.Modifier modifiers) {
@@ -438,5 +441,15 @@ namespace CECrowPlugin
 	
 		public void LockRenderMutex() => Monitor.Enter(this.UpdateMutex);
 		public void UnlockRenderMutex() => Monitor.Exit(this.UpdateMutex);
+
+
+        /*protected override void processDrawing(IContext ctx)
+        {
+            base.processDrawing(ctx);
+
+			ctx.Arc(MousePosition, 2, 0, Math.PI * 2.0);
+			ctx.SetSource(Colors.DarkRed);
+			ctx.Fill();
+        }*/
 	}
 }
