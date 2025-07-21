@@ -44,7 +44,7 @@ namespace CECrowPlugin
 			designColumn = (int)fiWidget_design_column?.GetValue(instance);
 			designImlPath = (string)fiWidget_design_imlPath?.GetValue(instance);
 
-			Console.WriteLine($"new ForeignWidgetContainer: {this} {parent}");
+			//Console.WriteLine($"new ForeignWidgetContainer: {this} {parent}");
 		}
 
 

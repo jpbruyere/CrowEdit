@@ -61,10 +61,12 @@
 						<HorizontalStack Height="Fit" Spacing="5" Margin="0">
 							<Widget Width="Stretched"/>
 							<EnumSelector Caption="Filter:" EnumValue="{²../../log.Filter}" />
-							<TextBox Background="Grey" Foreground="Black" Text="{²../../log.SearchString}" Width="200" KeyDown="../../log.onSearch" Font="${SmallUIFont}"/>
-							<CheckBox Fit="true" Caption="Case Sensitive" IsChecked="{²../../log.CaseSensitiveSearch}" Font="${SmallUIFont}"/>
-							<CheckBox Fit="true" Caption="All Word" IsChecked="{²../../log.AllWordSearch}" Font="${SmallUIFont}"/>
-							<Menu Style="DockWinTitleBarMenu" Data="{../../log.SearchCommands}" Fit="true" Background="Transparent"/>
+							<HorizontalStack Height="Fit" Spacing="3" Margin="0" Background="Grey">
+							<TextBox Background="Transparent" Foreground="Black" Text="{²../../../log.SearchString}" Width="200" KeyDown="../../../log.onSearch" Font="${SmallUIFont}"/>
+								<CheckBox Fit="true" Caption="Case Sensitive" IsChecked="{²../../../log.CaseSensitiveSearch}" Font="${SmallUIFont}"/>
+								<CheckBox Fit="true" Caption="All Word" IsChecked="{²../../../log.AllWordSearch}" Font="${SmallUIFont}"/>
+								<Menu Style="DockWinTitleBarMenu" Data="{../../../log.SearchCommands}" Fit="true" Background="Transparent"/>
+							</HorizontalStack>
 						</HorizontalStack>
 						<HorizontalStack Spacing="0">
 							<LogViewerWidget Name="log" Logger="{}" Font="${SmallFont}" MaxScrollX="6000" ContextCommands="{Commands}" CurrentEntryIndex="{²SelectedIndex}"/>

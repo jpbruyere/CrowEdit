@@ -61,7 +61,7 @@ namespace CECrowPlugin
 			}
 		}
 		public string TemplateContainerSource {
-			get => conf.Get (nameof(TemplateContainerSource), "<Button/>");
+			get => conf.Get (nameof(TemplateContainerSource), "<Button>");
 			set {
 				if (TemplateContainerSource == value)
 					return;

@@ -92,14 +92,17 @@ namespace CrowEdit
 			saveWinConfigs ();
 		}
 		
-		public Command CMDSave, CMDSaveAs, CMDQuit, CMDHelp, CMDAbout, CMDOptions;
+		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit, CMDHelp, CMDAbout, CMDOptions;
 		public Command CMDSyntaxTheme_Reload, CMDSyntaxTheme_Save, CMDSyntaxTheme_SaveAs;
 
 		void initCommands (){
+			CMDNew = new ActionCommand("New", createNewFile, "#icons.blank-file.svg");
+			CMDOpen = new ActionCommand("Open...", openFileDialog, "#icons.outbox.svg");
+			CMDSave = new ActionCommand ("save", default(Action), "#icons.inbox.svg", false);
 			FileCommands = new CommandGroup ("File",
-	 			new ActionCommand("New", createNewFile, "#icons.blank-file.svg"),
-				new ActionCommand("Open...", openFileDialog, "#icons.outbox.svg"),
-				new ActionCommand ("save", default(Action), "#icons.inbox.svg", false),
+	 			CMDNew,
+				CMDOpen,
+				CMDSave,
 				new ActionCommand ("Save As...", default(Action), "#icons.inbox.svg", false),
 				new ActionCommand("Options", openOptionsDialog, "#icons.tools.svg"),
 				new ActionCommand("Quit", base.Quit, "#icons.sign-out.svg")
@@ -136,6 +139,8 @@ namespace CrowEdit
 				ViewCommands,
 				new CommandGroup ("Help", CMDHelp)
 			);
+
+			ToolBox = new CommandGroup (CMDNew, CMDOpen, EditCommands);
 
 			CMDSyntaxTheme_Reload = new ActionCommand ("Reload", () => reloadSyntaxTheme ());
 			CMDSyntaxTheme_Save   = new ActionCommand ("Save", () => saveSyntaxTheme ());

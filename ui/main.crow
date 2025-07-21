@@ -19,5 +19,16 @@
 			</MenuItem>
 		</ItemTemplate>
 	</Menu>
+	<Menu Data="{ToolBox}" IsVisible="{CMDShowToolBox}" Margin="1">
+		<ItemTemplate DataType="Crow.Command" Path="#ui.IconButton.template"/>
+		<ItemTemplate DataType="Crow.CommandGroup">
+			<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}"
+				ItemTemplate="#ui.IconButton.template">
+				<Template>
+					<HorizontalStack Name="ItemsContainer" Margin="0"/>
+				</Template>
+			</MenuItem>
+		</ItemTemplate>
+	</Menu>
 	<DockStack Name="mainDock"  RootDataLevel="true" Background="DarkGrey"/>
 </VerticalStack>

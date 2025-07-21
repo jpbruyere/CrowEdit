@@ -6,11 +6,12 @@ using System;
 using System.IO;
 using System.Threading;
 using Crow;
+using Glfw;
 using static CrowEditBase.CrowEditBase;
 
 namespace CrowEditBase
 {
-	public abstract class Document : CrowEditComponent {
+	public abstract class Document : CrowEditComponent, ICommandHost {
 		#region CTOR
 		public Document (string fullPath, string editorPath) {
 			initCommands ();
@@ -31,8 +32,17 @@ namespace CrowEditBase
 		/// <value></value>
 		public string EditorPath { get; private set; }//the ressource path is used as an id for editor template selection.
 		public event EventHandler CloseEvent;
+        public event EventHandler<KeyEventArgs> KeyDown;
 
-		protected ReaderWriterLockSlim documentRWLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+		public bool OnKeyDown(object sender, KeyEventArgs e) {
+			if (KeyDown != null) {
+				KeyDown.Invoke (sender, e);
+			}
+			
+			return e.Handled;
+		}
+
+        protected ReaderWriterLockSlim documentRWLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 		public void EnterReadLock () => documentRWLock.EnterReadLock ();
 		public void ExitReadLock () => documentRWLock.ExitReadLock ();
 		public void EnterWriteLock () => documentRWLock.EnterWriteLock ();
@@ -47,9 +57,9 @@ namespace CrowEditBase
 				fullPath = value;
 
 				NotifyValueChanged (fullPath);
-				NotifyValueChanged ("FileName", (object)FileName);
-				NotifyValueChanged ("FileDirectory", (object)Extension);
-				NotifyValueChanged ("Extension", (object)Extension);
+				NotifyValueChanged ("FileName", FileName);
+				NotifyValueChanged ("FileDirectory", FileDirectory);
+				NotifyValueChanged ("Extension", Extension);
 			}
 		}
 		public string FileDirectory => System.IO.Path.GetDirectoryName (FullPath);
@@ -59,17 +69,19 @@ namespace CrowEditBase
 			(DateTime.Compare (accessTime, System.IO.File.GetLastWriteTime (FullPath)) < 0) : false;
 
 		#region commands
-		public Command CMDUndo, CMDRedo, CMDSave, CMDSaveAs;
 		Command CMDClose, CMDCloseOther;
+		public Command CMDUndo, CMDRedo, CMDSave, CMDSaveAs;
 		public CommandGroup TabCommands => new CommandGroup (
 			CMDClose, CMDCloseOther
 		);
 
 		protected virtual void initCommands () {
-			CMDUndo = new ActionCommand ("Undo", undo, "#icons.reply.svg",  false);
-			CMDRedo = new ActionCommand ("Redo", redo, "#icons.share-arrow.svg", false);
-			CMDSave = new ActionCommand ("save", Save, "#icons.inbox.svg", false);
+			CMDUndo = new ActionCommand (this, "Undo", Undo, "#icons.reply.svg",  new KeyBinding(Key.Z, Modifier.Control), false);
+			CMDRedo = new ActionCommand (this, "Redo", Redo, "#icons.share-arrow.svg", new KeyBinding(Key.Z, Modifier.Control | Modifier.Shift), false);
+
+			CMDSave = new ActionCommand (this, "save", Save, "#icons.inbox.svg", new KeyBinding(Key.S, Modifier.Control), false);
 			CMDSaveAs = new ActionCommand ("Save As...", SaveAs, "#icons.inbox.svg");
+
 			CMDClose = new ActionCommand ("Close", () => App.CloseDocument (this), "#icons.sign-out.svg");
 			CMDCloseOther = new ActionCommand ("Close Others", () => App.CloseOthers (this), "#icons.inbox.svg");
 		}
@@ -79,8 +91,8 @@ namespace CrowEditBase
 		public abstract void RegisterClient (object client, bool initialState = false);
 		public abstract void UnregisterClient (object client);
 		protected abstract void saveFileDialog_OkClicked (object sender, EventArgs e);
-		protected abstract void undo();
-		protected abstract void redo();
+		public abstract void Undo();
+		public abstract void Redo();
 		protected abstract void writeToDisk ();
 		protected abstract void readFromDisk ();
 		protected abstract void initNewFile ();

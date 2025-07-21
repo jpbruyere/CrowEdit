@@ -17,6 +17,11 @@ namespace CrowEditBase
 			//Debug.WriteLine ("Value changed: {0}->{1} = {2}", this, MemberName, _value);
 			ValueChanged.Raise (this, new ValueChangeEventArgs (MemberName, _value));
 		}
+		public void NotifyValueChanged (string MemberName, string _value)
+		{
+			//Debug.WriteLine ("Value changed: {0}->{1} = {2}", this, MemberName, _value);
+			ValueChanged.Raise (this, new ValueChangeEventArgs (MemberName, _value));
+		}
 		public void NotifyValueChanged (object _value, [CallerMemberName] string caller = null)
 		{
 			NotifyValueChanged (caller, _value);

@@ -1,0 +1,8 @@
+﻿<?xml version="1.0"?>
+<Button Command="{}" Width="Fit" BubbleEvents="All" MinimumSize="0,0">
+	<Template>
+		<Border Style="ButtonBorder" Width="Stretched" Height="Stretched" Margin="4" Background="{./Background}" CornerRadius="{../CornerRadius}">
+			<Image Path="{./Icon}" Tooltip="{./Caption}" Scaled="true" KeepProportions="true" Margin="0"/>
+		</Border>
+	</Template>
+</Button>

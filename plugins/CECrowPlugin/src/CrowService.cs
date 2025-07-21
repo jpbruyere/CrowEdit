@@ -321,6 +321,7 @@ namespace CECrowPlugin
 				CMDEditMode.CanExecute = !value;
 				CMDRun.CanExecute = value;
 				NotifyValueChanged(value);
+				ForceDirtyState();
 			}
 		}		
 		public double ZoomFactor {
@@ -363,7 +364,21 @@ namespace CECrowPlugin
 			if (IsRunning)
 				delUnlockRenderMutex();
 		}
-		public bool GetDirtyState => IsRunning ? (bool)fiDbgIFace_IsDirty.GetValue (dbgIFace) : false;
+		
+		bool dirtyState = false;
+		bool DirtyState {
+			get {
+				if (dirtyState) {
+					dirtyState = false;
+					return true;
+				} else
+					return false;
+			}
+		}
+		// force repaint of preview widget without debug interface update.
+		bool ForceDirtyState() => dirtyState = true;
+
+		public bool GetDirtyState => IsRunning ? (bool)fiDbgIFace_IsDirty.GetValue (dbgIFace) | DirtyState : false;
 		public bool DesignModeEnabled => IsRunning && ForeignWidgetContainer.fiWidget_design_id != null ? true : false;
 		public Type GetWidgetTypeFromeName(string typeName) {
 			if (!IsRunning)

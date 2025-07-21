@@ -42,7 +42,7 @@ namespace CrowEditBase
 		Document currentDocument;
 		Editor currentEditor;
 		Project currentProject;
-		public CommandGroup CommandsRoot, FileCommands, EditCommands, ViewCommands;
+		public CommandGroup CommandsRoot, FileCommands, EditCommands, ViewCommands, ToolBox;
 		public ObservableList<Document> OpenedDocuments = new ObservableList<Document> ();
 		public ObservableList<Service> Services = new ObservableList<Service> ();
 		public ObservableList<Plugin> Plugins = new ObservableList<Plugin> ();

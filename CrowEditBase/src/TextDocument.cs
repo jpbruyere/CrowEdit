@@ -114,7 +114,7 @@ namespace CrowEditBase
 			writeToDisk ();
 		}
 
-		protected override void undo () {
+		public override void Undo () {
 			documentRWLock.EnterWriteLock ();
 			try {
 				if (undoStack.TryPop (out TextChange tc)) {
@@ -130,7 +130,7 @@ namespace CrowEditBase
 				documentRWLock.ExitWriteLock ();
 			}
 		}
-		protected override void redo () {
+		public override void Redo () {
 			documentRWLock.EnterWriteLock ();
 			try {
 				if (redoStack.TryPop (out TextChange tc)) {

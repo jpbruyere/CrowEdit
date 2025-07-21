@@ -35,7 +35,6 @@ namespace CrowEditBase
 			CMDCut = new ActionCommand (this, "Cut", Cut, "#icons.scissors.svg", new KeyBinding(Key.X, Modifier.Control), false);
 			CMDCopy = new ActionCommand (this, "Copy", Copy, "#icons.copy-file.svg",  new KeyBinding(Key.C, Modifier.Control), false);
 			CMDPaste = new ActionCommand (this, "Paste", Paste, "#icons.paste-on-document.svg",  new KeyBinding(Key.P, Modifier.Control), true);
-
 			ContextCommands = new CommandGroup (CMDCut, CMDCopy, CMDPaste);
 		}
 
@@ -701,8 +700,6 @@ namespace CrowEditBase
 		}
 		protected override void onDraw (IContext gr)
 		{
-			//base.onDraw (gr);
-
 			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 			gr.SetFontSize (Font.Size);
 
@@ -814,23 +811,17 @@ namespace CrowEditBase
 			if (!e.Handled) {
 				TextSpan selection = Selection;
 				update (new TextChange (selection.Start, selection.Length, e.KeyChar.ToString ()));
-
 				e.Handled = true;
 			}
-			/*Insert (e.KeyChar.ToString());
-
-			SelRelease = -1;
-			SelBegin = new Point(CurrentColumn, SelBegin.Y);
-
-			RegisterForGraphicUpdate();*/
 		}
 		public override void onKeyDown (object sender, KeyEventArgs e) {
 			Key key = e.Key;
 			TextSpan selection = Selection;
 
-			/*document.EnterReadLock();
-			try {*/
-				switch (key) {
+			if (document != null && document.OnKeyDown(sender, e))
+				return;
+
+			switch (key) {
 				case Key.Backspace:
 					if (selection.IsEmpty) {
 						if (selection.Start == 0)
@@ -935,13 +926,10 @@ namespace CrowEditBase
 				default:
 					base.onKeyDown (sender, e);
 					return;
-				}
-				autoAdjustScroll = true;
-				IFace.forceTextCursor();
-				e.Handled = true;
-			/*} finally {
-				document.ExitReadLock ();
-			}*/
+			}
+			autoAdjustScroll = true;
+			IFace.forceTextCursor();
+			e.Handled = true;
 		}
 		#endregion
 		#endregion
@@ -1009,6 +997,8 @@ namespace CrowEditBase
 			TextSpan selection = Selection;
 			update (new TextChange (selection.Start, selection.Length, IFace.Clipboard));
 		}
+
+
 
 		protected virtual void update (TextChange change) {
 			if (!disableTextChangedEvent)

@@ -170,10 +170,10 @@ namespace CrowEditBase
 			if (cancel.IsCancellationRequested)
 				return;
 
-			NotifyValueChanged("Exceptions", Exceptions);
+			/*NotifyValueChanged("Exceptions", Exceptions);
 			NotifyValueChanged ("SyntaxRootChildNodes", (object)null);
 			NotifyValueChanged ("SyntaxRootChildNodes", SyntaxRootChildNodes);
-			Console.WriteLine("parse async finished");
+			Console.WriteLine("parse async finished");*/
 		}
 	}
 }
