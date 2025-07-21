@@ -10,7 +10,7 @@ using Crow;
 namespace NetcoreDbgPlugin
 {
 	public class NetcoreDbgService : Service {
-		public override string[] ServiceWindowsPath => ["#CENetcoreDbgPlugin.ui.winConfiguration.crow"];
+		public override string[] ServiceWindowsPath => new  string[] {"#CENetcoreDbgPlugin.ui.winConfiguration.crow"};
 		public NetcoreDbgService () : base () {
 			initCommands();
 			App.ValueChanged += app_ValueChanged;

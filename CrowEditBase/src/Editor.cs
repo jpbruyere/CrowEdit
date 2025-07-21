@@ -32,9 +32,9 @@ namespace CrowEditBase
 
 		public Command CMDCut, CMDCopy, CMDPaste;
 		void initCommands () {
-			CMDCut = new ActionCommand ("Cut", Cut, "#icons.scissors.svg",  false);
-			CMDCopy = new ActionCommand ("Copy", Copy, "#icons.copy-file.svg",  false);
-			CMDPaste = new ActionCommand ("Paste", Paste, "#icons.paste-on-document.svg",  true);
+			CMDCut = new ActionCommand (this, "Cut", Cut, "#icons.scissors.svg", new KeyBinding(Key.X, Modifier.Control), false);
+			CMDCopy = new ActionCommand (this, "Copy", Copy, "#icons.copy-file.svg",  new KeyBinding(Key.C, Modifier.Control), false);
+			CMDPaste = new ActionCommand (this, "Paste", Paste, "#icons.paste-on-document.svg",  new KeyBinding(Key.P, Modifier.Control), true);
 
 			ContextCommands = new CommandGroup (CMDCut, CMDCopy, CMDPaste);
 		}

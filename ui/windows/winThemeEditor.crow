@@ -16,8 +16,12 @@
 								 Template="#ui.ColorPicker2.template"/>
 					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Background}" Height="Stretched" Width="Stretched"
 								 Template="#ui.ColorPicker2.template"/>
-					<CheckBox DataSource="{Value}"  RootDataLevel="true" Caption="" IsChecked="{²Bold}" />
-					<CheckBox DataSource="{Value}"  RootDataLevel="true" Caption="" IsChecked="{²Italic}" />
+					<Container DataSource="{Value}"  RootDataLevel="true">
+						<CheckBox Caption="" IsChecked="{²Bold}" />
+					</Container>
+					<Container DataSource="{Value}"  RootDataLevel="true">
+						<CheckBox DataSource="{Value}"  RootDataLevel="true" Caption="" IsChecked="{²Italic}" />
+					</Container>
 				</TableRow>
 			</ItemTemplate>
 		</ListBox>

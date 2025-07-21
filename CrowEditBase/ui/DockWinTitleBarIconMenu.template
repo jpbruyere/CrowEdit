@@ -1,2 +1,2 @@
 ﻿<?xml version="1.0"?>
-<HorizontalStack Name="ItemsContainer" Spacing = "0" Margin="0"/>
+<HorizontalStack Name="ItemsContainer" Spacing = "2" Margin="0"/>

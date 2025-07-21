@@ -48,7 +48,7 @@ namespace CrowEdit.Xml
 									return null;
 								if (!eets.HasClosingToken)
 									sug.Change.ChangedText += ">";
-								return new List<Suggestion>([sug]);
+								return new List<Suggestion>(new  Suggestion[] {sug});
 							} 
 						}
 					} else {//startTag or empty element
@@ -105,7 +105,7 @@ namespace CrowEdit.Xml
 			return null;
 		}
 
-		public override Color GetColorForToken(Token token)
+		public override Color GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			XmlTokenType xmlTokType = (XmlTokenType)tokType;

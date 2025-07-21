@@ -32,7 +32,7 @@ namespace CECrowPlugin.Style
 			return null;
 		}
 		public override string GetTokenTypeString (TokenType tokenType) => ((StyleTokenType)tokenType).ToString();
-		public override Color GetColorForToken(Token token)
+		public override Color GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			StyleTokenType xmlTokType = (StyleTokenType)tokType;

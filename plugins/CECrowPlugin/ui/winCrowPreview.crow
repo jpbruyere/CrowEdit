@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Crow Preview"  Width="60%" Commands="{/dbgIfaceWidget.WindowCommands}">
-	<VerticalStack Background="Black" >	
-		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true" CurrentWidget="{CurrentWidget}"
+<DockWindow Caption="Crow Preview"  Width="60%" FreezeDockState="true" AdditionalCommands="{/dbgIfaceWidget.WindowCommands}">
+	<VerticalStack Background="Black" >
+		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true" CurrentWidget="{²CurrentWidget}"
 					BubbleEvents="None"
 					Document="{CurrentDocument}"/>
 		<Popper DataSource="{../dbgIfaceWidget.CrowIFaceService}" IsVisible="{PreviewHasError}" Background="DarkRed">

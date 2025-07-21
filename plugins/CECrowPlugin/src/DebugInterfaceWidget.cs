@@ -17,6 +17,7 @@ using Crow;
 namespace CECrowPlugin
 {
 	public class DebugInterfaceWidget : Widget {
+		#region CTOR/DTOR
 		public DebugInterfaceWidget () : base () {
 			
 			CrowIFaceService = App.GetService<CrowService> ();
@@ -54,7 +55,9 @@ namespace CECrowPlugin
 			if (crowIFaceService != null)
 				crowIFaceService.ValueChanged -= service_ValueChanged;
 		}
-        void service_ValueChanged(object instance, ValueChangeEventArgs e) {
+        #endregion
+
+		void service_ValueChanged(object instance, ValueChangeEventArgs e) {
 			if (e.MemberName == "CurrentWidget") {
 				if (e.NewValue is ForeignWidgetContainer fwc)
 					CurrentWidget = fwc;
@@ -79,8 +82,8 @@ namespace CECrowPlugin
 			CMDRefresh, //CMDZoomIn, CMDZoomOut,
 			crowIFaceService.CMDStartRecording,
 			crowIFaceService.CMDStopRecording,
-			crowIFaceService.CMDOpenConfig,
-			(Parent.LogicalParent as DockWindow).CMDClose
+			crowIFaceService.CMDOpenConfig
+			//(Parent.LogicalParent as DockWindow).CMDClose
 		);
 		public CrowService CrowIFaceService {
 			get => crowIFaceService;
@@ -132,6 +135,7 @@ namespace CECrowPlugin
 				RegisterForRepaint ();
 			}
 		}
+		
 		protected void backgroundThreadFunc () {
 			Stopwatch sw = Stopwatch.StartNew ();
 			int refreshRate = crowIFaceService == null ? 10 : crowIFaceService.RefreshRate;
@@ -164,7 +168,16 @@ namespace CECrowPlugin
 
 			imlSource = tmp.ToString ();
 
-			crowIFaceService?.LoadIML (imlSource);
+			if (document.EncloseInTemplatedControl && !string.IsNullOrEmpty(document.TemplateContainerSource)) {
+				if (!string.IsNullOrEmpty(imlSource) && imlSource.StartsWith("<?xml")) {
+					int pos = src.IndexOf('>');
+					if (pos > 0)
+						src = imlSource.Substring(pos + 1);
+				}
+				string tmpCloseTag = document.TemplateContainerSource.Split (' ', StringSplitOptions.RemoveEmptyEntries)[0].Replace ("<","").TrimEnd('/','>');
+				crowIFaceService?.LoadIML ($"{document.TemplateContainerSource.TrimEnd('/','>')}><Template>{src}</Template></{tmpCloseTag}>");
+			} else
+				crowIFaceService?.LoadIML (imlSource);
 
 			RegisterForRedraw ();
 		}
@@ -223,10 +236,10 @@ namespace CECrowPlugin
 					if (hoverWidget != null && hoverWidget != currentWidget) {
 						//currentWidget.
 						RectangleD r = hoverWidget.GetScreenCoordinate() + Slot.Position + Parent.ClientRectangle.Position;
-						ctx.SetDash([1,3]);
+						ctx.SetDash(new double[] {1,3});
 						ctx.SetSource(Colors.Yellow);
 						ctx.Rectangle(r, 1);
-						ctx.SetDash([]);
+						ctx.SetDash(new double[] {});
 					}				
 					if (currentWidget != null) {
 						//currentWidget.

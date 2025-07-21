@@ -48,6 +48,7 @@ namespace CrowEditBase
 		public ObservableList<Plugin> Plugins = new ObservableList<Plugin> ();
 		public ObservableList<Project> Projects = new ObservableList<Project> ();
 
+		public ObservableList<KeyBinding> KeyBindings = new ObservableList<KeyBinding>();
 
 		#region logging
 		LogItem currentLog;

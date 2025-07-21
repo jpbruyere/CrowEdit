@@ -67,7 +67,7 @@ namespace CrowEditBase
 		public abstract void Stop ();
 		public abstract void Pause ();
 		//windows having this service as datasource
-		public virtual string[] ServiceWindowsPath => ["#ui.winServiceConfig.crow"];
+		public virtual string[] ServiceWindowsPath => new string[] {"#ui.winServiceConfig.crow"};
 
 		public virtual Document OpenDocument (string fullPath) => null;
 	}

@@ -568,7 +568,7 @@ namespace CrowEditBase
 			}
 		}
 
-
+		#region Drawing
 		protected virtual void fillHighlight (IContext gr, int l, CharLocation selStart, CharLocation selEnd, RectangleD selRect, Color color) {
 			if (selStart.Line == selEnd.Line) {
 				selRect.X += selStart.VisualCharXPosition;
@@ -869,6 +869,8 @@ namespace CrowEditBase
 			}
 			gr.Translate (ScrollX, 0);
 		}
+		#endregion
+
 		protected override RectangleD? computeTextCursor (Rectangle cursor) {
 			Rectangle cb = ClientRectangle;
 			cursor -= new Point (ScrollX, ScrollY);

@@ -16,6 +16,7 @@ using static CrowEditBase.CrowEditBase;
 using CrowEdit.Xml;
 using Drawing2D;
 using System.Diagnostics;
+using System.IO;
 
 namespace CECrowPlugin
 {
@@ -29,12 +30,44 @@ namespace CECrowPlugin
 		public static bool Is(this Token tok, ImlTokenType type) => (ImlTokenType)tok.Type == type;
 	}		
 	public class ImlDocument : XmlDocument {
+		Configuration conf;
 		public ImlDocument (string fullPath, string editorPath) : base (fullPath, editorPath) {
 			App.GetService<CrowService> ()?.Start ();
+			conf = new Configuration(Path.Combine(Configuration.AppConfigPath, "editor", this.FileName + ".conf"));
 
 			/*if (project is MSBuildProject msbp) {
 				if (msbp.IsCrowProject)
 			}*/
+		}
+
+		CrowService crowService;
+		public CrowService CrowService {
+			get => crowService;
+			set {
+				if (crowService == value)
+					return;
+				crowService = value;
+				NotifyValueChanged (crowService);
+			}
+		}
+		public bool EncloseInTemplatedControl {
+			get => conf.Get (nameof(EncloseInTemplatedControl), false);
+			set {
+				if (EncloseInTemplatedControl == value)
+					return;
+				conf.Set (nameof(EncloseInTemplatedControl), value);
+				NotifyValueChanged (value);
+				
+			}
+		}
+		public string TemplateContainerSource {
+			get => conf.Get (nameof(TemplateContainerSource), "<Button/>");
+			set {
+				if (TemplateContainerSource == value)
+					return;
+				conf.Set (nameof(TemplateContainerSource), value);
+				NotifyValueChanged (value);
+			}
 		}
 
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (ImmutableBufferCopy);
@@ -200,7 +233,7 @@ namespace CECrowPlugin
 			return null;
 		}
 
-		public override Color GetColorForToken(Token token)
+		public override Color GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			switch ((ImlTokenType)tokType) {
