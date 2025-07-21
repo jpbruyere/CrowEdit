@@ -13,7 +13,7 @@
 							<Label Text="{./Caption}" Width="Stretched" Height="Fit" Margin="5"
 								Background="{./Background}"/>
 						</Template>
-						<VerticalStack Name="ItemsContainer" Height="Fit" Width="Fit" Background="Jet"/>
+						<VerticalStack Name="ItemsContainer" Height="Fit" Width="Fit" Background="Jet" Margin="1"/>
 					</Popper>
 				</Template>
 			</MenuItem>

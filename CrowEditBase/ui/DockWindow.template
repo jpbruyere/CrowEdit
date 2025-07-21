@@ -1,5 +1,4 @@
 ﻿<?xml version="1.0"?>
-<!--<Widget Background="{./Background}"/>-->
 <Border	Name="SizeHandle" BorderWidth="1" Foreground="Black" CornerRadius="{./CornerRadius}"
 		StickyMouse="8" StickyMouseEnabled="{./IsFloating}" Background="{./Background}">
 	<VerticalStack Spacing="0" Name="MoveHandle">

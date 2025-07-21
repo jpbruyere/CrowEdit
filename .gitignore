@@ -1,6 +1,7 @@
 CrowDesignAssembly/
 netcoredbg/
 testfiles/
+plugins/CEEbnfPlugin/Grammars/
 #Autosave files
 *~
 

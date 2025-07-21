@@ -1,53 +1,8 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Caption="Editor"  Width="50%" Height="80%">
-	<TabView ItemTemplate="{EditorItemTemplates}"
-			Data="{OpenedDocuments}" SelectedItem="{²CurrentDocument}"	DataTest="EditorPath">
-		<Template>
-			<VerticalStack Spacing="0" >
-				<ListBox Data="{./Items}" Height="Fit" >
-					<Template>
-						<VerticalStack Spacing="0" >
-							<ScrollBar Orientation="Horizontal" Foreground="RoyalBlue" Height="6" Width="Stretched" CornerRadius="3"
-								Value="{²../ItemsScroller.ScrollX}"
-								LargeIncrement="{../ItemsScroller.PageWidth}" SmallIncrement="1"
-								CursorRatio="{../ItemsScroller.ChildWidthRatio}" Maximum="{../ItemsScroller.MaxScrollX}">
-								<Template>
-									<Container Margin="1" Background="{./Background}">
-										<Widget Name="Cursor" Background="{./Foreground}" CornerRadius="{./CornerRadius}"/>
-									</Container>
-								</Template>
-							</ScrollBar>
-							<Scroller Name="ItemsScroller" Height="Fit" Width="Stretched">
-								<HorizontalStack Name="ItemsContainer" Width="Fit" HorizontalAlignment="Left"/>
-							</Scroller>
-						</VerticalStack>
-					</Template>
-					<ItemTemplate>
-						<!--<ListItem Fit="true" Background="${InactiveTabItem}" IsSelected="{IsVisible}" Margin="5"
-								Selected="{.DataSource.Visible='true'};{Background=.DataSource.Background}"
-								Unselected="{.DataSource.Visible='false'};{Background=${InactiveTabItem}}">
-							<Label Text="{Name}" Width="200" />
-						</ListItem>-->
-						<ListItem RootDataLevel="true" Fit="true" Background="${InactiveTabBackground}" Foreground="${InactiveTabForeground}" IsSelected="{IsVisible}"
-								Selected="{.DataSource.IsVisible='true'};{Background=${SelectedTabBackground}};{Foreground=${SelectedTabForeground}}"
-								Unselected="{.DataSource.IsVisible='false'};{Background=${InactiveTabBackground}};{Foreground=${InactiveTabForeground}}"
-								BubbleEvents="MouseWheel">
-							<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
-								<!--<Image Style="TreeIcon" Path="{Icon}" SvgSub="{IconSub}"/> No icon in Document class-->
-								<Label Text="{FileName}" Tooltip="{FullPath}" ContextCommands="{TabCommands}" Foreground="{../../Foreground}" Margin="3" />
-								<Widget Width="10" Height="10" Background="RoyalBlue" IsVisible="{IsDirty}"/>
-								<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
-											MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
-									<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
-										 MouseClick="OnQueryClose"/>
-								</Border>
-							</HorizontalStack>
-						</ListItem>
-					</ItemTemplate>
-				</ListBox>
-				<Group Name="ItemsContainer" />
-			</VerticalStack>
-		</Template>
+<DockWindow Style="DockWindow" Caption="Editor"  Width="50%" Height="80%">
+	<TabView Data="{OpenedDocuments}" SelectedItem="{²CurrentDocument}"	DataTest="EditorPath"
+				Template="#ui.EditorTabView.template"
+				ItemTemplate="{EditorItemTemplates}">
 	</TabView>
 </DockWindow>
 
