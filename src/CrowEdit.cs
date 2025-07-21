@@ -142,6 +142,10 @@ namespace CrowEdit
 			CMDSyntaxTheme_SaveAs = new ActionCommand ("Save As...", () => saveSyntaxThemeAs ());
 		}
 
+		void initKeyBindings () {
+			
+		}
+
 		static void loadWindowWithThisDataSource(object sender, string path) {
 			Widget w = sender as Widget;
 			CrowEdit e = w.IFace as CrowEdit;

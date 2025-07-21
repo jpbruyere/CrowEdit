@@ -37,6 +37,36 @@ namespace CECrowPlugin
 			}*/
 		}
 
+		CrowService crowService;
+		public CrowService CrowService {
+			get => crowService;
+			set {
+				if (crowService == value)
+					return;
+				crowService = value;
+				NotifyValueChanged (crowService);
+			}
+		}
+		public bool EncloseInTemplatedControl {
+			get => Configuration.Global.Get (nameof(EncloseInTemplatedControl), false);
+			set {
+				if (EncloseInTemplatedControl == value)
+					return;
+				Configuration.Global.Set (nameof(EncloseInTemplatedControl), value);
+				NotifyValueChanged (value);
+				
+			}
+		}
+		public string TemplateContainerSource {
+			get => Configuration.Global.Get (nameof(TemplateContainerSource), "<Button/>");
+			set {
+				if (TemplateContainerSource == value)
+					return;
+				Configuration.Global.Set (nameof(TemplateContainerSource), value);
+				NotifyValueChanged (value);
+			}
+		}
+
 		protected override SyntaxAnalyser CreateSyntaxAnalyser() => new ImlSyntaxAnalyser (ImmutableBufferCopy);
 		public override string GetTokenTypeString (TokenType tokenType) => ((ImlTokenType)tokenType).ToString();
 
@@ -200,7 +230,7 @@ namespace CECrowPlugin
 			return null;
 		}
 
-		public override Color GetColorForToken(Token token)
+		public override Color GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			switch ((ImlTokenType)tokType) {

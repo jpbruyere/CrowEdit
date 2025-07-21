@@ -24,8 +24,11 @@ using CERoslynPlugin;
 namespace CECrowPlugin
 {
 	public class CrowService : Service {
+		CrowEditBase.LogItem logger;
 		#region CTOR/DTOR
 		public CrowService () : base () {
+			logger = App.GetLog("CrowService");
+
 			restoreCrowAssemblies ();
 			initCommands ();
 			App.ValueChanged += app_ValueChanged;
@@ -41,13 +44,19 @@ namespace CECrowPlugin
 					CurrentSolution = sol;
 				else
 					CurrentSolution = null;
+			} else if (e.MemberName == "CurrentDocument") {
+				if (e.NewValue is Document doc)
+					CurrentDocument = doc;
+				else
+					CurrentDocument = null;
 			}
 		}		
-		public override string[] ServiceWindowsPath => [
+		public override string[] ServiceWindowsPath => new string [] {
 			"#CECrowPlugin.ui.winConfiguration.crow",
 			"#CECrowPlugin.ui.winGraphicTree.crow",
-			"#CECrowPlugin.ui.winProperties.crow"
-		];
+			"#CECrowPlugin.ui.winProperties.crow",
+			"#CECrowPlugin.ui.winCrowPreview.crow",
+		};
 
 		#region Commands
 		public Command CMDStartRecording, CMDStopRecording, CMDRefresh, CMDAddEventToRecord, CMDRemoveEventToRecord;
@@ -145,6 +154,7 @@ namespace CECrowPlugin
 		}
 		
 		Project currentSolution;
+		Document currentDocument;
 		Exception currentException;
 		public string ErrorMessage = "";
 		public bool ServiceIsInError;
@@ -312,8 +322,7 @@ namespace CECrowPlugin
 				CMDRun.CanExecute = value;
 				NotifyValueChanged(value);
 			}
-		}
-		
+		}		
 		public double ZoomFactor {
 			get => Configuration.Global.Get<Double> ("CrowPreviewZoomFactor", 1.0);
 			set {
@@ -388,19 +397,23 @@ namespace CECrowPlugin
 			App.ForceMousePosition();
 		}
 		public void UpdateRootWidget(Type widgetType, object instance) {
-			GraphicTree = new List<ForeignWidgetContainer>([new ForeignWidgetContainer(widgetType, instance)]);
+			GraphicTree = new List<ForeignWidgetContainer>(new ForeignWidgetContainer[] {new ForeignWidgetContainer(widgetType, instance)});
 		}
 		IEnumerable<object> getStyling () {
 			if (App.CurrentProject is CERoslynPlugin.SolutionProject sol) {
 				if (sol.StartupProject is CERoslynPlugin.MSBuildProject csprj) {
 					foreach (var style in csprj.Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>()
-						.Where (pin=>pin.NodeType == NodeType.EmbeddedResource && pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase)))
+						.Where (pin=>pin.NodeType == NodeType.EmbeddedResource && pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase))) {
+						logger.Add(LogType.Low, $"style found: {style.FullPath}");
 						yield return style.FullPath;
+					}
 					foreach (var refP in csprj.ReferencedProjects) {
 						foreach (var style in refP.Flatten.OfType<CERoslynPlugin.MSBuildProjectItemNode>()
 							.Where (pin=>pin.NodeType == NodeType.EmbeddedResource &&
-									pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase))) 
+									pin.FullPath.EndsWith (".style", StringComparison.OrdinalIgnoreCase))) {
+							logger.Add(LogType.Low, $"style found: {style.FullPath}");
 							yield return style.FullPath;
+						}
 					}
 				}
 			}
@@ -624,6 +637,21 @@ namespace CECrowPlugin
 				NotifyValueChanged (currentSolution);
 			}
 		}
+		public Document CurrentDocument {
+			get => currentDocument;
+			set {
+				//CERoslynPlugin.SolutionProject sol = value as CERoslynPlugin.SolutionProject;
+				if (currentDocument == value)
+					return;
+				currentDocument = value;
+				NotifyValueChanged (currentDocument);
+
+				/*if (currentDocument is ImlDocument iml) {
+					LoadIML(iml.source.ToString());
+				}*/
+			}
+		}
+		
 
 		#region Additional crow Assemblies
 		string selectedCrowAssembly = null;
@@ -1064,7 +1092,5 @@ namespace CECrowPlugin
 			}
 		}
 		#endregion
-
-
 	}
 }

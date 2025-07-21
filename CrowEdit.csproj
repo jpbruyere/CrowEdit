@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net9</TargetFramework>
+		<TargetFramework>net6</TargetFramework>
 		<OutputType>WinExe</OutputType>
 		<EnableDefaultItems>false</EnableDefaultItems>
 	</PropertyGroup>

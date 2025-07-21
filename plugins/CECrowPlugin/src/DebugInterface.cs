@@ -154,9 +154,6 @@ namespace CECrowPlugin
 			
 			delCrowServiceUpdateRootWidget = (Action<Type,object>)Delegate.CreateDelegate(typeof(Action<Type,object>), crowService,
 				t.GetMethod("UpdateRootWidget"));
-
-			/*delCrowServiceGetScreenCoordinate = (GetScreenCoordinateDelegateType)Delegate.CreateDelegate(typeof(GetScreenCoordinateDelegateType), crowService,
-				t.GetMethod("getMouseScreenCoordinates", BindingFlags.Instance | BindingFlags.NonPublic));*/
 			delCrowServiceGetStyling = (Func<IEnumerable<object>>)Delegate.CreateDelegate (typeof (Func<IEnumerable<object>>), crowService,
 				t.GetMethod ("getStyling", BindingFlags.Instance | BindingFlags.NonPublic));
 			delCrowServiceGetStreamFromPath = (Func<string, Stream>)Delegate.CreateDelegate (typeof (Func<string, Stream>), crowService,
@@ -199,10 +196,11 @@ namespace CECrowPlugin
 			ClearInterface();
 			initDictionaries();
 			foreach (object style in delCrowServiceGetStyling ()) {
-				if (style is string stylePath)
+				if (style is string stylePath) {
 					LoadStyle (stylePath);
-				else if (style is Assembly styleAssembly)
+				} else if (style is Assembly styleAssembly) {
 					loadStylingFromAssembly (styleAssembly);
+				}
 			}
 		}
 		public void ReloadIml () {

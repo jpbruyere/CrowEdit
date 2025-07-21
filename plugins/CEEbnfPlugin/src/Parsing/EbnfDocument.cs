@@ -23,7 +23,7 @@ namespace CrowEdit.Ebnf
 			return null;
 		}
 
-		public override Color GetColorForToken(Token token)
+		public override Color GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			EbnfTokenType xmlTokType = (EbnfTokenType)tokType;

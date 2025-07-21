@@ -18,7 +18,7 @@ using Crow;
 namespace CERoslynPlugin
 {
 	public class RoslynService : Service {
-		public override string[] ServiceWindowsPath => ["#CERoslynPlugin.ui.winConfiguration.crow"];
+		public override string[] ServiceWindowsPath => new  string[] {"#CERoslynPlugin.ui.winConfiguration.crow"};
 		CELogger logger;
 		internal CELogger Logger {
 			get => logger;

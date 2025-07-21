@@ -26,7 +26,7 @@ using System.Net.Http;
 namespace NugetPlugin
 {
 	public class NugetService : Service {
-		public override string[] ServiceWindowsPath => ["#CENugetPlugin.ui.winConfiguration.crow"];
+		public override string[] ServiceWindowsPath => new  string[] {"#CENugetPlugin.ui.winConfiguration.crow"};
 
 		public NugetService () : base () {
 			initCommands();

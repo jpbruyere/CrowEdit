@@ -1,10 +1,14 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Crow Preview"  Width="60%" Commands="{/dbgIfaceWidget.WindowCommands}">
-	<VerticalStack Background="Black" >	
-		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true" CurrentWidget="{CurrentWidget}"
+	<VerticalStack Background="Black" >
+		<HorizontalStack Height="Fit" Spacing="5" >
+			<CheckBox Caption="Load source as template in:" Width="Fit" Name="cbEncloseInTemplate" IsChecked="{²EncloseInTemplatedControl}"/>
+			<TextBox Width="Stretched" Text="{²TemplateContainerSource}" IsEnabled="{../cbEncloseInTemplate.IsChecked}"/>
+		</HorizontalStack>
+		<DebugInterfaceWidget Name="dbgIfaceWidget" Focusable="true" CurrentWidget="{²CurrentWidget}"
 					BubbleEvents="None"
 					Document="{CurrentDocument}"/>
-		<Popper DataSource="{../dbgIfaceWidget.CrowIFaceService}" IsVisible="{PreviewHasError}" Background="DarkRed">
+		<Popper IsVisible="{PreviewHasError}" Background="DarkRed">
 			<Template>
 				<CheckBox IsChecked="{²./IsPopped}" MouseEnter="{IsChecked='true'}" MouseLeave="{IsChecked='false'}">
 					<Template>

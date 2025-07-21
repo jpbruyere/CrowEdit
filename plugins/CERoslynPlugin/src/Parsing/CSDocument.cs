@@ -48,11 +48,14 @@ namespace CERoslynPlugin
 		#endregion
 
 		public override string GetTokenTypeString (TokenType tokenType) => ((SyntaxKind)tokenType).ToString();
-		public override Color GetColorForToken(Token token)
+		public override Color GetColorForToken(Token token, SyntaxNode node = null)
 		{
+			if (node is CSToken cstok) {
+				Console.WriteLine($"=> {cstok.Parent}");
+			}
 			SyntaxKind syntaxKind = (SyntaxKind)token.Type;
 			TokenType tokType = token.Type;
-			CSTokenType xmlTokType = (CSTokenType)tokType;
+			CSTokenType csTokType = (CSTokenType)tokType;
 
 			if (SyntaxFacts.IsPredefinedType(syntaxKind))
 				return Colors.Fuchsia;
@@ -68,23 +71,23 @@ namespace CERoslynPlugin
 			if (syntaxKind == SyntaxKind.IdentifierToken)
 				return Colors.Blue;
 			
-			if (xmlTokType.HasFlag (CSTokenType.Punctuation))
+			if (csTokType.HasFlag (CSTokenType.Punctuation))
 				return Colors.DarkGrey;
 			if (tokType.HasFlag (TokenType.WhiteSpace))
 				return Colors.Silver;			
-			if (xmlTokType.HasFlag (CSTokenType.Trivia))
+			if (csTokType.HasFlag (CSTokenType.Trivia))
 				return Colors.DimGrey;
-			else if (xmlTokType == CSTokenType.Name)
+			else if (csTokType == CSTokenType.Name)
 				return Colors.Green;
-			if (xmlTokType == CSTokenType.TypeKeyword)
+			if (csTokType == CSTokenType.TypeKeyword)
 				return Colors.Blue;
-			if (xmlTokType == CSTokenType.Keyword)
+			if (csTokType == CSTokenType.Keyword)
 				return Colors.DarkBlue;
-			if (xmlTokType == CSTokenType.VisibilityKeyword)
+			if (csTokType == CSTokenType.VisibilityKeyword)
 				return Colors.SlateBlue;
-			if (xmlTokType == CSTokenType.Directive)
+			if (csTokType == CSTokenType.Directive)
 				return Colors.Black;
-			if (xmlTokType == CSTokenType.Operator)
+			if (csTokType == CSTokenType.Operator)
 				return Colors.DarkSlateBlue;
 			return Colors.Red;
 
