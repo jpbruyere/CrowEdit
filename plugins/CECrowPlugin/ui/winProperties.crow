@@ -13,7 +13,7 @@
                         <Label Text="{DesignPath}" />
                         <Label Text="{DesignLine}" />
                         <Label Text="{DesignColumn}" />
-                    </HorizontalStack>                    
+                    </HorizontalStack>
                     <HorizontalStack Margin="1">
                         <Scroller Name="ItemsScroller" Margin="2">
                             <VerticalStack Height="Fit" MinimumSize="10,10"
@@ -35,7 +35,7 @@
                         <TextBox Margin="1" Text="{²Value}" Height="Fit" Foreground="{LabForeground}" Font="mono, 12"/>
                     </HorizontalStack>
                 </ListItem>
-            </ItemTemplate>    
+            </ItemTemplate>
         </ListBox>
     </VerticalStack>
 </DockWindow>

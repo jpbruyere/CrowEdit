@@ -364,7 +364,7 @@ namespace CECrowPlugin
 			if (IsRunning)
 				delUnlockRenderMutex();
 		}
-		
+
 		bool dirtyState = false;
 		bool DirtyState {
 			get {
@@ -619,6 +619,7 @@ namespace CECrowPlugin
 			fiWidget_design_id = typeWidget.GetField("design_id");
 			fiWidget_design_style_values = typeWidget.GetField("design_style_values");
 			fiWidget_design_style_locations = typeWidget.GetField("design_style_locations");
+			fiWidget_design_iml_locations = typeWidget.GetField("design_iml_locations");
 			fiWidget_design_iml_values = typeWidget.GetField("design_iml_values");
 			fiWidget_design_line = typeWidget.GetField("design_line");
 			fiWidget_design_column = typeWidget.GetField("design_column");
@@ -645,7 +646,6 @@ namespace CECrowPlugin
 		public Project CurrentSolution {
 			get => currentSolution;
 			set {
-				//CERoslynPlugin.SolutionProject sol = value as CERoslynPlugin.SolutionProject;
 				if (currentSolution == value)
 					return;
 				currentSolution = value;
@@ -655,15 +655,10 @@ namespace CECrowPlugin
 		public Document CurrentDocument {
 			get => currentDocument;
 			set {
-				//CERoslynPlugin.SolutionProject sol = value as CERoslynPlugin.SolutionProject;
 				if (currentDocument == value)
 					return;
 				currentDocument = value;
 				NotifyValueChanged (currentDocument);
-
-				/*if (currentDocument is ImlDocument iml) {
-					LoadIML(iml.source.ToString());
-				}*/
 			}
 		}
 		

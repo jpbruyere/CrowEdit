@@ -19,7 +19,9 @@ namespace CECrowPlugin
 	public class ForeignWidgetContainer : CrowEditComponent {
 		internal static Type typeWidget;//, typeGroup, typeContainer, typeTemplatedContainer, typeTemplatedGroup;
 		//design mode members, present only if crow compiled with DESIGN_MODE enabled
-		internal static FieldInfo fiWidget_design_id, fiWidget_design_style_values,	fiWidget_design_iml_values, fiWidget_design_style_locations,
+		internal static FieldInfo fiWidget_design_id,
+									fiWidget_design_style_values, fiWidget_design_iml_values,
+									fiWidget_design_style_locations, fiWidget_design_iml_locations,
 									fiWidget_design_line, fiWidget_design_column, fiWidget_design_imlPath,
 									fiWidget_slot;
 		Func<string> delGetName;
@@ -44,7 +46,7 @@ namespace CECrowPlugin
 			designColumn = (int)fiWidget_design_column?.GetValue(instance);
 			designImlPath = (string)fiWidget_design_imlPath?.GetValue(instance);
 
-			//Console.WriteLine($"new ForeignWidgetContainer: {this} {parent}");
+			//onsole.WriteLine($"new ForeignWidgetContainer: {this} {parent} {designImlPath}");
 		}
 
 
@@ -101,6 +103,7 @@ namespace CECrowPlugin
 		public Dictionary<string,string> ImlValues => fiWidget_design_iml_values.GetValue(instance) as Dictionary<string,string>;
 		public Dictionary<string,string> StyleValues => fiWidget_design_style_values.GetValue(instance) as Dictionary<string,string>;
 		public Dictionary<string,FileLocation> StyleLocation => fiWidget_design_style_locations.GetValue(instance) as Dictionary<string,FileLocation>;
+		public Dictionary<string,FileLocation> ImlLocation => fiWidget_design_iml_locations.GetValue(instance) as Dictionary<string,FileLocation>;
 
 		public virtual bool IsExpanded {
 			get => isExpanded;

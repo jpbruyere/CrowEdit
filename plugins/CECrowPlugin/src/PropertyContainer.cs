@@ -23,7 +23,7 @@ namespace CECrowPlugin
 		ForeignWidgetContainer host;
 		PropertyInfo pi;
 
-		Command cmdReset, cmdGoToStyle;
+		Command cmdReset, cmdGoToStyle, cmdGoToIml;
 		public CommandGroup Commands;
 
 		#region CTOR
@@ -33,15 +33,16 @@ namespace CECrowPlugin
 
 			cmdReset = new ActionCommand ("Reset to default", Reset, "", HasStyling | IsSetByIML);
 			cmdGoToStyle = new ActionCommand ("Goto style", GotoStyle, "#icons.edit.svg", HasStyling);
+			cmdGoToIml = new ActionCommand ("Goto Iml", GotoIml, "#icons.edit.svg", HasImlLocation);
 
-			Commands = new CommandGroup (cmdReset, cmdGoToStyle);
+			Commands = new CommandGroup (cmdReset, cmdGoToStyle, cmdGoToIml);
 		}
 		#endregion
 
 		public string DesignCategory {
 			get {
 				DesignCategory dca = (DesignCategory)pi.GetCustomAttribute (typeof(DesignCategory));
-				return dca == null ? "Divers" : dca.Name;					
+				return dca == null ? "Divers" : dca.Name;
 			}
 		}
 		public string Name => pi.Name;
@@ -78,6 +79,7 @@ namespace CECrowPlugin
 		/// return true if current value comes from IML attributes
 		/// </summary>
 		public bool IsSetByIML => host.ImlValues.ContainsKey (Name);
+		public bool HasImlLocation => host.ImlLocation.ContainsKey(Name);
 		/// <summary>
 		/// return true if member default value comes from style
 		/// </summary>
@@ -116,7 +118,7 @@ namespace CECrowPlugin
 			if (srv.CurrentSolution.TryGetFile(fl.FilePath, out IFileNode node)) {
 				if (App.OpenFile(node.FullPath) is TextDocument doc) {
 					doc.IsSelected = true;
-					doc.SetLocation(new CharLocation(fl.Line, fl.Column));
+					doc.SetLocation(new CharLocation(fl.Line, fl.Column + doc.GetLineText(fl.Line).CountLeadingWhiteSpaces()));
 				}
 			}
 			
@@ -133,8 +135,26 @@ namespace CECrowPlugin
 			pf.IsSelected = true;*/
 
 		}
+		public void GotoIml(){
+			if (!HasImlLocation)
+				return;
+			FileLocation fl = host.ImlLocation[Name];
+			Debug.WriteLine($"goto iml: {fl.FilePath}");
 
+			CrowService srv = App.GetService<CrowService> ();
+			if (srv.CurrentDocument is ImlDocument iml) {
+				iml.SetLocation(new CharLocation(fl.Line, fl.Column + iml.GetLineText(fl.Line).CountLeadingWhiteSpaces()));
+			}
+		}
 		public override string ToString () => $"{Name} = {Value}";
+        public override bool IsSelected {
+			get => base.IsSelected;
+			set {
+				base.IsSelected = value;
+				if (isSelected && HasImlLocation)
+					GotoIml();
+			}
+		}
 	}
 }
 
