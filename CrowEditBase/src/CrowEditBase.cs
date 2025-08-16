@@ -280,7 +280,7 @@ namespace CrowEditBase
 			}
 		}
 		public string CurFileName {
-			get => string.IsNullOrEmpty (CurrentFilePath) ? _defaultFileName : Path.GetFileName (CurrentFilePath);
+			get => string.IsNullOrEmpty (CurrentFilePath) ? "" : Path.GetFileName (CurrentFilePath);
 		}
 		public string CurFileDir {
 			get => string.IsNullOrEmpty (CurrentFilePath) ? CurrentDir : Path.GetDirectoryName (CurrentFilePath);

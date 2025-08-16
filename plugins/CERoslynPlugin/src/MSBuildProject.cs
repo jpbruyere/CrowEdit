@@ -332,7 +332,7 @@ namespace CERoslynPlugin
 		public string IntermediateOutputPath => project.GetProperty ("IntermediateOutputPath").EvaluatedValue;
 		public string OutputType => project.GetProperty ("OutputType").EvaluatedValue;
 		public string OutputAssembly =>
-			Path.Combine (project.GetProperty ("TargetDir").EvaluatedValue, project.GetProperty ("TargetName").EvaluatedValue);
+			Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("AssemblyName"));
 		public string AssemblyExtension => RuntimeInformation.IsOSPlatform (OSPlatform.Windows) ? ".exe" : "";
 		public OutputKind OutputKind {
 			get {

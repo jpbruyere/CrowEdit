@@ -128,7 +128,7 @@ namespace CrowEditBase
 		}
 		#endregion
 		protected abstract SyntaxAnalyser CreateSyntaxAnalyser ();
-		public virtual Color GetColorForToken (Token token, SyntaxNode node = null)
+		public virtual TextFormatting GetColorForToken (Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			if (tokType.HasFlag (TokenType.Punctuation))

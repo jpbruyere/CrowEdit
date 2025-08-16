@@ -105,7 +105,7 @@ namespace CrowEdit.Xml
 			return null;
 		}
 
-		public override Color GetColorForToken(Token token, SyntaxNode node = null)
+		public override TextFormatting GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			XmlTokenType xmlTokType = (XmlTokenType)tokType;

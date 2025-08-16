@@ -232,7 +232,7 @@ namespace CECrowPlugin
 			while (true) {
 				bool mouseInChildren = false;
 				foreach(Widget child in GetWidgetChilren(editHoverWidget)) {
-					if (child.MouseIsIn(MousePosition)) {
+					if (child != null && child.MouseIsIn(MousePosition)) {
 						editHoverWidget = child;
 						mouseInChildren = true;
 						break;
@@ -359,7 +359,7 @@ namespace CECrowPlugin
 			if (knownCrowWidgetTypes.ContainsKey (typeName))
 				return knownCrowWidgetTypes [typeName];
 			AssemblyLoadContext dbgLoadCtx =
-				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
+				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDesignLoadContext");
 			foreach (Assembly a in dbgLoadCtx.Assemblies) {
 				try {
 					foreach (Type expT in a.GetExportedTypes ()) {
@@ -383,7 +383,7 @@ namespace CECrowPlugin
 
 			MethodInfo mi = null;
 			AssemblyLoadContext dbgLoadCtx =
-				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
+				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDesignLoadContext");
 			foreach (Assembly a in dbgLoadCtx.Assemblies) {
 				try {
 					if (CompilerServices.TryGetExtensionMethods (a, t, methodName, out mi)) {
@@ -404,7 +404,7 @@ namespace CECrowPlugin
 		}
 		public Type GetTypeFromName (string typeName) {
 			AssemblyLoadContext dbgLoadCtx =
-				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDebuggerLoadContext");
+				AssemblyLoadContext.All.FirstOrDefault (ctx=>ctx.Name == "CrowDesignLoadContext");
 			foreach (Assembly a in dbgLoadCtx.Assemblies) {
 				try {
 					foreach (Type expT in a.GetExportedTypes ()) {

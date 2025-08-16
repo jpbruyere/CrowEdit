@@ -33,6 +33,7 @@ namespace CECrowPlugin
 		ForeignWidgetContainer parent;
 		string designId, designImlPath;
 		int designLine, designColumn;
+		CrowService srv;
 		public ForeignWidgetContainer(Type widgetType, object instance, ForeignWidgetContainer parent = null) {
 			type = widgetType;
 			this.instance = instance;
@@ -47,6 +48,7 @@ namespace CECrowPlugin
 			designImlPath = (string)fiWidget_design_imlPath?.GetValue(instance);
 
 			//onsole.WriteLine($"new ForeignWidgetContainer: {this} {parent} {designImlPath}");
+			srv = App.GetService<CrowService>();
 		}
 
 
@@ -54,7 +56,15 @@ namespace CECrowPlugin
 				Where (m=>((m is PropertyInfo pi && pi.CanWrite) || (m is EventInfo)) &&
 						m.GetCustomAttribute<XmlIgnoreAttribute>() == null);
 
-		public IEnumerable<PropertyContainer> Properties => Members.Where(m=>m.MemberType == MemberTypes.Property).Select(p=> new PropertyContainer(this, p as PropertyInfo));
+		public IEnumerable<CategoryContainer> Properties {
+			get {
+				if (!srv.crowTypesMembersCache.ContainsKey(type.FullName)) {
+					srv.crowTypesMembersCache.Add (type.FullName, Members.Where(m=>m.MemberType == MemberTypes.Property)
+						.Select(p=> new PropertyContainer(this, p as PropertyInfo)).GroupBy(pc=>pc.DesignCategory).Select(g=>new CategoryContainer(g.Key, g.AsEnumerable())));
+				}
+				return srv.crowTypesMembersCache[type.FullName];
+			}
+		}
 
 		public string Icon => $"#icons.{type.FullName}.svg";
 		public string Name => delGetName();

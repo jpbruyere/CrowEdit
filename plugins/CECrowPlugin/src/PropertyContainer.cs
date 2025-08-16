@@ -56,8 +56,7 @@ namespace CECrowPlugin
 					return pi.GetValue(host.Instance);
 			} 
 			set {
-				
-					
+				Console.WriteLine(value);
 			}
 		}
 		/// <summary>
@@ -90,7 +89,7 @@ namespace CECrowPlugin
 		public bool IsSetByStyling => IsSetByIML ? false : HasStyling;
 
 
-		public Color LabForeground => IsSetByIML ? Colors.Blue : HasStyling ? Colors.Black : Colors.Silver;
+		public Fill LabForeground => IsSetByIML ? Colors.Blue : HasStyling ? Colors.Black : Colors.Silver;
 
 		/// <summary>
 		/// reset to default value

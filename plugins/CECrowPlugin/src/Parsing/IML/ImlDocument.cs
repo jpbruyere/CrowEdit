@@ -233,7 +233,7 @@ namespace CECrowPlugin
 			return null;
 		}
 
-		public override Color GetColorForToken(Token token, SyntaxNode node = null)
+		public override TextFormatting GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			TokenType tokType = token.Type;
 			switch ((ImlTokenType)tokType) {

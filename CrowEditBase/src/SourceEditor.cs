@@ -252,7 +252,7 @@ namespace CrowEditBase
 						measureTextBounds (gr);
 					}
 				}
-				return Margin * 2 + (lt == LayoutingType.Height ? cachedTextSize.Height : cachedTextSize.Width + leftMargin);
+				return lt == LayoutingType.Height ? cachedTextSize.Height + 2 * Margin.Height : cachedTextSize.Width + leftMargin + 2 * Margin.Width;
 			} finally {
 				DbgLogger.EndEvent(DbgEvtType.GOMeasure);
 			}
@@ -754,7 +754,7 @@ namespace CrowEditBase
 							gr.ShowText (buff);*/
 						} else
 							buff = sourceBytes.Slice (tok.Start, tok.Length);
-						gr.SetSource (sourceDocument.GetColorForToken (tok));
+						gr.SetSource (sourceDocument.GetColorForToken (tok).Foreground);
 
 						int size = buff.Length * 4 + 1;
 						if (bytes.Length < size)
@@ -774,7 +774,7 @@ namespace CrowEditBase
 								Rectangle r = new RectangleD(pixX, pixY, extents.Width, lineHeight);
 								r.Inflate(1);
 								gr.Rectangle(r);
-								gr.SetSource(sourceDocument.GetColorForToken (tok).AdjustAlpha(0.5));
+								gr.SetSource(sourceDocument.GetColorForToken (tok).Foreground.AdjustAlpha(0.5));
 								gr.Stroke();
 							}
 

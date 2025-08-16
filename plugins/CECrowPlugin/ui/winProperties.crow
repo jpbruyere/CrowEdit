@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Properties"  Width="20%" Height="50%">
     <VerticalStack RootDataLevel="true" DataSource="{CurrentWidget}">
-        <ListBox Data="{Properties}">
+        <ListBox Data="{Properties}" DataTest="Type" ItemTemplate="#CECrowPlugin.ui.Properties.itemp">
             <Template>
                 <VerticalStack Background="{./Background}">
                     <HorizontalStack Height="Fit" Spacing="10" Margin="10" Background="DimGrey">
@@ -26,16 +26,6 @@
                     </HorizontalStack>
                 </VerticalStack>
             </Template>        
-            <ItemTemplate>
-                <ListItem Height="Fit" Width="Stretched" ContextCommands="{Commands}"
-                                    Selected="{Background=${ControlHighlight}}"
-                                    Unselected="{Background=Transparent}">
-                    <HorizontalStack>
-                        <Label Width="50%" Text="{Name}" Foreground="LightGrey"/>
-                        <TextBox Margin="1" Text="{²Value}" Height="Fit" Foreground="{LabForeground}" Font="mono, 12"/>
-                    </HorizontalStack>
-                </ListItem>
-            </ItemTemplate>
         </ListBox>
     </VerticalStack>
 </DockWindow>

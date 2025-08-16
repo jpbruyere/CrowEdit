@@ -48,7 +48,7 @@ namespace CERoslynPlugin
 		#endregion
 
 		public override string GetTokenTypeString (TokenType tokenType) => ((SyntaxKind)tokenType).ToString();
-		public override Color GetColorForToken(Token token, SyntaxNode node = null)
+		public override TextFormatting GetColorForToken(Token token, SyntaxNode node = null)
 		{
 			if (node is CSToken cstok) {
 				Console.WriteLine($"=> {cstok.Parent}");

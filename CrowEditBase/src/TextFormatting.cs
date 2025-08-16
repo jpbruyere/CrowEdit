@@ -60,7 +60,7 @@ namespace CrowEditBase
 			}
 		}
 
-		public TextFormatting(Color fg, Color bg, bool _bold = false, bool _italic = false){
+		public TextFormatting(Color fg, Color bg = default, bool _bold = false, bool _italic = false){
 			Foreground = fg;
 			Background = bg;
 			Bold = _bold;
@@ -69,6 +69,9 @@ namespace CrowEditBase
 
 		public override string ToString ()
 			=> $"{Foreground};{Background};{Bold};{Italic}";
+
+		public static implicit operator TextFormatting(Color color) => new TextFormatting(color);
+		public static implicit operator TextFormatting(Colors color) => new TextFormatting(color);
 
 		public static TextFormatting Parse (string str) {
 			string[] tmp = str.Split (';');

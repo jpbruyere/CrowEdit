@@ -9,5 +9,7 @@ namespace CrowEdit
       public static Picture GetIcon (this MemberInfo mi)
         => mi is EventInfo ? new SvgPicture("#icons.event.svg") : new SvgPicture("#icons.property.svg");
       public static Picture GetIcon (this SyntaxException se) => new SvgPicture("#icons.IconAlerte.svg");
+
+      
     }
 }

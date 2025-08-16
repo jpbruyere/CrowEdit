@@ -102,13 +102,13 @@ namespace CrowEdit.Xml
 		public override int measureRawSize (LayoutingType lt)
 		{
 			if (xmlDocument == null)
-				return 2 * Margin;
+				return lt == LayoutingType.Width ? 2 * Margin.Width : 2 * Margin.Height;
 			if (pic == null) 
 				load();
 			if (lt == LayoutingType.Width)
-				return (int)(zoomFactor * pic.Dimensions.Width + 2 * Margin);
+				return (int)(zoomFactor * pic.Dimensions.Width + 2 * Margin.Width);
 			else
-				return (int)(zoomFactor * pic.Dimensions.Height + 2 * Margin);
+				return (int)(zoomFactor * pic.Dimensions.Height + 2 * Margin.Height);
 		}
 		protected override void onDraw (IContext gr)
 		{

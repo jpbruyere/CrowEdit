@@ -164,7 +164,7 @@ namespace CECrowPlugin
 		Type dbgIfaceType;
 		IList<ForeignWidgetContainer> graphicTree;
 		ForeignWidgetContainer currentWidget, hoverWidget;
-
+		internal Dictionary<string,IEnumerable<CategoryContainer>> crowTypesMembersCache = new Dictionary<string,IEnumerable<CategoryContainer>> (10);
 		
 		public IList<ForeignWidgetContainer> GraphicTree {
 			get => graphicTree;
@@ -525,7 +525,7 @@ namespace CECrowPlugin
 				return false;
 			}
 			
-			crowLoadCtx = new AssemblyLoadContext("CrowDebuggerLoadContext");
+			crowLoadCtx = new AssemblyLoadContext("CrowDesignLoadContext");
 			crowAssembly = crowLoadCtx.LoadFromAssemblyPath (CrowDbgAssemblyLocation);
 
 			Type debuggerType = crowAssembly.GetType("Crow.DbgLogger");
